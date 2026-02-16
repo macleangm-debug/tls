@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class TLSAPITester:
-    def __init__(self, base_url="https://pdf-positioning-test.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://secure-check-8.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.token = None
         self.admin_token = None
