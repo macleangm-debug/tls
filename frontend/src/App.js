@@ -13,6 +13,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 import AdvocateDashboard from "./pages/AdvocateDashboard";
 import ProfilePage from "./pages/ProfilePage";
 import StampOrderPage from "./pages/StampOrderPage";
