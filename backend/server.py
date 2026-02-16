@@ -1392,17 +1392,219 @@ class PasswordChange(BaseModel):
     current_password: str
     new_password: str
 
+# Password reset request model
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+# Password reset confirm model
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+# =============== EMAIL SERVICE ===============
+
+async def send_email(to_email: str, subject: str, html_content: str) -> dict:
+    """Send email using Resend service"""
+    if not RESEND_API_KEY:
+        logger.warning(f"Email not sent (no API key): {subject} to {to_email}")
+        return {"status": "skipped", "message": "Email service not configured"}
+    
+    params = {
+        "from": f"TLS Verification <{SENDER_EMAIL}>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html_content
+    }
+    
+    try:
+        # Run sync SDK in thread to keep FastAPI non-blocking
+        email = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Email sent successfully to {to_email}: {subject}")
+        return {"status": "success", "message": f"Email sent to {to_email}", "email_id": email.get("id")}
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+def generate_password_reset_email(reset_url: str, user_name: str) -> str:
+    """Generate HTML email template for password reset"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #0a0f1a;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <tr>
+                <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; padding: 40px;">
+                    <table width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 30px;">
+                                <div style="background: #10b981; width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: white; font-size: 28px; font-weight: bold;">TLS</span>
+                                </div>
+                                <h1 style="color: #ffffff; font-size: 24px; margin: 0;">Password Reset Request</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #94a3b8; font-size: 16px; line-height: 24px; padding-bottom: 24px;">
+                                <p>Hello {user_name},</p>
+                                <p>We received a request to reset your password for your TLS Verification account. Click the button below to create a new password:</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 24px;">
+                                <a href="{reset_url}" style="display: inline-block; background: #10b981; color: #ffffff; text-decoration: none; font-weight: 600; padding: 14px 32px; border-radius: 8px; font-size: 16px;">Reset Password</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #64748b; font-size: 14px; line-height: 20px; padding-bottom: 24px;">
+                                <p>This link will expire in <strong>30 minutes</strong>.</p>
+                                <p>If you didn't request a password reset, please ignore this email or contact support if you have concerns.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border-top: 1px solid #334155; padding-top: 24px;">
+                                <p style="color: #475569; font-size: 12px; margin: 0;">If the button doesn't work, copy and paste this link:</p>
+                                <p style="color: #10b981; font-size: 12px; word-break: break-all; margin: 8px 0 0;">{reset_url}</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center; padding-top: 24px;">
+                    <p style="color: #475569; font-size: 12px; margin: 0;">Tanganyika Law Society</p>
+                    <p style="color: #475569; font-size: 12px; margin: 4px 0 0;">Upholding Justice Since 1954</p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+def generate_welcome_email(user_name: str, login_url: str) -> str:
+    """Generate HTML email template for welcome/registration"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #0a0f1a;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <tr>
+                <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; padding: 40px;">
+                    <table width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 30px;">
+                                <div style="background: #10b981; width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 16px;">
+                                    <span style="color: white; font-size: 28px; font-weight: bold; line-height: 60px;">TLS</span>
+                                </div>
+                                <h1 style="color: #ffffff; font-size: 24px; margin: 0;">Welcome to TLS Verification!</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #94a3b8; font-size: 16px; line-height: 24px; padding-bottom: 24px;">
+                                <p>Dear {user_name},</p>
+                                <p>Your TLS Verification account has been successfully created. You can now:</p>
+                                <ul style="color: #cbd5e1; padding-left: 20px;">
+                                    <li>Digitally stamp and verify legal documents</li>
+                                    <li>Build your public advocate profile</li>
+                                    <li>Track your stamping history</li>
+                                    <li>Order official TLS stamps</li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 24px;">
+                                <a href="{login_url}" style="display: inline-block; background: #10b981; color: #ffffff; text-decoration: none; font-weight: 600; padding: 14px 32px; border-radius: 8px; font-size: 16px;">Go to Dashboard</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #64748b; font-size: 14px; line-height: 20px;">
+                                <p>If you have any questions, please contact us at support@tls.or.tz</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center; padding-top: 24px;">
+                    <p style="color: #475569; font-size: 12px; margin: 0;">Tanganyika Law Society</p>
+                    <p style="color: #475569; font-size: 12px; margin: 4px 0 0;">Upholding Justice Since 1954</p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+def generate_password_changed_email(user_name: str) -> str:
+    """Generate HTML email template for password changed notification"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #0a0f1a;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <tr>
+                <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; padding: 40px;">
+                    <table width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 30px;">
+                                <div style="background: #10b981; width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 16px;">
+                                    <span style="color: white; font-size: 28px; font-weight: bold; line-height: 60px;">TLS</span>
+                                </div>
+                                <h1 style="color: #ffffff; font-size: 24px; margin: 0;">Password Changed</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #94a3b8; font-size: 16px; line-height: 24px; padding-bottom: 24px;">
+                                <p>Hello {user_name},</p>
+                                <p>Your TLS Verification account password was successfully changed.</p>
+                                <p style="color: #f59e0b; font-weight: 600;">If you did not make this change, please contact us immediately at support@tls.or.tz</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #64748b; font-size: 14px; line-height: 20px;">
+                                <p>Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center; padding-top: 24px;">
+                    <p style="color: #475569; font-size: 12px; margin: 0;">Tanganyika Law Society</p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
 @api_router.post("/auth/change-password")
 @limiter.limit("3/minute")
 async def change_password(request: Request, data: PasswordChange, user: dict = Depends(get_current_user)):
-    """Change user password"""
+    """Change user password with strict validation"""
     # Verify current password
     if not verify_password(data.current_password, user.get("password_hash", "")):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     
-    # Validate new password strength
-    if len(data.new_password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    # Validate new password strength with strict rules
+    is_valid, error_message = validate_password_strength(data.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_message)
+    
+    # Ensure new password is different from current
+    if verify_password(data.new_password, user.get("password_hash", "")):
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
     
     # Hash and update password
     new_hash = hash_password(data.new_password)
@@ -1421,7 +1623,147 @@ async def change_password(request: Request, data: PasswordChange, user: dict = D
         )
     
     logger.info(f"Password changed for user: {user.get('email')}")
+    
+    # Send password changed notification email
+    try:
+        await send_email(
+            to_email=user.get('email'),
+            subject="TLS Verification - Password Changed",
+            html_content=generate_password_changed_email(user.get('full_name', 'User'))
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send password change notification: {e}")
+    
     return {"message": "Password changed successfully"}
+
+@api_router.post("/auth/forgot-password")
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, data: PasswordResetRequest):
+    """Request password reset email"""
+    # Find user by email in advocates
+    user = await db.advocates.find_one({"email": data.email}, {"_id": 0})
+    
+    # Also check users collection
+    if not user:
+        user = await db.users.find_one({"email": data.email}, {"_id": 0})
+    
+    # Always return success to prevent email enumeration
+    if not user:
+        logger.warning(f"Password reset requested for non-existent email: {data.email}")
+        return {"message": "If an account exists with this email, you will receive a password reset link"}
+    
+    # Generate reset token
+    reset_token = secrets.token_urlsafe(32)
+    reset_expiry = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES)
+    
+    # Store reset token in database
+    await db.password_reset_tokens.delete_many({"email": data.email})  # Remove old tokens
+    await db.password_reset_tokens.insert_one({
+        "email": data.email,
+        "token": reset_token,
+        "expires_at": reset_expiry.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Generate reset URL
+    reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+    
+    # Send email
+    try:
+        await send_email(
+            to_email=data.email,
+            subject="TLS Verification - Password Reset",
+            html_content=generate_password_reset_email(reset_url, user.get('full_name', 'User'))
+        )
+        logger.info(f"Password reset email sent to: {data.email}")
+    except Exception as e:
+        logger.error(f"Failed to send password reset email: {e}")
+        # Don't reveal the error to user
+    
+    return {"message": "If an account exists with this email, you will receive a password reset link"}
+
+@api_router.post("/auth/reset-password")
+@limiter.limit("3/minute")
+async def reset_password(request: Request, data: PasswordResetConfirm):
+    """Reset password using token from email"""
+    # Find and validate token
+    token_doc = await db.password_reset_tokens.find_one({"token": data.token}, {"_id": 0})
+    
+    if not token_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    # Check expiry
+    expiry = datetime.fromisoformat(token_doc["expires_at"].replace('Z', '+00:00'))
+    if datetime.now(timezone.utc) > expiry:
+        await db.password_reset_tokens.delete_one({"token": data.token})
+        raise HTTPException(status_code=400, detail="Reset token has expired. Please request a new one")
+    
+    # Validate new password strength
+    is_valid, error_message = validate_password_strength(data.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_message)
+    
+    email = token_doc["email"]
+    
+    # Find user and update password
+    user = await db.advocates.find_one({"email": email}, {"_id": 0})
+    collection = "advocates"
+    if not user:
+        user = await db.users.find_one({"email": email}, {"_id": 0})
+        collection = "users"
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    
+    # Ensure new password is different from current
+    if verify_password(data.new_password, user.get("password_hash", "")):
+        raise HTTPException(status_code=400, detail="New password must be different from your previous password")
+    
+    # Update password
+    new_hash = hash_password(data.new_password)
+    if collection == "advocates":
+        await db.advocates.update_one(
+            {"email": email},
+            {"$set": {"password_hash": new_hash, "force_password_reset": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    else:
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {"password_hash": new_hash, "force_password_reset": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    # Delete used token
+    await db.password_reset_tokens.delete_one({"token": data.token})
+    
+    logger.info(f"Password reset successfully for: {email}")
+    
+    # Send confirmation email
+    try:
+        await send_email(
+            to_email=email,
+            subject="TLS Verification - Password Reset Successful",
+            html_content=generate_password_changed_email(user.get('full_name', 'User'))
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send password reset confirmation: {e}")
+    
+    return {"message": "Password has been reset successfully. You can now login with your new password"}
+
+@api_router.get("/auth/password-rules")
+async def get_password_rules():
+    """Get password validation rules for frontend"""
+    return {
+        "rules": [
+            {"rule": "minimum_length", "value": 12, "description": "At least 12 characters"},
+            {"rule": "uppercase", "value": 1, "description": "At least one uppercase letter (A-Z)"},
+            {"rule": "lowercase", "value": 1, "description": "At least one lowercase letter (a-z)"},
+            {"rule": "number", "value": 1, "description": "At least one number (0-9)"},
+            {"rule": "special", "value": 1, "description": "At least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)"},
+            {"rule": "no_common_patterns", "value": True, "description": "No common patterns (password, 123456, qwerty, etc.)"},
+            {"rule": "no_sequences", "value": True, "description": "No sequential characters (abcd, 1234)"},
+            {"rule": "no_repeating", "value": 3, "description": "No more than 3 consecutive identical characters"}
+        ]
+    }
 
 # =============== PROFILE ROUTES ===============
 
