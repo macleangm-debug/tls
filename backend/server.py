@@ -8,7 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, validator
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -20,6 +20,8 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 import secrets
 import math
+import re
+import asyncio
 from PIL import Image
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
@@ -34,6 +36,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+import resend
 
 # Try to import docx for DOCX support
 try:
