@@ -5620,6 +5620,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
         # Permissions Policy
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        # HTTP Strict Transport Security (HSTS) - enforce HTTPS
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
 # Rate limit exceeded handler
