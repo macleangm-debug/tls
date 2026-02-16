@@ -1351,6 +1351,16 @@ async def register(request: Request, data: AdvocateRegister):
         "timestamp": now
     })
     
+    # Send welcome email
+    try:
+        await send_email(
+            to_email=data.email,
+            subject="Welcome to TLS Verification",
+            html_content=generate_welcome_email(data.full_name, f"{FRONTEND_URL}/login")
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send welcome email: {e}")
+    
     token = create_access_token({"sub": advocate_id, "role": "advocate"})
     return Token(access_token=token)
 
