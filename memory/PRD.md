@@ -2,6 +2,43 @@
 
 ## Last Updated: 2026-02-16
 
+## Email Verification & Login Logging Session (2026-02-16)
+
+### Features Implemented
+1. **Email Verification on Registration (P0)**
+   - New users receive `email_verified: false` and a 24-hour verification token
+   - `/api/auth/register` sends verification email and returns `requires_verification: true`
+   - `/api/auth/verify-email/{token}` verifies the user and clears token
+   - `/api/auth/resend-verification` generates new token and sends email
+   - Login blocked for unverified advocates (403 with helpful message)
+   - Admin/super_admin users bypass email verification
+
+2. **Login Attempt Logging (P1)**
+   - All login attempts logged to `login_attempts` collection
+   - Tracks: email, user_id, success, failure_reason, ip_address, user_agent, timestamp
+   - Failure reasons: `user_not_found`, `invalid_password`, `account_suspended`, `email_not_verified`
+   - `/api/admin/login-attempts` endpoint for admins with filtering and stats
+
+### New User Fields (advocates collection)
+- `email_verified` (bool) - Whether email is verified
+- `verification_token` (string) - Verification token (cleared after verification)
+- `verification_token_expires` (string) - Token expiry timestamp
+
+### New MongoDB Collection
+- `login_attempts` - Stores all login attempt logs
+
+### Frontend Pages Added/Updated
+- `/verify-email` - New page for email verification flow
+- `/register` - Updated to show verification pending message
+- `/login` - Updated to show verification warning with resend link
+
+### API Endpoints Added
+- `GET /api/auth/verify-email/{token}` - Verify email address
+- `POST /api/auth/resend-verification` - Resend verification email
+- `GET /api/admin/login-attempts` - View login attempt logs (admin only)
+
+---
+
 ## Resend Email Integration Session (2026-02-16)
 
 ### Features Implemented
