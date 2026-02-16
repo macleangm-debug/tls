@@ -18,7 +18,7 @@ import {
   Sparkles, Clock, Activity, Search, Download, Upload, 
   ShieldCheck, XCircle, RefreshCw, ChevronRight, Menu, X,
   QrCode, Fingerprint, Bell, Settings, HelpCircle, Webhook,
-  Receipt, CreditCard as Card, FileCheck, Send, AlertCircle,
+  Receipt, CreditCard, FileCheck, Send, AlertCircle,
   RotateCcw, Trash2, PlayCircle
 } from "lucide-react";
 
