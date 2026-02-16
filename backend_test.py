@@ -218,17 +218,30 @@ class SecurityTester:
             
             if response.status_code == 200:
                 data = response.json()
-                required_fields = ['min_length', 'require_uppercase', 'require_lowercase', 'require_numbers', 'require_special']
                 
-                for field in required_fields:
-                    if field not in data:
-                        return False, f"Password rules missing field: {field}"
+                # Check if rules array exists
+                if 'rules' not in data:
+                    return False, "Password rules endpoint missing 'rules' field"
+                
+                rules = data['rules']
+                if not isinstance(rules, list):
+                    return False, "Password rules 'rules' field is not an array"
+                
+                # Check for minimum length rule
+                min_length_rule = None
+                for rule in rules:
+                    if rule.get('rule') == 'minimum_length':
+                        min_length_rule = rule
+                        break
+                
+                if not min_length_rule:
+                    return False, "Missing minimum_length rule"
                 
                 # Check minimum length requirement
-                if data.get('min_length', 0) >= 12:
-                    return True, f"Password rules endpoint working - min_length: {data.get('min_length')}"
+                if min_length_rule.get('value', 0) >= 12:
+                    return True, f"Password rules endpoint working - min_length: {min_length_rule.get('value')}"
                 else:
-                    return False, f"Weak password requirements - min_length only {data.get('min_length')}"
+                    return False, f"Weak password requirements - min_length only {min_length_rule.get('value')}"
             else:
                 return False, f"Password rules endpoint failed with status {response.status_code}"
                 
