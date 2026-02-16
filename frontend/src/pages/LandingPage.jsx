@@ -177,10 +177,9 @@ const LandingPage = () => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden glass border-t border-white/5 px-6 py-6 space-y-4 animate-slide-down">
-            <a href="#about" className="block text-white/80 hover:text-white py-2">About</a>
-            <a href="#services" className="block text-white/80 hover:text-white py-2">Services</a>
             <a href="#news" className="block text-white/80 hover:text-white py-2">News</a>
             <Link to="/verify" className="block text-white/80 hover:text-white py-2">Verify Stamp</Link>
+            <Link to="/directory" className="block text-white/80 hover:text-white py-2">Find Advocate</Link>
             <Link to="/business" className="block text-emerald-400 hover:text-emerald-300 py-2 font-medium">For Business</Link>
             <Link to="/login" className="block text-white/80 hover:text-white py-2">Member Login</Link>
             <Link to="/register">
