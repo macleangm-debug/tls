@@ -50,10 +50,18 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Security
-SECRET_KEY = os.environ.get('SECRET_KEY', secrets.token_urlsafe(32))
+# Security - SECRET_KEY must be set in production
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_urlsafe(32)
+    logging.warning("SECRET_KEY not set in environment. Using random key (sessions won't persist across restarts)")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+# Rate limiting configuration
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 # VAPID configuration for push notifications
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
