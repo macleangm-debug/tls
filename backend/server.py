@@ -1312,6 +1312,11 @@ async def register(request: Request, data: AdvocateRegister):
     if existing_roll:
         raise HTTPException(status_code=400, detail="Roll number already registered")
     
+    # Validate password strength with strict rules
+    is_valid, error_message = validate_password_strength(data.password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_message)
+    
     now = datetime.now(timezone.utc).isoformat()
     advocate_id = str(uuid.uuid4())
     
