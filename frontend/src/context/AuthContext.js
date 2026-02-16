@@ -66,9 +66,17 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const response = await axios.post(`${API}/auth/register`, data);
+    // Check if email verification is required (new flow)
+    if (response.data.requires_verification) {
+      // Don't set token - user needs to verify email first
+      return response.data;
+    }
+    // Legacy flow (if token is returned)
     const { access_token } = response.data;
-    localStorage.setItem("tls_token", access_token);
-    setToken(access_token);
+    if (access_token) {
+      localStorage.setItem("tls_token", access_token);
+      setToken(access_token);
+    }
     return response.data;
   };
 
