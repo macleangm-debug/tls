@@ -5586,7 +5586,7 @@ async def startup_db_client():
             "created_at": now,
             "updated_at": now
         })
-        logger.info("Default super admin created: superadmin@idc.co.tz / IDC@SuperAdmin2024")
+        logger.info("Default super admin created: superadmin@idc.co.tz")
     
     # Create default TLS admin if not exists
     admin = await db.advocates.find_one({"email": "admin@tls.or.tz"})
@@ -5613,7 +5613,7 @@ async def startup_db_client():
             "created_at": now,
             "updated_at": now
         })
-        logger.info("Default TLS admin created: admin@tls.or.tz / TLS@Admin2024")
+        logger.info("Default TLS admin created: admin@tls.or.tz")
     
     # Initialize default system settings
     settings = await db.system_settings.find_one({"type": "verification_fees"})
