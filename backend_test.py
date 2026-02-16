@@ -294,7 +294,7 @@ class SecurityTester:
         """Test password validation accepts strong passwords"""
         register_url = f"{self.base_url}/api/auth/register"
         
-        strong_password = "MyVerySecure2024!Password#WithComplexity"
+        strong_password = "MyVerySecure2024!Complex#Strong"
         test_email = f"test_strong_{int(time.time())}@test.com"
         
         try:
