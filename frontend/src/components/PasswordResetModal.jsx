@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
-import { Lock, Eye, EyeOff, Shield, AlertTriangle } from "lucide-react";
+import { Lock, Eye, EyeOff, Shield, AlertTriangle, Check, X } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 
 const PasswordResetModal = ({ isOpen, onClose }) => {
@@ -14,17 +14,33 @@ const PasswordResetModal = ({ isOpen, onClose }) => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, checks: {} });
+
+  // Password validation rules
+  const validatePassword = (password) => {
+    const checks = {
+      length: password.length >= 12,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password),
+      noCommon: !/(password|qwerty|abc123|123456|letmein|welcome|admin)/i.test(password),
+      noSequence: !/(.)\1{3,}/.test(password) && !/(abcd|bcde|1234|2345|qwer)/i.test(password)
+    };
+    
+    const score = Object.values(checks).filter(Boolean).length;
+    return { score, checks };
+  };
+
+  useEffect(() => {
+    if (newPassword) {
+      setPasswordStrength(validatePassword(newPassword));
+    } else {
+      setPasswordStrength({ score: 0, checks: {} });
+    }
+  }, [newPassword]);
 
   if (!isOpen) return null;
-
-  const validatePassword = (password) => {
-    if (password.length < 8) return "Password must be at least 8 characters";
-    if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";
-    if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter";
-    if (!/[0-9]/.test(password)) return "Password must contain at least one number";
-    if (!/[!@#$%^&*]/.test(password)) return "Password must contain at least one special character (!@#$%^&*)";
-    return null;
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,9 +53,8 @@ const PasswordResetModal = ({ isOpen, onClose }) => {
     }
 
     // Validate password strength
-    const validationError = validatePassword(newPassword);
-    if (validationError) {
-      setError(validationError);
+    if (passwordStrength.score < 7) {
+      setError("Password does not meet all security requirements");
       return;
     }
 
@@ -58,9 +73,23 @@ const PasswordResetModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const getStrengthColor = () => {
+    if (passwordStrength.score < 3) return "bg-red-500";
+    if (passwordStrength.score < 5) return "bg-yellow-500";
+    if (passwordStrength.score < 7) return "bg-blue-500";
+    return "bg-emerald-500";
+  };
+
+  const PasswordRule = ({ met, label }) => (
+    <div className={`flex items-center gap-2 text-xs ${met ? 'text-emerald-400' : 'text-slate-500'}`}>
+      {met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+      <span>{label}</span>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-3 bg-amber-500/20 rounded-xl">
             <AlertTriangle className="w-6 h-6 text-amber-400" />
@@ -120,9 +149,29 @@ const PasswordResetModal = ({ isOpen, onClose }) => {
                 {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Min 8 chars, uppercase, lowercase, number, special char (!@#$%^&*)
-            </p>
+            
+            {/* Password strength bar */}
+            {newPassword && (
+              <div className="mt-2">
+                <div className="flex gap-1 mb-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded ${i <= passwordStrength.score ? getStrengthColor() : 'bg-slate-700'}`}
+                    />
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  <PasswordRule met={passwordStrength.checks.length} label="12+ characters" />
+                  <PasswordRule met={passwordStrength.checks.uppercase} label="Uppercase (A-Z)" />
+                  <PasswordRule met={passwordStrength.checks.lowercase} label="Lowercase (a-z)" />
+                  <PasswordRule met={passwordStrength.checks.number} label="Number (0-9)" />
+                  <PasswordRule met={passwordStrength.checks.special} label="Special char" />
+                  <PasswordRule met={passwordStrength.checks.noCommon} label="No common words" />
+                  <PasswordRule met={passwordStrength.checks.noSequence} label="No sequences" />
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -133,17 +182,26 @@ const PasswordResetModal = ({ isOpen, onClose }) => {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:border-emerald-500 focus:outline-none"
+                className={`w-full bg-slate-800 border rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none ${
+                  confirmPassword && confirmPassword !== newPassword 
+                    ? 'border-red-500' 
+                    : confirmPassword && confirmPassword === newPassword 
+                    ? 'border-emerald-500' 
+                    : 'border-slate-700'
+                }`}
                 placeholder="Confirm new password"
                 required
               />
             </div>
+            {confirmPassword && confirmPassword !== newPassword && (
+              <p className="text-red-400 text-xs mt-1">Passwords do not match</p>
+            )}
           </div>
 
           <Button
             type="submit"
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium"
-            disabled={loading}
+            disabled={loading || passwordStrength.score < 7 || newPassword !== confirmPassword}
           >
             {loading ? "Changing Password..." : "Change Password"}
           </Button>
