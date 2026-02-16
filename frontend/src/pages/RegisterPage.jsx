@@ -42,16 +42,23 @@ const RegisterPage = () => {
       return;
     }
     
-    if (formData.password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    if (formData.password.length < 12) {
+      toast.error("Password must be at least 12 characters");
       return;
     }
     
     setLoading(true);
     try {
-      await register(formData);
-      toast.success("Registration successful! Welcome to TLS.");
-      navigate("/dashboard");
+      const result = await register(formData);
+      // Check if email verification is required
+      if (result?.requires_verification) {
+        setRegisteredEmail(result.email || formData.email);
+        setRegistrationComplete(true);
+        toast.success("Registration successful! Please check your email to verify your account.");
+      } else {
+        toast.success("Registration successful! Welcome to TLS.");
+        navigate("/dashboard");
+      }
     } catch (error) {
       const message = error.response?.data?.detail || "Registration failed";
       toast.error(message);
@@ -59,6 +66,74 @@ const RegisterPage = () => {
       setLoading(false);
     }
   };
+
+  // Show verification pending screen after registration
+  if (registrationComplete) {
+    return (
+      <div className="min-h-screen bg-[#02040A] text-white overflow-hidden noise-overlay">
+        <div className="fixed inset-0 bg-hero-glow pointer-events-none" />
+        <div className="fixed inset-0 grid-pattern pointer-events-none opacity-30" />
+        
+        <div className="min-h-screen flex items-center justify-center p-6 relative">
+          <div className="w-full max-w-md">
+            <Card className="glass-card rounded-3xl border-white/10" data-testid="verification-pending-card">
+              <CardHeader className="space-y-4 pb-4 text-center">
+                <div className="flex justify-center">
+                  <div className="w-20 h-20 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                    <Mail className="w-10 h-10 text-emerald-500" />
+                  </div>
+                </div>
+                <div>
+                  <CardTitle className="font-heading text-3xl text-white">Check Your Email</CardTitle>
+                  <CardDescription className="text-white/50 mt-2">
+                    We've sent a verification link to
+                  </CardDescription>
+                  <p className="text-tls-blue-electric font-medium mt-2" data-testid="registered-email">
+                    {registeredEmail}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-white/5 rounded-xl p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-white/70 text-sm">
+                      Click the verification link in your email to activate your account
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-white/70 text-sm">
+                      The link will expire in 24 hours
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-white/70 text-sm">
+                      Check your spam folder if you don't see the email
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="pt-4 space-y-3">
+                  <Link to="/login" className="block">
+                    <Button className="w-full h-12 bg-tls-blue-electric hover:bg-tls-blue-electric/90 text-white font-semibold rounded-xl shadow-glow-sm hover:shadow-glow transition-all" data-testid="go-to-login-btn">
+                      Go to Login
+                    </Button>
+                  </Link>
+                  <Link to="/verify-email" className="block">
+                    <Button variant="outline" className="w-full h-12 border-white/20 text-white hover:bg-white/5 rounded-xl" data-testid="resend-email-link">
+                      Didn't receive email? Resend
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#02040A] text-white overflow-hidden noise-overlay">
