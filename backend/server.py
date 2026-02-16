@@ -1421,7 +1421,113 @@ async def login(request: Request, data: AdvocateLogin):
 @api_router.get("/auth/me")
 async def get_me(user: dict = Depends(get_current_user)):
     # Return user data without password hash
-    return {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}
+    return {k: v for k, v in user.items() if k not in ["_id", "password_hash", "verification_token", "verification_token_expires"]}
+
+# =============== EMAIL VERIFICATION ENDPOINTS ===============
+
+@api_router.get("/auth/verify-email/{token}")
+async def verify_email(token: str):
+    """Verify user's email address using the verification token"""
+    # Find user with this verification token
+    user = await db.advocates.find_one({"verification_token": token})
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+    
+    # Check if token has expired
+    token_expires = user.get("verification_token_expires")
+    if token_expires:
+        expires_dt = datetime.fromisoformat(token_expires.replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) > expires_dt:
+            raise HTTPException(status_code=400, detail="Verification link has expired. Please request a new one.")
+    
+    # Check if already verified
+    if user.get("email_verified", False):
+        return {"message": "Email already verified. You can now log in.", "already_verified": True}
+    
+    # Update user to mark email as verified
+    now = datetime.now(timezone.utc).isoformat()
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {
+            "$set": {
+                "email_verified": True,
+                "verification_token": None,
+                "verification_token_expires": None,
+                "updated_at": now
+            }
+        }
+    )
+    
+    # Log the verification
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "email_verified",
+        "user_id": user["id"],
+        "details": {"email": user["email"]},
+        "timestamp": now
+    })
+    
+    # Send welcome email now that they're verified
+    try:
+        await send_email(
+            to_email=user["email"],
+            subject="Welcome to TLS Verification",
+            html_content=generate_welcome_email(user["full_name"], f"{FRONTEND_URL}/login")
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send welcome email after verification: {e}")
+    
+    logger.info(f"Email verified for user: {user['email']}")
+    return {"message": "Email verified successfully! You can now log in.", "verified": True}
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+@api_router.post("/auth/resend-verification")
+@limiter.limit("3/minute")
+async def resend_verification(request: Request, data: ResendVerificationRequest):
+    """Resend email verification link"""
+    user = await db.advocates.find_one({"email": data.email})
+    
+    if not user:
+        # Don't reveal if email exists
+        return {"message": "If the email exists in our system, a verification link will be sent."}
+    
+    # Check if already verified
+    if user.get("email_verified", False):
+        raise HTTPException(status_code=400, detail="Email is already verified. Please log in.")
+    
+    # Generate new verification token
+    verification_token = secrets.token_urlsafe(32)
+    verification_expires = (datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_EXPIRE_HOURS)).isoformat()
+    
+    # Update user with new token
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {
+            "$set": {
+                "verification_token": verification_token,
+                "verification_token_expires": verification_expires,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Send verification email
+    verification_url = f"{FRONTEND_URL}/verify-email?token={verification_token}"
+    try:
+        await send_email(
+            to_email=data.email,
+            subject="Verify Your Email - TLS Verification",
+            html_content=generate_email_verification_email(verification_url, user["full_name"])
+        )
+        logger.info(f"Verification email resent to {data.email}")
+    except Exception as e:
+        logger.error(f"Failed to resend verification email: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send verification email. Please try again.")
+    
+    return {"message": "Verification email sent. Please check your inbox."}
 
 # Password change model
 class PasswordChange(BaseModel):
