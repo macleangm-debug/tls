@@ -1381,6 +1381,25 @@ async def register(request: Request, data: AdvocateRegister):
 @api_router.post("/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, data: AdvocateLogin):
+    # Get request metadata for logging
+    ip_address = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+    if "," in ip_address:
+        ip_address = ip_address.split(",")[0].strip()
+    user_agent = request.headers.get("User-Agent", "unknown")
+    
+    # Helper function to log login attempts
+    async def log_login_attempt(email: str, success: bool, failure_reason: str = None, user_id: str = None):
+        await db.login_attempts.insert_one({
+            "id": str(uuid.uuid4()),
+            "email": email,
+            "user_id": user_id,
+            "success": success,
+            "failure_reason": failure_reason,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+    
     # Check advocates collection first
     user = await db.advocates.find_one({"email": data.email})
     
@@ -1390,23 +1409,30 @@ async def login(request: Request, data: AdvocateLogin):
     
     if not user:
         logger.error(f"Login attempt for non-existent user: {data.email}")
+        await log_login_attempt(data.email, False, "user_not_found")
         # Use same error message to prevent user enumeration
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     if not verify_password(data.password, user.get("password_hash", "")):
         logger.warning(f"Failed login attempt for: {data.email}")
+        await log_login_attempt(data.email, False, "invalid_password", user.get("id"))
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Check if advocate is suspended
     if user.get("practicing_status") == "Suspended":
+        await log_login_attempt(data.email, False, "account_suspended", user.get("id"))
         raise HTTPException(status_code=403, detail="Account suspended. Contact TLS administration.")
     
     # Check if email is verified (only for advocates, not admins)
     if user.get("role") == "advocate" and not user.get("email_verified", False):
+        await log_login_attempt(data.email, False, "email_not_verified", user.get("id"))
         raise HTTPException(
             status_code=403, 
             detail="Please verify your email before logging in. Check your inbox for the verification link."
         )
+    
+    # Log successful login
+    await log_login_attempt(data.email, True, None, user.get("id"))
     
     # Check if password reset is required (for default accounts)
     force_password_reset = user.get("force_password_reset", False)
