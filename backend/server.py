@@ -1301,6 +1301,42 @@ async def get_me(user: dict = Depends(get_current_user)):
     # Return user data without password hash
     return {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}
 
+# Password change model
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+@api_router.post("/auth/change-password")
+@limiter.limit("3/minute")
+async def change_password(request: Request, data: PasswordChange, user: dict = Depends(get_current_user)):
+    """Change user password"""
+    # Verify current password
+    if not verify_password(data.current_password, user.get("password_hash", "")):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Validate new password strength
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    
+    # Hash and update password
+    new_hash = hash_password(data.new_password)
+    
+    # Update in advocates collection
+    result = await db.advocates.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": new_hash, "force_password_reset": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # If not found in advocates, try users collection
+    if result.modified_count == 0:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"password_hash": new_hash, "force_password_reset": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    logger.info(f"Password changed for user: {user.get('email')}")
+    return {"message": "Password changed successfully"}
+
 # =============== PROFILE ROUTES ===============
 
 @api_router.put("/profile", response_model=AdvocateProfile)
