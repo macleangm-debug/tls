@@ -532,7 +532,7 @@ def generate_branded_qr_code(data: str, size: int = 200, brand_color: str = "#10
         # Add "TLS" text
         try:
             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", badge_size // 3)
-        except:
+        except (OSError, IOError):
             font = ImageFont.load_default()
         
         text = "TLS"
@@ -635,7 +635,7 @@ def generate_branded_stamp_image(
         font_regular = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(12 * scale))
         font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(10 * scale))
         font_tiny = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(8 * scale))
-    except:
+    except (OSError, IOError):
         font_bold_xlarge = font_bold_large = font_bold_medium = font_bold_small = font_regular = font_small = font_tiny = ImageFont.load_default()
     
     # Load TLS Logo
@@ -644,7 +644,7 @@ def generate_branded_stamp_image(
     if show_tls_logo and os.path.exists(logo_path):
         try:
             tls_logo = Image.open(logo_path).convert('RGBA')
-        except:
+        except (OSError, IOError):
             pass
     
     # Generate QR code
@@ -2234,7 +2234,7 @@ async def create_document_stamp(
     # Parse stamp position
     try:
         position = json.loads(stamp_position)
-    except:
+    except (json.JSONDecodeError, TypeError):
         position = {"page": 1, "x": 400, "y": 50, "width": 150, "height": 150}
     
     # Generate document hash
@@ -2246,7 +2246,8 @@ async def create_document_stamp(
         try:
             pdf_reader = PdfReader(BytesIO(content))
             pages = len(pdf_reader.pages)
-        except:
+        except Exception as e:
+            logger.warning(f"Failed to read PDF pages: {e}")
             pages = 1
     
     now = datetime.now(timezone.utc)
