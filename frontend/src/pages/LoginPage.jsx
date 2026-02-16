@@ -6,13 +6,14 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { toast } from "sonner";
-import { Scale, ArrowLeft, Eye, EyeOff, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, ShieldCheck, Sparkles, Mail } from "lucide-react";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -24,6 +25,7 @@ const LoginPage = () => {
     }
     
     setLoading(true);
+    setShowVerificationMessage(false);
     try {
       const userData = await login(email, password);
       toast.success("Welcome back!");
@@ -37,6 +39,10 @@ const LoginPage = () => {
       }
     } catch (error) {
       const message = error.response?.data?.detail || "Login failed";
+      // Check if it's an email verification error
+      if (message.includes("verify your email")) {
+        setShowVerificationMessage(true);
+      }
       toast.error(message);
     } finally {
       setLoading(false);
