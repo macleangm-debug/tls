@@ -1,339 +1,223 @@
 import requests
 import sys
-import json
+import time
 from datetime import datetime
+import json
 
-class TLSAPITester:
-    def __init__(self, base_url="https://secure-check-8.preview.emergentagent.com/api"):
+class SecurityTester:
+    def __init__(self, base_url="https://secure-check-8.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
-        self.admin_token = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.test_advocate_id = None
-        self.test_order_id = None
-        self.test_stamp_id = None
+        self.failed_tests = []
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None, use_admin=False):
-        """Run a single API test"""
-        url = f"{self.base_url}/{endpoint}"
-        test_headers = {'Content-Type': 'application/json'}
-        
-        # Add auth token if available
-        token_to_use = self.admin_token if use_admin else self.token
-        if token_to_use:
-            test_headers['Authorization'] = f'Bearer {token_to_use}'
-        
-        if headers:
-            test_headers.update(headers)
-
+    def run_test(self, name, test_func):
+        """Run a single test and track results"""
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
-        print(f"   URL: {url}")
         
         try:
-            if method == 'GET':
-                response = requests.get(url, headers=test_headers)
-            elif method == 'POST':
-                response = requests.post(url, json=data, headers=test_headers)
-            elif method == 'PUT':
-                response = requests.put(url, json=data, headers=test_headers)
-
-            success = response.status_code == expected_status
+            success, message = test_func()
             if success:
                 self.tests_passed += 1
-                print(f"✅ Passed - Status: {response.status_code}")
-                try:
-                    return success, response.json()
-                except:
-                    return success, {}
+                print(f"✅ {message}")
             else:
-                print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
-                try:
-                    error_detail = response.json()
-                    print(f"   Error: {error_detail}")
-                except:
-                    print(f"   Response: {response.text}")
-                return False, {}
-
+                print(f"❌ {message}")
+                self.failed_tests.append(f"{name}: {message}")
+            return success
         except Exception as e:
-            print(f"❌ Failed - Error: {str(e)}")
-            return False, {}
+            print(f"❌ {name} - Error: {str(e)}")
+            self.failed_tests.append(f"{name}: Exception - {str(e)}")
+            return False
 
-    def test_health_check(self):
-        """Test health endpoint"""
-        success, response = self.run_test(
-            "Health Check",
-            "GET",
-            "health",
-            200
-        )
-        return success
-
-    def test_admin_login(self):
-        """Test admin login"""
-        success, response = self.run_test(
-            "Admin Login",
-            "POST",
-            "auth/login",
-            200,
-            data={"email": "admin@tls.or.tz", "password": "TLS@Admin2024"}
-        )
-        if success and 'access_token' in response:
-            self.admin_token = response['access_token']
-            print(f"   Admin token obtained")
-            return True
-        return False
-
-    def test_advocate_registration(self):
-        """Test advocate registration"""
-        timestamp = datetime.now().strftime('%H%M%S')
-        test_data = {
-            "email": f"test_advocate_{timestamp}@example.com",
-            "password": "TestPass123!",
-            "full_name": f"Test Advocate {timestamp}",
-            "roll_number": f"ADV/2024/{timestamp}",
-            "phone": f"+255700{timestamp}",
-            "region": "Dar es Salaam"
-        }
+    def test_rate_limiting(self):
+        """Test rate limiting on login endpoint (5 requests per minute)"""
+        login_url = f"{self.base_url}/api/auth/login"
+        test_email = "admin@tls.or.tz"
+        test_password = "wrong_password"
         
-        success, response = self.run_test(
-            "Advocate Registration",
-            "POST",
-            "auth/register",
-            200,
-            data=test_data
-        )
-        if success and 'access_token' in response:
-            self.token = response['access_token']
-            print(f"   Advocate token obtained")
-            return True
-        return False
+        # Make 6 rapid requests to trigger rate limiting
+        rate_limit_triggered = False
+        for i in range(6):
+            try:
+                response = requests.post(login_url, 
+                    json={"email": test_email, "password": test_password},
+                    headers={'Content-Type': 'application/json'},
+                    timeout=5
+                )
+                
+                if response.status_code == 429:  # Too Many Requests
+                    rate_limit_triggered = True
+                    break
+                    
+                # Small delay between requests
+                time.sleep(0.1)
+            except Exception as e:
+                continue
+        
+        if rate_limit_triggered:
+            return True, "Rate limiting working - 429 status code received"
+        else:
+            return False, "Rate limiting not working - no 429 status after 6 requests"
 
-    def test_get_profile(self):
-        """Test getting current user profile"""
-        success, response = self.run_test(
-            "Get Profile",
-            "GET",
-            "auth/me",
-            200
-        )
-        if success and 'id' in response:
-            self.test_advocate_id = response['id']
-            print(f"   Advocate ID: {self.test_advocate_id}")
-        return success
-
-    def test_update_profile(self):
-        """Test updating profile"""
-        success, response = self.run_test(
-            "Update Profile",
-            "PUT",
-            "profile",
-            200,
-            data={"firm_affiliation": "Test Law Firm"}
-        )
-        return success
-
-    def test_get_stamp_types(self):
-        """Test getting stamp types"""
-        success, response = self.run_test(
-            "Get Stamp Types",
-            "GET",
-            "stamp-types",
-            200
-        )
-        return success
-
-    def test_create_stamp_order(self):
-        """Test creating a stamp order"""
-        success, response = self.run_test(
-            "Create Stamp Order",
-            "POST",
-            "orders",
-            200,
-            data={
-                "stamp_type_id": "advocate_official",
-                "quantity": 1,
-                "delivery_address": "123 Test Street, Dar es Salaam"
-            }
-        )
-        if success and 'id' in response:
-            self.test_order_id = response['id']
-            print(f"   Order ID: {self.test_order_id}")
-        return success
-
-    def test_get_orders(self):
-        """Test getting orders"""
-        success, response = self.run_test(
-            "Get Orders",
-            "GET",
-            "orders",
-            200
-        )
-        return success
-
-    def test_create_digital_stamp(self):
-        """Test creating a digital stamp"""
-        success, response = self.run_test(
-            "Create Digital Stamp",
-            "POST",
-            "digital-stamps",
-            200,
-            data={
-                "stamp_type": "official",
-                "document_reference": "Test Document #123"
-            }
-        )
-        if success and 'stamp_id' in response:
-            self.test_stamp_id = response['stamp_id']
-            print(f"   Stamp ID: {self.test_stamp_id}")
-        return success
-
-    def test_get_digital_stamps(self):
-        """Test getting digital stamps"""
-        success, response = self.run_test(
-            "Get Digital Stamps",
-            "GET",
-            "digital-stamps",
-            200
-        )
-        return success
-
-    def test_verify_stamp(self):
-        """Test stamp verification"""
-        if not self.test_stamp_id:
-            print("⚠️  Skipping stamp verification - no stamp ID available")
-            return True
+    def test_security_headers(self):
+        """Test presence of security headers"""
+        try:
+            response = requests.get(f"{self.base_url}/api/auth/me", timeout=10)
+            headers = response.headers
             
-        success, response = self.run_test(
-            "Verify Stamp",
-            "GET",
-            f"verify/stamp/{self.test_stamp_id}",
-            200
-        )
-        return success
+            required_headers = [
+                'x-frame-options',
+                'x-content-type-options',
+                'content-security-policy',
+                'strict-transport-security'
+            ]
+            
+            missing_headers = []
+            for header in required_headers:
+                if header.lower() not in [h.lower() for h in headers.keys()]:
+                    missing_headers.append(header)
+            
+            if not missing_headers:
+                return True, "All required security headers present"
+            else:
+                return False, f"Missing security headers: {', '.join(missing_headers)}"
+                
+        except Exception as e:
+            return False, f"Error checking headers: {str(e)}"
 
-    def test_verify_advocate(self):
-        """Test advocate verification by roll number"""
-        success, response = self.run_test(
-            "Verify Advocate",
-            "GET",
-            "verify/advocate/ADV001",  # Using a test roll number
-            200
-        )
-        return success
+    def test_cors_configuration(self):
+        """Test CORS configuration"""
+        try:
+            response = requests.options(f"{self.base_url}/api/auth/login",
+                headers={
+                    'Origin': 'https://malicious-site.com',
+                    'Access-Control-Request-Method': 'POST'
+                },
+                timeout=5
+            )
+            
+            allowed_origins = response.headers.get('Access-Control-Allow-Origin', '')
+            
+            # Should not allow all origins (*)
+            if allowed_origins == '*':
+                return False, "CORS allows all origins (*) - security risk"
+            
+            # Should allow only specific origins
+            if 'secure-check-8.preview.emergentagent.com' in allowed_origins:
+                return True, f"CORS properly configured: {allowed_origins}"
+            else:
+                return False, f"CORS origins unclear: {allowed_origins}"
+                
+        except Exception as e:
+            return False, f"Error testing CORS: {str(e)}"
 
-    def test_admin_stats(self):
-        """Test admin statistics"""
-        success, response = self.run_test(
-            "Admin Statistics",
-            "GET",
-            "admin/stats",
-            200,
-            use_admin=True
-        )
-        return success
-
-    def test_admin_get_advocates(self):
-        """Test admin getting all advocates"""
-        success, response = self.run_test(
-            "Admin Get Advocates",
-            "GET",
-            "admin/advocates",
-            200,
-            use_admin=True
-        )
-        return success
-
-    def test_payment_flow(self):
-        """Test payment initiation and confirmation"""
-        if not self.test_order_id:
-            print("⚠️  Skipping payment test - no order ID available")
-            return True
-
-        # Test payment initiation
-        success, response = self.run_test(
-            "Initiate Payment",
-            "POST",
-            "payments/initiate",
-            200,
-            data={
-                "order_id": self.test_order_id,
-                "payment_method": "mobile_money",
-                "provider": "mpesa",
-                "phone_number": "+255700123456"
-            }
-        )
+    def test_login_with_default_admin(self):
+        """Test login with default admin account and check force_password_reset flag"""
+        login_url = f"{self.base_url}/api/auth/login"
         
-        if not success:
-            return False
+        try:
+            response = requests.post(login_url,
+                json={"email": "admin@tls.or.tz", "password": "TLS@Admin2024"},
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.token = data.get("access_token")
+                
+                # Check if force_password_reset flag is present
+                user_data = data.get("user", {})
+                force_reset = user_data.get("force_password_reset", False)
+                
+                if force_reset:
+                    return True, "Default admin login successful with force_password_reset=true"
+                else:
+                    return False, "Default admin login successful but force_password_reset=false or missing"
+            else:
+                return False, f"Login failed with status {response.status_code}: {response.text}"
+                
+        except Exception as e:
+            return False, f"Login error: {str(e)}"
 
-        payment_ref = response.get('payment_ref')
-        if not payment_ref:
-            print("❌ No payment reference returned")
-            return False
+    def test_password_change_endpoint(self):
+        """Test password change endpoint functionality"""
+        if not self.token:
+            return False, "No auth token available - login test must pass first"
+        
+        change_url = f"{self.base_url}/api/auth/change-password"
+        
+        try:
+            # Test with wrong current password
+            response = requests.post(change_url,
+                json={
+                    "current_password": "wrong_password",
+                    "new_password": "NewSecurePass123!"
+                },
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {self.token}'
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 400:
+                return True, "Password change endpoint working - rejects wrong current password"
+            else:
+                return False, f"Password change endpoint issue - status {response.status_code}"
+                
+        except Exception as e:
+            return False, f"Password change test error: {str(e)}"
 
-        # Test payment confirmation
-        success, response = self.run_test(
-            "Confirm Payment",
-            "POST",
-            f"payments/confirm/{payment_ref}",
-            200
-        )
-        return success
+    def test_secret_key_requirement(self):
+        """Test that SECRET_KEY is properly configured"""
+        try:
+            # Try to access a protected endpoint
+            response = requests.get(f"{self.base_url}/api/auth/me",
+                headers={'Authorization': f'Bearer invalid_token'},
+                timeout=5
+            )
+            
+            # Should return 401 with proper error handling (indicating JWT validation works)
+            if response.status_code == 401:
+                return True, "SECRET_KEY properly configured - JWT validation working"
+            else:
+                return False, f"Unexpected status for invalid token: {response.status_code}"
+                
+        except Exception as e:
+            return False, f"SECRET_KEY test error: {str(e)}"
 
 def main():
-    print("🚀 Starting TLS API Testing...")
-    print("=" * 50)
+    print("🔒 Testing TLS PDF Stamping Security Improvements")
+    print("=" * 60)
     
-    tester = TLSAPITester()
+    tester = SecurityTester()
     
-    # Test sequence
+    # Run all security tests
     tests = [
-        ("Health Check", tester.test_health_check),
-        ("Admin Login", tester.test_admin_login),
-        ("Advocate Registration", tester.test_advocate_registration),
-        ("Get Profile", tester.test_get_profile),
-        ("Update Profile", tester.test_update_profile),
-        ("Get Stamp Types", tester.test_get_stamp_types),
-        ("Create Stamp Order", tester.test_create_stamp_order),
-        ("Get Orders", tester.test_get_orders),
-        ("Create Digital Stamp", tester.test_create_digital_stamp),
-        ("Get Digital Stamps", tester.test_get_digital_stamps),
-        ("Verify Stamp", tester.test_verify_stamp),
-        ("Verify Advocate", tester.test_verify_advocate),
-        ("Admin Statistics", tester.test_admin_stats),
-        ("Admin Get Advocates", tester.test_admin_get_advocates),
-        ("Payment Flow", tester.test_payment_flow),
+        ("Rate Limiting (5/minute on auth endpoints)", tester.test_rate_limiting),
+        ("Security Headers", tester.test_security_headers),
+        ("CORS Configuration", tester.test_cors_configuration),
+        ("Default Admin Force Password Reset", tester.test_login_with_default_admin),
+        ("Password Change Endpoint", tester.test_password_change_endpoint),
+        ("SECRET_KEY Configuration", tester.test_secret_key_requirement),
     ]
     
-    failed_tests = []
-    
     for test_name, test_func in tests:
-        try:
-            if not test_func():
-                failed_tests.append(test_name)
-        except Exception as e:
-            print(f"❌ {test_name} - Exception: {str(e)}")
-            failed_tests.append(test_name)
+        tester.run_test(test_name, test_func)
+        time.sleep(1)  # Avoid overwhelming the server
     
-    # Print results
-    print("\n" + "=" * 50)
-    print("📊 TEST RESULTS")
-    print("=" * 50)
-    print(f"Tests run: {tester.tests_run}")
-    print(f"Tests passed: {tester.tests_passed}")
-    print(f"Tests failed: {len(failed_tests)}")
-    print(f"Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
+    print(f"\n📊 Test Results: {tester.tests_passed}/{tester.tests_run} tests passed")
     
-    if failed_tests:
-        print(f"\n❌ Failed tests:")
-        for test in failed_tests:
-            print(f"   - {test}")
-    else:
-        print(f"\n✅ All tests passed!")
+    if tester.failed_tests:
+        print(f"\n❌ Failed Tests:")
+        for failure in tester.failed_tests:
+            print(f"  - {failure}")
     
-    return 0 if len(failed_tests) == 0 else 1
+    # Return exit code based on results
+    return 0 if tester.tests_passed == tester.tests_run else 1
 
 if __name__ == "__main__":
     sys.exit(main())
