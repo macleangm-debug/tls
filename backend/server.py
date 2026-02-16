@@ -1604,6 +1604,186 @@ def generate_password_changed_email(user_name: str) -> str:
     </html>
     """
 
+def generate_email_verification_email(verification_url: str, user_name: str) -> str:
+    """Generate HTML email template for email verification"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #0a0f1a;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <tr>
+                <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; padding: 40px;">
+                    <table width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 30px;">
+                                <div style="background: #10b981; width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 16px;">
+                                    <span style="color: white; font-size: 28px; font-weight: bold; line-height: 60px;">TLS</span>
+                                </div>
+                                <h1 style="color: #ffffff; font-size: 24px; margin: 0;">Verify Your Email</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #94a3b8; font-size: 16px; line-height: 24px; padding-bottom: 24px;">
+                                <p>Hello {user_name},</p>
+                                <p>Welcome to TLS Verification! Please verify your email address to activate your account and access all features.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 24px;">
+                                <a href="{verification_url}" style="display: inline-block; background: #10b981; color: #ffffff; text-decoration: none; font-weight: 600; padding: 14px 32px; border-radius: 8px; font-size: 16px;">Verify Email Address</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #64748b; font-size: 14px; line-height: 20px; padding-bottom: 24px;">
+                                <p>This verification link will expire in <strong>24 hours</strong>.</p>
+                                <p>If you didn't create an account with TLS Verification, please ignore this email.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border-top: 1px solid #334155; padding-top: 24px;">
+                                <p style="color: #475569; font-size: 12px; margin: 0;">If the button doesn't work, copy and paste this link:</p>
+                                <p style="color: #10b981; font-size: 12px; word-break: break-all; margin: 8px 0 0;">{verification_url}</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center; padding-top: 24px;">
+                    <p style="color: #475569; font-size: 12px; margin: 0;">Tanganyika Law Society</p>
+                    <p style="color: #475569; font-size: 12px; margin: 4px 0 0;">Upholding Justice Since 1954</p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+def generate_login_alert_email(user_name: str, ip_address: str, user_agent: str, location: str = "Unknown") -> str:
+    """Generate HTML email template for suspicious login alert"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #0a0f1a;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <tr>
+                <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; padding: 40px;">
+                    <table width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="text-align: center; padding-bottom: 30px;">
+                                <div style="background: #f59e0b; width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 16px;">
+                                    <span style="color: white; font-size: 28px; font-weight: bold; line-height: 60px;">!</span>
+                                </div>
+                                <h1 style="color: #ffffff; font-size: 24px; margin: 0;">New Login Detected</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #94a3b8; font-size: 16px; line-height: 24px; padding-bottom: 24px;">
+                                <p>Hello {user_name},</p>
+                                <p>We detected a new login to your TLS Verification account:</p>
+                                <table style="width: 100%; margin: 16px 0; background: #1e293b; border-radius: 8px; padding: 16px;">
+                                    <tr>
+                                        <td style="color: #64748b; padding: 8px 0;">Time:</td>
+                                        <td style="color: #ffffff; padding: 8px 0;">{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: #64748b; padding: 8px 0;">IP Address:</td>
+                                        <td style="color: #ffffff; padding: 8px 0;">{ip_address}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: #64748b; padding: 8px 0;">Device:</td>
+                                        <td style="color: #ffffff; padding: 8px 0; font-size: 12px;">{user_agent[:50]}...</td>
+                                    </tr>
+                                </table>
+                                <p style="color: #f59e0b; font-weight: 600;">If this wasn't you, please change your password immediately and contact support@tls.or.tz</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center; padding-top: 24px;">
+                    <p style="color: #475569; font-size: 12px; margin: 0;">Tanganyika Law Society</p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+# =============== LOGIN ATTEMPT LOGGING ===============
+
+async def log_login_attempt(
+    email: str,
+    success: bool,
+    ip_address: str,
+    user_agent: str,
+    failure_reason: str = None,
+    user_id: str = None
+):
+    """Log login attempt for security auditing"""
+    log_entry = {
+        "id": str(uuid.uuid4()),
+        "email": email,
+        "user_id": user_id,
+        "success": success,
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+        "failure_reason": failure_reason,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.login_attempts.insert_one(log_entry)
+    
+    # Log to application logger as well
+    if success:
+        logger.info(f"Successful login: {email} from {ip_address}")
+    else:
+        logger.warning(f"Failed login attempt: {email} from {ip_address} - {failure_reason}")
+    
+    return log_entry
+
+async def check_suspicious_activity(email: str, ip_address: str) -> dict:
+    """Check for suspicious login patterns"""
+    now = datetime.now(timezone.utc)
+    one_hour_ago = now - timedelta(hours=1)
+    
+    # Count failed attempts in last hour from this IP
+    failed_from_ip = await db.login_attempts.count_documents({
+        "ip_address": ip_address,
+        "success": False,
+        "timestamp": {"$gte": one_hour_ago.isoformat()}
+    })
+    
+    # Count failed attempts for this email in last hour
+    failed_for_email = await db.login_attempts.count_documents({
+        "email": email,
+        "success": False,
+        "timestamp": {"$gte": one_hour_ago.isoformat()}
+    })
+    
+    # Check if login from new IP for this user
+    user_ips = await db.login_attempts.distinct("ip_address", {
+        "email": email,
+        "success": True
+    })
+    
+    is_new_ip = ip_address not in user_ips if user_ips else True
+    
+    return {
+        "failed_from_ip": failed_from_ip,
+        "failed_for_email": failed_for_email,
+        "is_new_ip": is_new_ip,
+        "is_suspicious": failed_from_ip >= 5 or failed_for_email >= 5
+    }
+
 @api_router.post("/auth/change-password")
 @limiter.limit("3/minute")
 async def change_password(request: Request, data: PasswordChange, user: dict = Depends(get_current_user)):
