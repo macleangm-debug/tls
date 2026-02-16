@@ -62,9 +62,22 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+PASSWORD_RESET_EXPIRE_MINUTES = 30  # Password reset token expires in 30 minutes
 
 # Rate limiting configuration
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+
+# Email configuration (Resend)
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+    logging.info("Resend email service configured")
+else:
+    logging.warning("RESEND_API_KEY not set - email functionality disabled")
+
+# Frontend URL for email links
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://secure-check-8.preview.emergentagent.com')
 
 # VAPID configuration for push notifications
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
@@ -76,6 +89,73 @@ VAPID_CLAIMS = {
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+
+# =============== PASSWORD VALIDATION ===============
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """
+    Validate password against strict security rules.
+    Returns (is_valid, error_message)
+    
+    Rules:
+    - Minimum 12 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
+    - No common patterns (123, abc, password, qwerty, etc.)
+    - No more than 3 consecutive identical characters
+    """
+    errors = []
+    
+    # Length check
+    if len(password) < 12:
+        errors.append("Password must be at least 12 characters long")
+    
+    # Uppercase check
+    if not re.search(r'[A-Z]', password):
+        errors.append("Password must contain at least one uppercase letter")
+    
+    # Lowercase check
+    if not re.search(r'[a-z]', password):
+        errors.append("Password must contain at least one lowercase letter")
+    
+    # Digit check
+    if not re.search(r'\d', password):
+        errors.append("Password must contain at least one number")
+    
+    # Special character check
+    if not re.search(r'[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]', password):
+        errors.append("Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)")
+    
+    # Common patterns check
+    common_patterns = [
+        'password', 'qwerty', 'abc123', '123456', 'letmein', 'welcome',
+        'admin', 'login', 'master', 'dragon', 'monkey', 'shadow',
+        '111111', '000000', 'iloveyou', 'sunshine', 'princess'
+    ]
+    password_lower = password.lower()
+    for pattern in common_patterns:
+        if pattern in password_lower:
+            errors.append(f"Password contains a common pattern '{pattern}' - please choose a more secure password")
+            break
+    
+    # Sequential characters check (e.g., abc, 123, xyz)
+    sequential_patterns = ['abcdefghijklmnopqrstuvwxyz', '0123456789', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm']
+    for seq in sequential_patterns:
+        for i in range(len(seq) - 3):
+            if seq[i:i+4] in password_lower or seq[i:i+4][::-1] in password_lower:
+                errors.append("Password contains sequential characters (e.g., abcd, 1234) - please avoid sequences")
+                break
+    
+    # Consecutive identical characters check
+    if re.search(r'(.)\1{3,}', password):
+        errors.append("Password cannot have more than 3 consecutive identical characters")
+    
+    if errors:
+        return False, "; ".join(errors)
+    
+    return True, "Password meets all requirements"
 
 app = FastAPI(title="TLS Advocate Management System")
 api_router = APIRouter(prefix="/api")
