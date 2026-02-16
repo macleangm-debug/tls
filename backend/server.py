@@ -5636,12 +5636,14 @@ app.add_middleware(SlowAPIMiddleware)
 
 # Get allowed origins from environment or use restrictive default
 cors_origins = os.environ.get('CORS_ORIGINS', '')
+logging.info(f"CORS_ORIGINS env value: '{cors_origins}'")
 if cors_origins == '*' or not cors_origins:
     # In development, allow all but log warning
     allowed_origins = ["*"]
     logging.warning("CORS_ORIGINS not properly configured. Using '*' (not recommended for production)")
 else:
     allowed_origins = [origin.strip() for origin in cors_origins.split(',') if origin.strip()]
+    logging.info(f"CORS allowed origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
