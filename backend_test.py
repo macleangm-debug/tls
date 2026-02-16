@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 
 class SecurityTester:
-    def __init__(self, base_url="https://secure-check-8.preview.emergentagent.com"):
+    def __init__(self, base_url="https://tls-email-confirm.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0

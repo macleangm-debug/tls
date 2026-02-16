@@ -128,7 +128,7 @@
 
   "console_logs_observed": [
     "IndexedDB initialized - Multiple instances as components initialize",
-    "Service Worker registered: https://pdf-positioning-test.preview.emergentagent.com/",
+    "Service Worker registered: https://tls-email-confirm.preview.emergentagent.com/",
     "PWA initialized successfully",
     "Offline database initialized"
   ]

@@ -146,7 +146,7 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 - Offline Document Queue
 
 ## Web URL
-**https://pdf-positioning-test.preview.emergentagent.com**
+**https://tls-email-confirm.preview.emergentagent.com**
 
 ## Test Credentials
 
