@@ -4479,6 +4479,35 @@ async def get_verification_logs(limit: int = Query(default=100, le=500), user: d
     logs = await db.verification_logs.find({}, {"_id": 0}).sort("verified_at", -1).to_list(limit)
     return logs
 
+@api_router.get("/admin/login-attempts")
+async def get_login_attempts(
+    limit: int = Query(default=100, le=500),
+    success_only: bool = Query(default=None),
+    email: str = Query(default=None),
+    user: dict = Depends(require_admin)
+):
+    """Get login attempt logs for security monitoring"""
+    query = {}
+    if success_only is not None:
+        query["success"] = success_only
+    if email:
+        query["email"] = {"$regex": email, "$options": "i"}
+    
+    logs = await db.login_attempts.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit)
+    
+    # Get summary stats
+    total_attempts = await db.login_attempts.count_documents({})
+    failed_attempts = await db.login_attempts.count_documents({"success": False})
+    
+    return {
+        "logs": logs,
+        "stats": {
+            "total_attempts": total_attempts,
+            "failed_attempts": failed_attempts,
+            "success_rate": round((total_attempts - failed_attempts) / max(total_attempts, 1) * 100, 1)
+        }
+    }
+
 # =============== ADVOCATE EARNINGS ROUTES ===============
 
 @api_router.get("/earnings/summary")
