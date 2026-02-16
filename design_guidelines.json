@@ -1,0 +1,161 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "TLS Advocate Verify",
+      "persona": "E1: The Anti-AI Designer",
+      "tone": "Futuristic Authority",
+      "core_values": ["Tamper-Proof Trust", "Digital Sovereignty", "African Innovation"],
+      "theme_strategy": "Dark Mode Default (Cyber-Legal)"
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Space Grotesk, sans-serif",
+        "body": "Manrope, sans-serif",
+        "mono": "JetBrains Mono, monospace",
+        "accent": "Barlow Condensed, sans-serif"
+      },
+      "scale": {
+        "h1": "text-5xl md:text-7xl font-bold tracking-tighter leading-none",
+        "h2": "text-4xl md:text-5xl font-bold tracking-tight",
+        "h3": "text-2xl md:text-3xl font-semibold tracking-tight",
+        "body_lg": "text-lg md:text-xl leading-relaxed text-muted-foreground",
+        "body_base": "text-base leading-relaxed text-muted-foreground",
+        "caption": "text-sm font-medium tracking-widest uppercase text-muted-foreground"
+      },
+      "instructions": "Import 'Space Grotesk' and 'Manrope' from Google Fonts. Replace existing 'Inter' and 'Playfair Display' usage for main UI elements. Use Space Grotesk for all Headings (h1-h3). Use Manrope for body text."
+    },
+    "colors": {
+      "palette": {
+        "background": "#02040A",
+        "foreground": "#F8FAFC",
+        "card": "#0B1120",
+        "card_foreground": "#F8FAFC",
+        "popover": "#0B1120",
+        "popover_foreground": "#F8FAFC",
+        "primary": "#3B82F6",
+        "primary_foreground": "#FFFFFF",
+        "secondary": "#1E293B",
+        "secondary_foreground": "#F8FAFC",
+        "muted": "#1E293B",
+        "muted_foreground": "#94A3B8",
+        "accent": "#F59E0B",
+        "accent_foreground": "#000000",
+        "destructive": "#EF4444",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#1E293B",
+        "input": "#1E293B",
+        "ring": "#3B82F6"
+      },
+      "brand_specific": {
+        "tls_blue_deep": "#1B365D",
+        "tls_blue_electric": "#3B82F6",
+        "tls_gold": "#C5A059",
+        "tls_gold_glow": "#FCD34D",
+        "verified_green": "#10B981",
+        "tampered_red": "#EF4444"
+      },
+      "gradients": {
+        "hero_glow": "radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)",
+        "card_shine": "linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)",
+        "gold_text": "linear-gradient(to right, #C5A059, #FCD34D, #C5A059)"
+      }
+    },
+    "layout": {
+      "spacing_scale": "Generous (2x standard). Use p-8, p-12, p-24 for sections.",
+      "container_width": "max-w-7xl mx-auto px-6 md:px-12",
+      "grid_system": {
+        "bento_marketing": "grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8",
+        "dashboard_dense": "grid grid-cols-1 md:grid-cols-4 gap-4"
+      },
+      "z_index": {
+        "toast": 50,
+        "modal": 40,
+        "sticky_nav": 30,
+        "dropdown": 20,
+        "base": 0,
+        "background_effects": -1
+      }
+    },
+    "components": {
+      "buttons": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 py-6 text-lg font-medium transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]",
+        "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-full px-8 py-6 text-lg font-medium border border-white/10",
+        "ghost": "hover:bg-white/5 text-foreground rounded-full px-6 py-4"
+      },
+      "cards": {
+        "glass": "bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl",
+        "solid": "bg-card border border-border rounded-xl shadow-lg",
+        "interactive": "group relative overflow-hidden bg-card border border-white/5 hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)]"
+      },
+      "inputs": {
+        "style": "bg-black/20 border-white/10 focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg h-12 px-4 text-base transition-all"
+      },
+      "digital_stamp": {
+        "description": "A circular, rotating badge component representing the digital seal.",
+        "style": "rounded-full border-2 border-tls_gold/30 bg-tls_blue_deep/20 backdrop-blur-md animate-[spin_10s_linear_infinite]"
+      }
+    },
+    "visual_enhancers": {
+      "glassmorphism": "backdrop-blur-xl bg-black/30 border border-white/10",
+      "noise_texture": "url('/noise.png') opacity-5 fixed inset-0 pointer-events-none z-50",
+      "glow_effects": "Use 'shadow-[0_0_30px_rgba(var(--primary),0.3)]' for active states.",
+      "borders": "1px solid rgba(255, 255, 255, 0.08)"
+    },
+    "motion": {
+      "transitions": "transition-all duration-300 ease-out",
+      "hover_lift": "hover:-translate-y-1 hover:shadow-lg",
+      "page_enter": "animate-in fade-in slide-in-from-bottom-4 duration-700",
+      "stagger": "stagger-children-100"
+    },
+    "accessibility": {
+      "contrast_check": "Ensure text is #F8FAFC on dark backgrounds. Avoid dark grey on black.",
+      "focus_states": "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      "reduced_motion": "motion-reduce:transition-none motion-reduce:animate-none"
+    }
+  },
+  "assets": {
+    "images": {
+      "hero_background": {
+        "url": "https://images.unsplash.com/photo-1768330187404-59e46cf222c9?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Abstract digital security grid representing blockchain verification",
+        "usage": "Full width background for Hero section with overlay gradient"
+      },
+      "advocate_dashboard": {
+        "url": "https://images.unsplash.com/photo-1711411915583-d6d1d9439047?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Professional advocate working on digital dashboard",
+        "usage": "Feature section: Advocate Portal preview"
+      },
+      "verification_demo": {
+        "url": "https://images.unsplash.com/photo-1601924925391-7eeea5d7d5a6?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Scanning QR code on mobile device",
+        "usage": "Feature section: 'How it Works' - Verification step"
+      },
+      "admin_context": {
+        "url": "https://images.unsplash.com/photo-1759661881353-5b9cc55e1cf4?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Secure admin command center",
+        "usage": "Admin dashboard login or features section"
+      }
+    },
+    "icons": {
+      "library": "lucide-react",
+      "preferred_icons": ["ShieldCheck", "QrCode", "Scale", "Fingerprint", "FileBadge", "Gavel"]
+    }
+  },
+  "implementation_steps": [
+    "1. Install dependencies: `npm install lucide-react framer-motion clsx tailwind-merge`",
+    "2. Update `tailwind.config.js` with the new color palette and font families (Space Grotesk, Manrope).",
+    "3. Update `index.css` to set the dark theme variables as default.",
+    "4. Create `src/components/ui/layout/Navbar.jsx` using the Glassmorphism style.",
+    "5. Create `src/pages/LandingPage.jsx` implementing the Asymmetric Hero and Bento Grid.",
+    "6. Build `src/components/DigitalStamp.jsx` with the rotating animation.",
+    "7. Ensure all interactive elements have `data-testid` attributes."
+  ],
+  "universal_guidelines": [
+    "DO NOT use gradients for text unless it is a large heading.",
+    "DO NOT use 'Inter' font. Use 'Space Grotesk' for headings and 'Manrope' for body.",
+    "ALWAYS use 'data-testid' on interactive elements.",
+    "Prefer 'flex' and 'grid' over absolute positioning where possible.",
+    "Use 'backdrop-blur' heavily for that modern 'glass' feel.",
+    "Ensure mobile responsiveness: Stack grids to 1 column on mobile."
+  ]
+}

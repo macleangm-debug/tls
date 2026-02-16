@@ -1,0 +1,111 @@
+{
+  "summary": "Testing iteration 30 - Verified 4 reported UI/layout bugs in PDF stamping tool. All 4 issues have been fixed: (1) Document preview sizing now uses dynamic height 400-600px based on PDF dimensions, (2) Signature placeholder 'Sign Here' box appears on generated PDF when using Certification stamp with 'Sign After Printing', (3) 'Scan to Verify' text at 8px in horizontal stamp is visible, (4) QR code and content alignment verified working.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": {
+    "document_preview_sizing": [
+      "Preview container uses dynamic height based on PDF dimensions - PASS",
+      "Height clamped between 400-600px (not fixed 500px) - PASS",
+      "Preview shows PDF content without excess white space - PASS"
+    ],
+    "signature_placeholder": [
+      "Certification stamp type shows 'Requires signature' - PASS",
+      "Sign After Printing option shows signature placeholder in preview - PASS",
+      "'Sign Here' dashed box appears below stamp preview - PASS",
+      "'Sign Here' text found in generated PDF - PASS (backend test confirmed)"
+    ],
+    "scan_to_verify_text": [
+      "Horizontal stamp layout shows 'Scan to Verify' at text-[8px] - PASS",
+      "Vertical stamp layout shows 'Scan to Verify' at text-[6px] - PASS",
+      "Oval stamp shows 'SCAN TO VERIFY' at text-[5px] - PASS",
+      "Circle stamp uses '★ TLS VERIFIED ★' instead (design choice) - PASS"
+    ],
+    "stamp_generation": [
+      "Rectangle/Horizontal stamp generated - PASS (47467 bytes)",
+      "Rectangle/Vertical stamp generated - PASS (37746 bytes)",
+      "Circle stamp generated - PASS (67830 bytes)",
+      "Oval stamp generated - PASS (47963 bytes)"
+    ],
+    "qr_alignment": [
+      "Stamp preview shows QR code in correct position - PASS",
+      "Generated PDF stamp has QR code properly aligned - PASS"
+    ]
+  },
+
+  "features_verified": {
+    "document_preview_dynamic_height": {
+      "status": "VERIFIED",
+      "description": "Container height dynamically adjusts based on PDF dimensions using Math.min(600, Math.max(400, pageDimensions.height * previewScale))",
+      "code_location": "DocumentStampPage.jsx lines 1400-1407"
+    },
+    "signature_placeholder": {
+      "status": "VERIFIED",
+      "description": "When using Certification stamp without digital signature, 'Sign Here' box appears on generated PDF. Backend draws dashed border box with 'Sign Here' text centered.",
+      "code_location": "server.py lines 2517-2539"
+    },
+    "scan_to_verify_visibility": {
+      "status": "VERIFIED",
+      "description": "'Scan to Verify' text increased from 6px to 8px in horizontal layout, 4px to 6px in vertical layout",
+      "code_location": "DocumentStampPage.jsx line 1645 (text-[8px]), line 1673 (text-[6px])"
+    },
+    "stamp_layout_alignment": {
+      "status": "VERIFIED",
+      "description": "QR code and content alignment matches between preview and generated PDF. All stamp shapes generate correctly."
+    }
+  },
+
+  "test_report_links": [
+    "/tmp/test_stamp_signature_placeholder.py",
+    "/tmp/test_stamp_features.py"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "100% (all stamp generation tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+
+  "test_credentials": {
+    "advocate_user": {
+      "email": "testadvocate@tls.or.tz",
+      "password": "Test@1234",
+      "status": "Working"
+    }
+  },
+
+  "seed_data_creation": "",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All 4 reported bugs have been verified as fixed: (1) Document preview sizing uses dynamic height 400-600px, (2) Signature placeholder 'Sign Here' appears on generated PDFs for Certification stamps with 'Sign After Printing' option, (3) 'Scan to Verify' text visibility improved to 8px in horizontal layout, (4) QR code alignment correct. Test PDFs saved at /tmp/stamped_*.pdf for inspection.",
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+
+  "screenshots_taken": [
+    ".screenshots/06_document_preview.png - Document preview after PDF upload",
+    ".screenshots/09_sign_after_printing.png - Sign After Printing option selected",
+    ".screenshots/14_after_generation.png - Document Secured success dialog",
+    ".screenshots/15_rectangle_stamp_preview.png - Rectangle stamp preview with Scan to Verify",
+    ".screenshots/16_circle_stamp_preview.png - Circle stamp preview",
+    ".screenshots/17_oval_stamp_preview.png - Oval stamp preview"
+  ]
+}

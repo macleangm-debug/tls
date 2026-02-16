@@ -1,0 +1,129 @@
+{
+  "summary": "Document Stamping - Stamp Types and Signature Options: All 6 test scenarios PASSED. Backend API accepts certification/notarization types, signature placeholder works. Frontend correctly shows 2 stamp types with descriptions, signature options only for Certification, TLS logo toggle removed.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": {
+    "frontend_stamp_type_selection": [
+      "Stamp Type section shows two options: Certification and Notarization - PASS",
+      "Certification description: 'Requires signature - for certifying documents' - PASS",
+      "Notarization description: 'No signature required - for notarized documents' - PASS"
+    ],
+    "frontend_signature_options": [
+      "Signature Option section appears when Certification is selected - PASS",
+      "Two signature options available: 'Use Digital Signature' and 'Signature Placeholder' - PASS",
+      "Signature Option section hidden when Notarization is selected - PASS"
+    ],
+    "frontend_tls_logo_toggle_removed": [
+      "NO 'Include TLS verification badge' checkbox in Display Options - PASS",
+      "Only 'Show my name on stamp' checkbox visible in Display Options - PASS"
+    ],
+    "backend_stamp_type_api": [
+      "POST /api/documents/stamp accepts stamp_type=certification - PASS",
+      "POST /api/documents/stamp accepts stamp_type=notarization - PASS",
+      "Certification with signature placeholder (show_signature_placeholder=true) - PASS",
+      "Circle shape with certification type - PASS",
+      "Oval shape with notarization type - PASS",
+      "TLS logo always included even if show_tls_logo=false - PASS"
+    ],
+    "backend_stamp_verification": [
+      "GET /api/verify/stamp/{stamp_id} returns valid=true for certification stamp - PASS",
+      "Verification response includes stamp_type field - PASS"
+    ],
+    "full_stamping_flow": [
+      "Login with test credentials - PASS",
+      "Navigate to Documents page - PASS",
+      "Upload PDF document - PASS",
+      "Select Certification stamp type - PASS",
+      "Select Signature Placeholder option - PASS",
+      "Fill recipient name - PASS",
+      "Generate stamp - PASS",
+      "Success modal 'Document Secured!' displayed - PASS",
+      "Stamp ID generated in TLS-YYYYMMDD-XXXX format - PASS",
+      "QR code displayed with TLS branding - PASS",
+      "Download buttons available - PASS"
+    ]
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_stamp_types_signature.py",
+    "/app/test_reports/pytest/stamp_types_signature_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_stamp_types_signature.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all 6 test scenarios verified)"
+  },
+  
+  "test_credentials": {
+    "test_advocate": {
+      "email": "testadvocate@tls.or.tz",
+      "password": "Test@1234",
+      "status": "Working"
+    }
+  },
+  
+  "seed_data_creation": "No new seed data created. Used existing test advocate account.",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Stamp Types and Signature Options feature verified. Two stamp types (Certification with signature options, Notarization without signature) working correctly. TLS logo toggle removed from frontend - logo always shown. Backend API correctly processes both stamp types with optional signature placeholder. Full stamping flow tested end-to-end.",
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+  
+  "feature_verification": {
+    "stamp_types": {
+      "certification": {
+        "status": "VERIFIED",
+        "description": "Requires signature - for certifying documents",
+        "signature_options": ["Use Digital Signature", "Signature Placeholder"],
+        "tested_shapes": ["circle", "rectangle"]
+      },
+      "notarization": {
+        "status": "VERIFIED",
+        "description": "No signature required - for notarized documents",
+        "signature_options": "None - hidden when selected",
+        "tested_shapes": ["oval", "rectangle"]
+      }
+    },
+    "tls_logo_toggle": {
+      "status": "REMOVED",
+      "expected": "No toggle for TLS logo - always shown",
+      "actual": "No 'Include TLS verification badge' toggle found in Display Options"
+    },
+    "display_options": {
+      "status": "CORRECT",
+      "visible_option": "Show my name on stamp checkbox only"
+    }
+  },
+  
+  "screenshots_taken": [
+    ".screenshots/stamp_types_01_documents_page.png",
+    ".screenshots/stamp_types_02_options_section.png",
+    ".screenshots/stamp_types_03_certification_selected.png - Shows Signature Options visible",
+    ".screenshots/stamp_types_04_notarization_selected.png - Shows Signature Options hidden",
+    ".screenshots/stamp_types_05_before_generate.png - PDF preview with stamp",
+    ".screenshots/stamp_types_06_after_generate.png - 'Document Secured!' success modal"
+  ]
+}

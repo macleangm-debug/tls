@@ -1,0 +1,126 @@
+{
+  "summary": "Iteration 28 - Tested validation feedback and signature placement below stamp. VERIFIED: (1) Signature area with 'Sign Here' text appears BELOW stamp when Certification type is selected. (2) Backend correctly places signature below stamp in PDF. (3) Validation is implemented via BUTTON DISABLED state rather than toast error - button is disabled when document or recipient name is missing.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "component": "DocumentStampPage",
+        "issue": "Validation feedback: User requested toast error listing missing fields when Generate is clicked, but current implementation disables button until all fields are filled. Toast validation code exists but never triggers because button is disabled first.",
+        "priority": "LOW",
+        "current_behavior": "Button disabled when fileData missing OR localRecipientName empty (line 2241)",
+        "requested_behavior": "Show toast with list of missing fields when clicking Generate without required data"
+      }
+    ]
+  },
+
+  "passed_tests": {
+    "backend_api_tests": [
+      "GET /api/health - Backend health check - PASS",
+      "POST /api/auth/login - Login with test credentials - PASS",
+      "GET /api/stamp-templates - Templates loaded successfully - PASS",
+      "POST /api/documents/stamp (certification with signature) - Creates stamp with signature below - PASS",
+      "POST /api/documents/stamp (certification with placeholder) - Creates stamp with 'Sign Here' placeholder - PASS",
+      "POST /api/documents/stamp (notarization) - Creates stamp without signature area - PASS",
+      "Backend signature placement code verified - signature_y = pdf_y - signature_height - 5 - PASS"
+    ],
+    "frontend_ui_tests": [
+      "Circle stamp selection works - PASS",
+      "Document upload works - PASS",
+      "Certification type button clickable and selectable - PASS",
+      "Signature preview 'Sign Here' appears below stamp when Certification selected - PASS",
+      "Signature area has dashed border with brand color - PASS",
+      "Rnd container height includes signatureAreaHeight (150px stamp + 30px signature = 180px) - PASS",
+      "Generate button correctly disabled when recipient name empty - PASS",
+      "Generate button enabled when all required fields filled - PASS",
+      "Signature Option section shows when Certification selected - PASS"
+    ]
+  },
+
+  "features_verified": {
+    "signature_preview_below_stamp": {
+      "status": "VERIFIED",
+      "description": "When Certification stamp type is selected, a dashed border box with 'Sign Here' text appears BELOW the stamp in the document preview",
+      "frontend_code": "DocumentStampPage.jsx lines 1665-1687",
+      "observed_behavior": "signatureAreaHeight=30 adds extra height to Rnd container, dashed border div rendered below stamp preview",
+      "screenshot_evidence": "type_02_stamp_preview.png shows 'Sign Here' box below circle stamp"
+    },
+    "backend_signature_placement": {
+      "status": "VERIFIED",
+      "description": "Backend places signature BELOW stamp (not inside) in generated PDF",
+      "code_evidence": "server.py line 2410: signature_y = pdf_y - signature_height - 5",
+      "test_passed": true
+    },
+    "validation_behavior": {
+      "status": "PARTIAL - DIFFERENT IMPLEMENTATION",
+      "user_request": "Clicking Generate without Document should show toast error listing missing fields",
+      "actual_implementation": "Button is DISABLED when document or recipient name is missing - prevents clicking",
+      "toast_code_exists": "Yes, lines 681-716 have toast validation but never triggers because button is disabled first",
+      "button_disabled_condition": "!fileData || stamping || !localRecipientName.trim() (line 2241)"
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_validation_and_signature.py",
+    "/app/test_reports/pytest/validation_signature_results.xml"
+  ],
+
+  "action_items": [
+    "OPTIONAL: If user wants toast validation instead of disabled button, modify line 2241 to remove disabled condition and let handleStampDocument's toast validation handle errors"
+  ],
+
+  "critical_code_review_comments": [
+    "Template stamp_type 'official' doesn't match STAMP_TYPES which only has 'certification' and 'notarization' - when template is applied, it sets selectedType to 'official' which doesn't show signature area until user manually clicks Certification"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_validation_and_signature.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (9/9 UI checks passed)"
+  },
+
+  "test_credentials": {
+    "advocate_user": {
+      "email": "testadvocate@tls.or.tz",
+      "password": "Test@1234",
+      "status": "Working"
+    }
+  },
+
+  "seed_data_creation": "Test stamps created during backend testing with prefixes TEST_Validation*, TEST_SignaturePlaceholder, TEST_NotarizationNoSignature",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Signature preview BELOW stamp VERIFIED: When Certification stamp type is selected (manually click Certification button), a 'Sign Here' dashed box appears below the stamp preview. The signature area height (30px) is added to the Rnd container (150+30=180px total). Backend places signature below stamp at signature_y = pdf_y - signature_height - 5. NOTE: Templates have stamp_type 'official' which doesn't match frontend STAMP_TYPES ('certification'/'notarization'), so user must manually select Certification to see signature area. Validation is done via DISABLED button state rather than toast - button disabled when !fileData or !localRecipientName.",
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+
+  "screenshots_taken": [
+    ".screenshots/validation_01_initial.png",
+    ".screenshots/type_01_after_cert_click.png",
+    ".screenshots/type_02_stamp_preview.png",
+    ".screenshots/cert_01_stamp_options.png",
+    ".screenshots/validation_toast_test.png"
+  ],
+
+  "key_code_locations": {
+    "frontend_validation_toast": "DocumentStampPage.jsx lines 681-716 (handleStampDocument function)",
+    "frontend_button_disabled": "DocumentStampPage.jsx line 2241: disabled={!fileData || stamping || !localRecipientName.trim()}",
+    "frontend_signature_preview": "DocumentStampPage.jsx lines 1665-1687 (Signature Preview Below Stamp)",
+    "frontend_signatureAreaHeight": "DocumentStampPage.jsx line 1340: const signatureAreaHeight = showSignatureBelow ? 30 : 0",
+    "backend_signature_placement": "server.py lines 2408-2444 (signature placed below stamp)"
+  }
+}

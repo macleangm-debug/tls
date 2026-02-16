@@ -1,0 +1,123 @@
+{
+  "summary": "Bug fix verification complete. Both issues fixed: 1) QR code is now visible in downloaded PDF (not empty white box) - verified via PDF analysis showing 374 unique colors and 34.2% green/emerald pixels in stamp image. 2) Layout selection (Wide/Tall/Mini/QR Left/QR Right) correctly changes stamp preview on document - verified via UI testing showing different stamp appearances for each layout.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": {
+    "backend_api_tests": [
+      "POST /api/documents/stamp with layout=logo_left - Returns stamped PDF with visible QR (13,332 bytes)",
+      "POST /api/documents/stamp with layout=logo_right - Returns stamped PDF with visible QR (13,837 bytes)",
+      "POST /api/documents/stamp with layout=compact - Returns stamped PDF with visible QR (9,858 bytes)",
+      "POST /api/documents/stamp with layout=horizontal - Returns stamped PDF successfully",
+      "POST /api/documents/stamp with layout=vertical - Returns stamped PDF successfully",
+      "All 5 layouts produce different stamp sizes (verified different PDF sizes)",
+      "QR code data length > 1000 bytes for all layouts",
+      "Stamped PDF contains /Image and /XObject references"
+    ],
+    "frontend_ui_tests": [
+      "Document Stamp page loads successfully",
+      "PDF upload works - shows 'PDF loaded! 1 page detected'",
+      "Stamp preview appears on document after upload",
+      "Wide layout selection - stamp preview shows horizontal format",
+      "Tall layout selection - stamp preview shows vertical format",
+      "Mini layout selection - stamp preview shows compact format with QR on left",
+      "QR Left layout selection - stamp preview shows QR on left colored panel",
+      "QR Right layout selection - stamp preview shows QR on right colored panel",
+      "Layout buttons highlight correctly when selected (green border)",
+      "Generate Verified Stamp button works",
+      "Success dialog shows 'Document Secured!' with visible QR code",
+      "Success dialog shows Verification ID, Document name, Recipient, Security Hash, Valid Until"
+    ],
+    "pdf_analysis": [
+      "Extracted stamp image: 300x110 pixels",
+      "Unique colors in image: 374 (NOT empty)",
+      "White pixels: 64.6% (background)",
+      "Green/emerald pixels: 34.2% (brand color panel with QR)",
+      "Image contains visible content (NOT empty white box)"
+    ]
+  },
+  
+  "features_verified": {
+    "1_qr_visible_in_pdf": {
+      "status": "PASS",
+      "details": "QR code is visible in downloaded PDF. PDF analysis shows stamp image with 374 unique colors, 34.2% green pixels (brand color panel). Image is NOT empty white box."
+    },
+    "2_layout_changes_preview": {
+      "status": "PASS",
+      "details": "Clicking different layout options (Wide/Tall/Mini/QR Left/QR Right) changes the stamp preview on document. Each layout shows distinct appearance."
+    },
+    "3_qr_position_correct": {
+      "status": "PASS",
+      "details": "QR Left layout shows QR on left side of stamp. QR Right layout shows QR on right side. Verified via UI screenshots."
+    },
+    "4_white_qr_on_colored_bg": {
+      "status": "PASS",
+      "details": "QR Left and QR Right layouts show white QR pattern on colored background panel. Backend uses for_colored_bg=True parameter for these layouts."
+    }
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_qr_layout_features.py",
+    "/app/test_reports/pytest/qr_layout_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_qr_layout_features.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (7/7 tests passed)",
+    "frontend": "100% (all 4 bug fix features verified)"
+  },
+  
+  "test_credentials": {
+    "test_advocate": {
+      "email": "testadvocate@tls.or.tz",
+      "password": "Test@1234",
+      "status": "Working"
+    }
+  },
+  
+  "seed_data_creation": "Test stamps created during testing with stamp IDs: TLS-20260131-12105450 (logo_left), TLS-20260131-BC2ABCF8 (logo_right), TLS-20260131-49D92B2B (compact), TLS-20260131-DAEA4DCC (UI test)",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Bug fixes verified: 1) QR code visibility in PDF fixed - generate_qr_code_image function now supports for_colored_bg parameter for white QR on colored backgrounds. 2) Layout selection updates stamp preview - frontend stampLayout state correctly triggers re-render of stamp preview component. All 5 layouts (horizontal, vertical, compact, logo_left, logo_right) working correctly.",
+  
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": [
+      "POST /api/payments/initiate - Returns mock payment reference",
+      "POST /api/payments/confirm/{payment_ref} - Returns mock confirmation"
+    ]
+  },
+  
+  "verification_details": {
+    "bug_1_qr_visibility": {
+      "issue": "Downloaded PDF was showing empty white box instead of QR code",
+      "fix": "Backend generate_qr_code_image function updated with for_colored_bg parameter",
+      "verification": "PDF analysis shows stamp image with 374 unique colors, 34.2% green pixels - NOT empty",
+      "status": "FIXED"
+    },
+    "bug_2_layout_preview": {
+      "issue": "Changing layout option should update stamp preview on document",
+      "fix": "Frontend QRPatternPreview component extracted, stampLayout state triggers dynamic rendering",
+      "verification": "UI testing shows stamp preview changes when clicking Wide/Tall/Mini/QR Left/QR Right",
+      "status": "FIXED"
+    }
+  }
+}

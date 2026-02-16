@@ -1,0 +1,117 @@
+{
+  "summary": "Iteration 33 - Tested push notification preferences feature. Found and FIXED critical bug: preferences were being saved to wrong MongoDB collection (db.users instead of db.advocates). All 21 backend API tests pass. Frontend UI working correctly with all interactions: toggle individual preferences, disable/enable all, reset to defaults.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": {
+    "backend_api": [
+      "GET /api/notifications/preferences returns 200 - PASS",
+      "GET returns all 19 notification types - PASS",
+      "All preferences default to ON (True) - PASS",
+      "Returns 7 grouped categories - PASS",
+      "Requires authentication - PASS",
+      "PUT /api/notifications/preferences updates single preference - PASS",
+      "PUT updates multiple preferences - PASS",
+      "PUT preserves other preferences - PASS",
+      "PUT requires authentication - PASS",
+      "POST /api/notifications/preferences/reset restores defaults - PASS",
+      "Reset requires authentication - PASS",
+      "POST /api/notifications/preferences/toggle-all disables all - PASS",
+      "Toggle-all enables all - PASS",
+      "Toggle-all requires authentication - PASS",
+      "Category structure tests (7 categories, correct counts) - PASS"
+    ],
+    "frontend_ui": [
+      "Notifications tab appears in Profile page - PASS",
+      "NotificationSettings component loads correctly - PASS",
+      "All 7 categories displayed with correct icons - PASS",
+      "Category accordions expand/collapse - PASS",
+      "Individual preference switches work - PASS",
+      "Disable All button disables all preferences - PASS",
+      "Enable All button enables all preferences - PASS",
+      "Reset button resets to defaults - PASS",
+      "Toast notifications show for actions - PASS"
+    ],
+    "data_persistence": [
+      "Preferences persist after page reload - PASS (after fix)",
+      "Toggle all persists correctly - PASS (after fix)",
+      "Individual toggles persist - PASS (after fix)"
+    ]
+  },
+  
+  "bug_fixed": {
+    "description": "Notification preferences were being saved to db.users collection but advocates are stored in db.advocates collection. This caused preferences to not persist - updates would return success but GET would return defaults.",
+    "root_cause": "Notification preference endpoints (GET, PUT, POST reset, POST toggle-all) and helper functions (notify_stamp_event, get_user_notification_preferences) all used db.users.find_one() and db.users.update_one() instead of db.advocates",
+    "fix_applied": "Modified all notification preference functions to check db.advocates first, then fall back to db.users (for admin/super_admin accounts). Updated 6 functions in server.py: get_notification_preferences, update_notification_preferences, reset_notification_preferences, toggle_all_notifications, notify_stamp_event, get_user_notification_preferences",
+    "lines_modified": "4622-4703, 4704-4740, 4741-4754, 4756-4775, 4935-4947, 5093-5099"
+  },
+  
+  "features_verified": {
+    "notification_types": {
+      "document_stamping": ["stamp_created", "stamp_downloaded"],
+      "verification": ["stamp_verified", "verification_failed"],
+      "expiry_warnings": ["stamp_expiring_30days", "stamp_expiring_7days", "stamp_expiring_1day", "stamp_expired"],
+      "account_security": ["login_new_device", "password_changed", "profile_updated"],
+      "billing": ["subscription_expiring", "payment_received", "payment_failed"],
+      "system": ["system_maintenance", "new_features", "security_alerts"],
+      "offline_sync": ["sync_completed", "sync_failed"]
+    },
+    "ui_components": {
+      "NotificationSettings.jsx": "Full component with category accordions, switches, master toggle, reset button",
+      "ProfilePage.jsx": "Notifications tab added with data-testid='notifications-tab'"
+    }
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_notification_preferences.py",
+    "/app/test_reports/pytest/notification_preferences_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Bug fix was critical - preferences were not persisting before fix",
+    "Good implementation of DEFAULT_NOTIFICATION_PREFERENCES constant with all 19 types",
+    "notify_stamp_event correctly checks preferences before sending notifications",
+    "Frontend NotificationSettings component well-structured with proper data-testid attributes"
+  ],
+  
+  "updated_files": [
+    "/app/backend/server.py - Fixed notification preference endpoints to use db.advocates",
+    "/app/backend/tests/test_notification_preferences.py - Created comprehensive test suite"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (21/21 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  
+  "test_credentials": {
+    "advocate_user": {
+      "email": "testadvocate@tls.or.tz",
+      "password": "Test@1234",
+      "status": "Working"
+    }
+  },
+  
+  "seed_data_creation": "",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Notification preferences feature fully working. 19 notification types across 7 categories. All endpoints: GET /api/notifications/preferences, PUT /api/notifications/preferences, POST /api/notifications/preferences/reset, POST /api/notifications/preferences/toggle-all. ProfilePage has Notifications tab at /profile?tab=notifications. NotificationSettings component in /app/frontend/src/components/NotificationSettings.jsx. Critical bug fixed: preferences now correctly saved to db.advocates collection.",
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}

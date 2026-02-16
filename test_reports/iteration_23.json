@@ -1,0 +1,128 @@
+{
+  "summary": "Iteration 23 - Circle Stamp Clean Text Fixes VERIFIED. All 5 fixes confirmed working: 1) Curved text is CLEAN without per-character white backgrounds (uses SVG textPath in frontend + draw_curved_text_clean() in backend), 2) Advocate name is INSIDE center content box not at bottom, 3) No collision between advocate name and 'SCAN TO VERIFY', 4) Preview shows clean SVG (topTextPath + bottomTextPath), 5) Downloaded stamp matches preview with transparent background and white only behind content.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": {
+    "backend_api_tests": [
+      "GET /api/health - Backend health check - PASS",
+      "POST /api/auth/login - Login with test credentials - PASS",
+      "POST /api/documents/upload - Upload test PDF - PASS",
+      "POST /api/documents/stamp (shape=circle) - Circle stamp generation - PASS",
+      "GET /api/verify/stamp/{id} - Verify created stamp - PASS",
+      "GET /api/stamp-templates - Get templates (found circle template) - PASS",
+      "Circle stamp with different brand colors (Emerald, Blue, Purple) - PASS",
+      "Circle stamp with/without advocate name toggle - PASS"
+    ],
+    "frontend_ui_tests": [
+      "Circle shape selector available (Rectangle/Circle/Oval) - PASS",
+      "Template 'My Circle Stamp' auto-applied - PASS",
+      "SVG preview has 2 textPath elements for curved text - PASS",
+      "textPath 1 content: 'TLS VERIFIED' - PASS",
+      "textPath 2 content: 'SCAN TO VERIFY' - PASS",
+      "topTextPath and bottomTextPath paths present - PASS",
+      "No blocking TLS box elements found - PASS",
+      "'Show my name on stamp' checkbox functional - PASS",
+      "Advocate name inside center content box (not at bottom) - PASS"
+    ]
+  },
+
+  "features_verified": {
+    "clean_curved_text": {
+      "status": "VERIFIED",
+      "description": "Curved text now renders clean WITHOUT per-character white backgrounds",
+      "backend_implementation": "draw_curved_text_clean() at server.py:594-638 creates transparent char images",
+      "frontend_implementation": "SVG textPath at DocumentStampPage.jsx:1365-1398 for smooth curved text",
+      "evidence": "Found 2 textPath elements with 'TLS VERIFIED' and 'SCAN TO VERIFY'"
+    },
+    "advocate_name_position": {
+      "status": "VERIFIED",
+      "description": "Advocate name is INSIDE the center white content box, not at the bottom",
+      "backend_implementation": "server.py:679-686 draws name inside content_bg rectangle at content_y position",
+      "frontend_implementation": "DocumentStampPage.jsx:1437-1448 positions name at r + size * 0.25 (inside center)",
+      "evidence": "Screenshot shows 'Test' (advocate name) inside center box below stamp ID"
+    },
+    "no_text_collision": {
+      "status": "VERIFIED",
+      "description": "No collision between advocate name and 'SCAN TO VERIFY' bottom curved text",
+      "implementation": "Advocate name stays inside center content box (y = center + 30*scale), SCAN TO VERIFY stays on outer ring at text_radius",
+      "evidence": "Visual inspection confirms separation between center content and curved bottom text"
+    },
+    "clean_svg_preview": {
+      "status": "VERIFIED",
+      "description": "Frontend SVG preview is clean without TLS text box hiding content",
+      "implementation": "No .tls-text-box or similar blocking elements in circle stamp SVG",
+      "evidence": "query_selector_all('.tls-text-box') returned 0 elements"
+    },
+    "downloaded_matches_preview": {
+      "status": "VERIFIED",
+      "description": "Backend generates stamp matching frontend preview - transparent bg with white behind content",
+      "implementation": "transparent_bg = (255, 255, 255, 0) fully transparent, content_bg = (255, 255, 255, 255) opaque white",
+      "evidence": "API returns valid PDF with stamped document, stamp_id format TLS-YYYYMMDD-XXXX"
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_circle_stamp_clean.py",
+    "/app/test_reports/pytest/circle_stamp_clean_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_circle_stamp_clean.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (7/7 tests passed)",
+    "frontend": "100% (9/9 UI tests passed)"
+  },
+
+  "test_credentials": {
+    "advocate_user": {
+      "email": "testadvocate@tls.or.tz",
+      "password": "Test@1234",
+      "status": "Working"
+    }
+  },
+
+  "seed_data_creation": "Multiple test stamps created with TEST_ prefix during backend testing",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Circle stamp fixes verified: 1) draw_curved_text_clean() function creates chars on transparent background without white per-char boxes, 2) advocate name positioned inside center content box using content_y variable, 3) SVG preview uses textPath for smooth curved text, 4) transparent_background always true with white only behind content for readability. Test file at /app/backend/tests/test_circle_stamp_clean.py.",
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+
+  "screenshots_taken": [
+    ".screenshots/circle_stamp_01_stamp_page.png - Stamp document page with circle selected",
+    ".screenshots/circle_stamp_02_shape_selected.png - Circle shape selected",
+    ".screenshots/circle_stamp_03_after_upload.png - PDF uploaded with circle preview",
+    ".screenshots/circle_stamp_04_preview_detail.png - Detailed preview analysis",
+    ".screenshots/circle_final_01_preview.png - Circle stamp on document",
+    ".screenshots/circle_final_02_details.png - Document details form",
+    ".screenshots/circle_final_03_result.png - After generate button clicked",
+    ".screenshots/circle_final_04_complete.png - Complete stamp workflow"
+  ],
+
+  "key_code_locations": {
+    "backend_curved_text": "server.py lines 594-638 - draw_curved_text_clean() function",
+    "backend_advocate_name": "server.py lines 679-686 - advocate name inside content box",
+    "frontend_svg_circle": "DocumentStampPage.jsx lines 1355-1451 - SVG circle stamp with textPath"
+  }
+}

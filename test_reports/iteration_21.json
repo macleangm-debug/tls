@@ -1,0 +1,118 @@
+{
+  "summary": "Testing of circle stamp bug fix - Backend generates READABLE horizontal text (not garbled curved text), frontend preview updated to match. Stamp centers on upload. Dragging works smoothly.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "MyStampsPage.jsx",
+        "issues": ["Line 742-753: 'Address (appears on outer ring)' label is now misleading since backend uses horizontal text, not curved outer ring text. Low priority - can be removed or relabeled."]
+      }
+    ]
+  },
+  
+  "passed_tests": {
+    "backend_api_tests": [
+      "GET /api/health - Backend health check - PASS",
+      "POST /api/auth/login - Login with test credentials - PASS",
+      "GET /api/stamp-templates - Retrieve stamp templates (found circle template) - PASS",
+      "POST /api/documents/upload - Upload PDF (3 pages detected) - PASS",
+      "POST /api/documents/stamp - Generate CIRCLE stamp - PASS (stamp ID: TLS-20260204-*)",
+      "POST /api/documents/stamp - Generate centered stamp position (231, 321) - PASS",
+      "GET /api/verify/stamp/{id} - Verify generated stamp - PASS (advocate: Test Advocate, status: active)",
+      "POST /api/documents/stamp - All shapes (rectangle, circle, oval) generate successfully - PASS"
+    ],
+    "frontend_ui_tests": [
+      "Stamp Document page loads with shape selector (Rectangle, Circle, Oval) - PASS",
+      "Circle stamp preview shows HORIZONTAL text (not curved SVG) - PASS (verified: no textPath in HTML)",
+      "Stamp positioned at CENTER on document upload - PASS (initial: x=727, y=670)",
+      "Dragging stamp works smoothly - PASS (dragged from (727,670) to (827,770))",
+      "Generate Verified Stamp completes successfully - PASS (Download option available)",
+      "Notarization stamp type works without signature requirement - PASS",
+      "PDF loads with page navigation (1/3) - PASS"
+    ]
+  },
+  
+  "bug_fixes_verified": {
+    "garbled_curved_text": {
+      "status": "FIXED",
+      "description": "Circle stamp now uses HORIZONTAL text in backend (lines 594-616 in server.py)",
+      "frontend_updated": "DocumentStampPage.jsx and MyStampsPage.jsx updated to match backend",
+      "before": "Frontend used SVG textPath for curved text, backend also used curved text but PIL curved text was garbled/unreadable",
+      "after": "Both frontend and backend now use simple horizontal text with white backgrounds for readability"
+    },
+    "stamp_centering": {
+      "status": "FIXED",
+      "description": "Stamp defaults to CENTER of page when document is uploaded",
+      "implementation": "getStampPosition() calculates center based on page dimensions without previewScale in position"
+    },
+    "smooth_dragging": {
+      "status": "FIXED",
+      "description": "Dragging stamp is smooth using Rnd component with onDragStop only",
+      "verified": "Successfully dragged stamp 100px in both x and y directions"
+    }
+  },
+  
+  "files_modified_by_testing_agent": [
+    "/app/frontend/src/pages/DocumentStampPage.jsx - Updated circle stamp preview to use horizontal text",
+    "/app/frontend/src/pages/MyStampsPage.jsx - Updated circle stamp preview to use horizontal text"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_circle_stamp_fix.py",
+    "/app/test_reports/pytest/circle_stamp_fix_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Backend circle stamp generation (lines 577-666 in server.py) now uses horizontal text with white backgrounds - matches frontend preview",
+    "Frontend circle stamp preview updated in both DocumentStampPage.jsx and MyStampsPage.jsx to use horizontal text instead of SVG curved textPath",
+    "Address field in MyStampsPage.jsx (line 742-753) is now unused for circle/oval stamps - could be removed or relabeled"
+  ],
+  
+  "updated_files": [
+    "/app/frontend/src/pages/DocumentStampPage.jsx",
+    "/app/frontend/src/pages/MyStampsPage.jsx",
+    "/app/backend/tests/test_circle_stamp_fix.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  
+  "test_credentials": {
+    "advocate_user": {
+      "email": "testadvocate@tls.or.tz",
+      "password": "Test@1234",
+      "status": "Working"
+    }
+  },
+  
+  "seed_data_creation": "Test stamps with TEST_ prefix created during backend testing",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Circle stamp bug is FIXED. Backend generates horizontal text (not curved). Frontend previews updated to match. Stamp centers on upload. Dragging works. Test PDF at /tmp/test_multipage.pdf. All 3 bug items from the original request are verified fixed.",
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+  
+  "screenshots_taken": [
+    ".screenshots/05_stamp_document_full.png - Stamp document page with shape selectors",
+    ".screenshots/07_after_upload_stamp_position.png - PDF uploaded with stamp visible",
+    ".screenshots/13_after_generate.png - Document Secured success dialog",
+    ".screenshots/16_circle_stamp_updated.png - Updated circle stamp with horizontal text preview",
+    ".screenshots/17_after_drag.png - Stamp after drag operation"
+  ]
+}

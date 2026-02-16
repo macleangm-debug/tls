@@ -1,0 +1,5632 @@
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Query, UploadFile, File, Form
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import StreamingResponse
+from dotenv import load_dotenv
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+import logging
+from pathlib import Path
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional
+import uuid
+from datetime import datetime, timezone, timedelta
+import hashlib
+import base64
+import qrcode
+from io import BytesIO
+from jose import jwt, JWTError
+from passlib.context import CryptContext
+import secrets
+import math
+from PIL import Image
+from PyPDF2 import PdfReader, PdfWriter
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib import colors
+import json
+from pywebpush import webpush, WebPushException
+
+# Try to import docx for DOCX support
+try:
+    from docx import Document as DocxDocument
+    DOCX_SUPPORTED = True
+except ImportError:
+    DOCX_SUPPORTED = False
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+# MongoDB connection
+mongo_url = os.environ['MONGO_URL']
+client = AsyncIOMotorClient(mongo_url)
+db = client[os.environ['DB_NAME']]
+
+# Security
+SECRET_KEY = os.environ.get('SECRET_KEY', secrets.token_urlsafe(32))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+
+# VAPID configuration for push notifications
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_SUBJECT = os.environ.get('VAPID_SUBJECT', 'mailto:admin@tls.or.tz')
+VAPID_CLAIMS = {
+    "sub": VAPID_SUBJECT
+}
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer()
+
+app = FastAPI(title="TLS Advocate Management System")
+api_router = APIRouter(prefix="/api")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# =============== MODELS ===============
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class AdvocateRegister(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
+    roll_number: str
+    phone: str
+    region: str = "Dar es Salaam"
+
+class AdvocateLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class AdvocateProfile(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    roll_number: str
+    tls_member_number: Optional[str] = None
+    phone: str
+    region: str
+    court_jurisdiction: str = "High Court of Tanzania"
+    firm_affiliation: Optional[str] = None
+    admission_year: Optional[int] = None
+    practicing_status: str = "Active"
+    profile_photo: Optional[str] = None
+    role: str = "advocate"
+    verified: bool = False
+    total_earnings: float = 0.0
+    notification_preferences: Optional[dict] = None
+    created_at: str
+    updated_at: str
+
+# Default notification preferences - all ON by default
+DEFAULT_NOTIFICATION_PREFERENCES = {
+    # Document stamping events
+    "stamp_created": True,           # When you stamp a document
+    "stamp_downloaded": True,        # When stamped document is downloaded
+    
+    # Verification events
+    "stamp_verified": True,          # When someone verifies your stamp
+    "verification_failed": True,     # When verification attempt fails
+    
+    # Expiry warnings
+    "stamp_expiring_30days": True,   # 30 days before stamp expires
+    "stamp_expiring_7days": True,    # 7 days before stamp expires
+    "stamp_expiring_1day": True,     # 1 day before stamp expires
+    "stamp_expired": True,           # When stamp expires
+    
+    # Account & security
+    "login_new_device": True,        # Login from new device
+    "password_changed": True,        # Password change notification
+    "profile_updated": True,         # Profile information updated
+    
+    # Subscription & billing
+    "subscription_expiring": True,   # Subscription expiring soon
+    "payment_received": True,        # Payment confirmation
+    "payment_failed": True,          # Payment failure alert
+    
+    # System notifications
+    "system_maintenance": True,      # Scheduled maintenance
+    "new_features": True,            # New feature announcements
+    "security_alerts": True,         # Security-related alerts
+    
+    # Offline sync
+    "sync_completed": True,          # Offline queue synced
+    "sync_failed": True,             # Sync failed notification
+}
+
+class NotificationPreferencesUpdate(BaseModel):
+    stamp_created: Optional[bool] = None
+    stamp_downloaded: Optional[bool] = None
+    stamp_verified: Optional[bool] = None
+    verification_failed: Optional[bool] = None
+    stamp_expiring_30days: Optional[bool] = None
+    stamp_expiring_7days: Optional[bool] = None
+    stamp_expiring_1day: Optional[bool] = None
+    stamp_expired: Optional[bool] = None
+    login_new_device: Optional[bool] = None
+    password_changed: Optional[bool] = None
+    profile_updated: Optional[bool] = None
+    subscription_expiring: Optional[bool] = None
+    payment_received: Optional[bool] = None
+    payment_failed: Optional[bool] = None
+    system_maintenance: Optional[bool] = None
+    new_features: Optional[bool] = None
+    security_alerts: Optional[bool] = None
+    sync_completed: Optional[bool] = None
+    sync_failed: Optional[bool] = None
+
+class AdvocateUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    region: Optional[str] = None
+    court_jurisdiction: Optional[str] = None
+    firm_affiliation: Optional[str] = None
+    profile_photo: Optional[str] = None
+    notification_preferences: Optional[dict] = None
+
+class StampType(BaseModel):
+    id: str
+    name: str
+    description: str
+    price: float
+    currency: str = "TZS"
+
+class StampOrderCreate(BaseModel):
+    stamp_type_id: str
+    quantity: int = 1
+    customization: dict = {}
+    delivery_address: str
+
+class StampOrder(BaseModel):
+    id: str
+    advocate_id: str
+    stamp_type_id: str
+    stamp_type_name: str
+    quantity: int
+    customization: dict
+    delivery_address: str
+    total_price: float
+    currency: str
+    status: str
+    payment_status: str
+    payment_method: Optional[str] = None
+    tracking_number: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+# Physical Order Models (New multi-item orders)
+class PhysicalOrderItem(BaseModel):
+    product_type: str  # "stamp" or "ink"
+    stamp_type: Optional[str] = None  # "certificate" or "notary"
+    format: Optional[str] = None  # "desk" or "pocket"
+    name: str
+    quantity: int
+    unit_price: float
+    total_price: float
+
+class PhysicalOrderCreate(BaseModel):
+    items: List[PhysicalOrderItem]
+    delivery_address: str
+    special_instructions: Optional[str] = ""
+    customization: dict = {}
+
+class PhysicalOrder(BaseModel):
+    id: str
+    advocate_id: str
+    advocate_name: str
+    items: List[dict]
+    delivery_address: str
+    special_instructions: str
+    customization: dict
+    total_price: float
+    currency: str
+    status: str  # pending_review, approved, in_production, quality_check, ready_dispatch, dispatched, delivered, cancelled
+    payment_status: str
+    payment_method: Optional[str] = None
+    tracking_number: Optional[str] = None
+    status_history: List[dict] = []
+    notes: List[dict] = []
+    created_at: str
+    updated_at: str
+
+# Document Stamp Models
+class DocumentStamp(BaseModel):
+    id: str
+    stamp_id: str
+    advocate_id: str
+    advocate_name: str
+    advocate_roll_number: str
+    document_name: str
+    document_hash: str
+    document_pages: int
+    stamp_type: str
+    stamp_position: dict  # {page: 1, x: 100, y: 100, width: 150, height: 150}
+    hash_value: str
+    qr_code_data: str
+    status: str
+    verification_count: int = 0
+    total_earnings: float = 0.0
+    created_at: str
+    expires_at: str
+
+class VerificationResult(BaseModel):
+    valid: bool
+    stamp_id: Optional[str] = None
+    advocate_name: Optional[str] = None
+    advocate_roll_number: Optional[str] = None
+    advocate_tls_number: Optional[str] = None
+    advocate_status: Optional[str] = None
+    advocate_photo: Optional[str] = None
+    stamp_status: Optional[str] = None
+    stamp_type: Optional[str] = None
+    document_name: Optional[str] = None
+    document_type: Optional[str] = None
+    description: Optional[str] = None
+    recipient_name: Optional[str] = None
+    recipient_org: Optional[str] = None
+    document_hash: Optional[str] = None
+    created_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    verification_count: Optional[int] = None
+    warning: Optional[str] = None
+    message: str
+
+class PaymentInitiate(BaseModel):
+    order_id: str
+    payment_method: str
+    provider: str
+    phone_number: Optional[str] = None
+
+# System Settings Model
+class SystemSettings(BaseModel):
+    verification_fee_fixed: float = 500.0  # TZS per verification
+    verification_fee_percentage: float = 0.0  # % of stamp price
+    advocate_revenue_share: float = 30.0  # % of verification fee goes to advocate
+    currency: str = "TZS"
+    # Stamp type pricing
+    official_stamp_price: float = 5000.0  # TZS
+    commissioner_stamp_price: float = 7500.0  # TZS
+    notary_stamp_price: float = 10000.0  # TZS
+
+class AdminStats(BaseModel):
+    total_advocates: int
+    active_advocates: int
+    suspended_advocates: int
+    total_stamps_issued: int
+    active_stamps: int
+    total_orders: int
+    pending_orders: int
+    total_revenue: float
+    monthly_revenue: float
+    total_verifications: int
+    fraud_alerts: int
+
+# Institutional Account Models
+class InstitutionalAccountCreate(BaseModel):
+    name: str
+    organization_type: str = "bank"  # bank, court, government, law_firm, other
+    contact_name: str
+    contact_email: EmailStr
+    contact_phone: str
+    billing_address: str
+    billing_period: str = "monthly"  # monthly, quarterly, yearly
+
+class InstitutionalAccount(BaseModel):
+    id: str
+    name: str
+    organization_type: str
+    api_key: str
+    contact_name: str
+    contact_email: str
+    contact_phone: str
+    billing_address: str
+    billing_period: str
+    verification_count: int = 0
+    total_verifications: int = 0
+    last_billed_at: Optional[str] = None
+    status: str = "active"
+    created_at: str
+    updated_at: str
+
+# Verification Payment Models
+class VerificationPaymentStatus(BaseModel):
+    verification_id: str
+    stamp_id: str
+    status: str  # pending, paid, bypassed (institutional)
+    fee_amount: float
+    currency: str = "TZS"
+    expires_at: str
+    basic_info: dict  # Limited info shown before payment
+    full_info: Optional[dict] = None  # Full info shown after payment
+
+# QR Stamp Subscription Models
+SUBSCRIPTION_PACKAGES = {
+    "monthly": {"name": "Monthly", "duration_days": 30, "price": 30000, "savings": 0},
+    "quarterly": {"name": "Quarterly", "duration_days": 90, "price": 80000, "savings": 11},
+    "semi_annual": {"name": "Semi-Annual", "duration_days": 180, "price": 155000, "savings": 14},
+    "annual": {"name": "Annual", "duration_days": 365, "price": 300000, "savings": 17}
+}
+
+TRIAL_PERIOD_DAYS = 30
+TRIAL_STAMP_LIMIT = 5  # Maximum stamps during trial
+GRACE_PERIOD_DAYS = 7
+
+# Public Verification Pricing (for non-registered users)
+PUBLIC_VERIFICATION_FEE = 50000  # TZS per single verification (premium price)
+# This is intentionally HIGH to incentivize businesses to register and buy credit packs
+
+# Verification Credit Pricing Tiers (Prepaid Packs for registered businesses)
+# Default tiers - can be overridden by Super Admin in DB
+DEFAULT_VERIFICATION_TIERS = [
+    {"id": "basic", "name": "Basic", "credits": 10, "price_per_unit": 25000, "total_price": 250000, "description": "Save 50% vs public rate", "savings_percent": 50},
+    {"id": "standard", "name": "Standard", "credits": 50, "price_per_unit": 20000, "total_price": 1000000, "description": "Save 60% vs public rate", "popular": True, "savings_percent": 60},
+    {"id": "professional", "name": "Professional", "credits": 200, "price_per_unit": 17500, "total_price": 3500000, "description": "Save 65% vs public rate", "savings_percent": 65},
+    {"id": "enterprise", "name": "Enterprise", "credits": 500, "price_per_unit": 15000, "total_price": 7500000, "description": "Save 70% vs public rate", "savings_percent": 70}
+]
+MINIMUM_PRICE_PER_VERIFICATION = 15000  # Floor price in TZS for business packs
+
+class VerificationTier(BaseModel):
+    id: str
+    name: str
+    credits: int
+    price_per_unit: int
+    total_price: int
+    description: Optional[str] = ""
+    popular: Optional[bool] = False
+    active: Optional[bool] = True
+
+class VerificationTierCreate(BaseModel):
+    name: str
+    credits: int
+    price_per_unit: int
+    description: Optional[str] = ""
+    popular: Optional[bool] = False
+
+class CreditTopUp(BaseModel):
+    tier_id: str
+    payment_method: str = "bank_transfer"  # bank_transfer, mobile_money, card
+
+class SubscriptionCreate(BaseModel):
+    package: str  # monthly, quarterly, semi_annual, annual
+    payment_method: str = "mobile_money"
+
+class SubscriptionStatus(BaseModel):
+    id: str
+    advocate_id: str
+    package: str
+    status: str  # trial, active, grace, expired
+    is_trial: bool
+    trial_started_at: Optional[str] = None
+    trial_ends_at: Optional[str] = None
+    subscription_started_at: Optional[str] = None
+    subscription_ends_at: Optional[str] = None
+    grace_ends_at: Optional[str] = None
+    can_earn_revenue: bool
+    total_stamps_created: int
+    created_at: str
+
+class InstitutionalSubscription(BaseModel):
+    id: str
+    institution_name: str
+    organization_type: str
+    api_key: str
+    package: str
+    status: str
+    verification_limit: int
+    verifications_used: int
+    subscription_ends_at: str
+    contact_email: str
+    contact_phone: str
+
+# =============== HELPER FUNCTIONS ===============
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # Check advocates collection first
+        user = await db.advocates.find_one({"id": user_id}, {"_id": 0})
+        
+        # If not found, check users collection (for admin/super_admin)
+        if user is None:
+            user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+async def require_admin(user: dict = Depends(get_current_user)):
+    if user.get("role") not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+async def require_super_admin(user: dict = Depends(get_current_user)):
+    if user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin access required")
+    return user
+
+def generate_stamp_id() -> str:
+    return f"TLS-{datetime.now().strftime('%Y%m%d')}-{secrets.token_hex(4).upper()}"
+
+def generate_tls_member_number(roll_number: str) -> str:
+    return f"TLS/{roll_number}/{datetime.now().year}"
+
+def generate_stamp_hash(stamp_id: str, advocate_id: str, document_hash: str, timestamp: str) -> str:
+    data = f"{stamp_id}:{advocate_id}:{document_hash}:{timestamp}:{secrets.token_hex(16)}"
+    return hashlib.sha256(data.encode()).hexdigest()
+
+def generate_document_hash(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+def generate_qr_code(data: str, size: int = 200) -> str:
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#1B365D", back_color="white")
+    # Resize to specified size
+    img = img.resize((size, size), Image.Resampling.LANCZOS)
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    return base64.b64encode(buffer.getvalue()).decode()
+
+def hex_to_rgb(hex_color: str) -> tuple:
+    """Convert hex color to RGB tuple"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def generate_branded_qr_code(data: str, size: int = 200, brand_color: str = "#10B981") -> str:
+    """Generate a branded QR code with custom color and TLS branding"""
+    qr = qrcode.QRCode(
+        version=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,  # High error correction for logo overlay
+        box_size=10,
+        border=2
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    
+    # Create QR with brand color
+    rgb_color = hex_to_rgb(brand_color)
+    img = qr.make_image(fill_color=rgb_color, back_color="white")
+    img = img.convert('RGBA')
+    img = img.resize((size, size), Image.Resampling.LANCZOS)
+    
+    # Add TLS badge/logo in center
+    try:
+        # Create a small TLS badge
+        badge_size = size // 4
+        badge = Image.new('RGBA', (badge_size, badge_size), (255, 255, 255, 255))
+        
+        # Draw a simple shield shape
+        from PIL import ImageDraw, ImageFont
+        draw = ImageDraw.Draw(badge)
+        
+        # Fill with brand color
+        draw.rectangle([2, 2, badge_size-3, badge_size-3], fill=rgb_color + (255,), outline=(255, 255, 255, 255), width=2)
+        
+        # Add "TLS" text
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", badge_size // 3)
+        except:
+            font = ImageFont.load_default()
+        
+        text = "TLS"
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        text_x = (badge_size - text_width) // 2
+        text_y = (badge_size - text_height) // 2 - 2
+        draw.text((text_x, text_y), text, fill=(255, 255, 255, 255), font=font)
+        
+        # Paste badge in center
+        badge_pos = ((size - badge_size) // 2, (size - badge_size) // 2)
+        img.paste(badge, badge_pos, badge)
+    except Exception as e:
+        logger.warning(f"Could not add TLS badge to QR: {e}")
+    
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    return base64.b64encode(buffer.getvalue()).decode()
+
+def generate_qr_code_image(data: str, size: int = 150, brand_color: str = "#10B981", for_colored_bg: bool = False) -> Image.Image:
+    """Generate QR code as PIL Image for embedding in PDF
+    
+    Args:
+        data: The data to encode in QR
+        size: Size of the QR code
+        brand_color: Color for QR modules (or background if for_colored_bg=True)
+        for_colored_bg: If True, generates white QR modules on transparent background 
+                       (for placing on colored backgrounds)
+    """
+    # Use medium error correction for better scanability
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=2)
+    qr.add_data(data)
+    qr.make(fit=True)
+    
+    if for_colored_bg:
+        # For colored backgrounds: white modules on transparent background
+        img = qr.make_image(fill_color="white", back_color="transparent")
+        img = img.convert('RGBA')
+    else:
+        # Normal: colored modules on white background
+        rgb_color = hex_to_rgb(brand_color)
+        img = qr.make_image(fill_color=rgb_color, back_color="white")
+    
+    return img.resize((size, size), Image.Resampling.LANCZOS)
+
+
+def generate_branded_stamp_image(
+    stamp_id: str,
+    advocate_name: str,
+    verification_url: str,
+    brand_color: str = "#10B981",
+    layout: str = "horizontal",
+    shape: str = "rectangle",
+    show_advocate_name: bool = True,
+    show_tls_logo: bool = True,
+    include_signature: bool = False,
+    signature_data: Optional[str] = None,
+    show_signature_placeholder: bool = False,
+    scale: float = 1.0,
+    transparent_background: bool = True  # Always transparent by default
+) -> Image.Image:
+    """
+    Generate a professional stamp image with high readability.
+    Supports multiple layouts: horizontal, vertical, compact, logo_left, logo_right
+    Supports shapes: rectangle, circle, oval
+    
+    Background is FULLY TRANSPARENT with opaque white backgrounds ONLY behind content
+    (QR code, text, signature, etc.) for readability on any document background.
+    """
+    from PIL import ImageDraw, ImageFont
+    import os
+    import math
+    
+    rgb_color = hex_to_rgb(brand_color)
+    dark_text = (20, 20, 20)
+    medium_text = (60, 60, 60)
+    light_text = (100, 100, 100)
+    
+    # Fully transparent background - white only behind content elements
+    # This allows stamps to float on documents without a visible background box
+    transparent_bg = (255, 255, 255, 0)  # Fully transparent
+    content_bg = (255, 255, 255, 255)  # Opaque white for behind content
+    
+    # Load TLS logo
+    tls_logo = None
+    logo_path = os.path.join(os.path.dirname(__file__), 'assets', 'tls-logo.png')
+    if os.path.exists(logo_path):
+        try:
+            tls_logo = Image.open(logo_path).convert('RGBA')
+        except Exception as e:
+            print(f"Failed to load TLS logo: {e}")
+    
+    # Get fonts
+    try:
+        font_bold_xlarge = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(20 * scale))
+        font_bold_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(16 * scale))
+        font_bold_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(13 * scale))
+        font_bold_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(11 * scale))
+        font_regular = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(12 * scale))
+        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(10 * scale))
+        font_tiny = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(8 * scale))
+    except:
+        font_bold_xlarge = font_bold_large = font_bold_medium = font_bold_small = font_regular = font_small = font_tiny = ImageFont.load_default()
+    
+    # Load TLS Logo
+    tls_logo = None
+    logo_path = "/app/frontend/public/assets/tls-logo.png"
+    if show_tls_logo and os.path.exists(logo_path):
+        try:
+            tls_logo = Image.open(logo_path).convert('RGBA')
+        except:
+            pass
+    
+    # Generate QR code
+    qr_size = int(90 * scale)
+    qr_img = generate_qr_code_image(verification_url, qr_size, brand_color)
+    qr_img = qr_img.convert('RGBA')
+    
+    current_date = datetime.now().strftime("%d %b %Y")
+    
+    # ============ CIRCLE STAMP - EXACT match to frontend preview ============
+    if shape == "circle":
+        # Match preview dimensions exactly
+        diameter = int(200 * scale)
+        img = Image.new('RGBA', (diameter, diameter), transparent_bg)
+        draw = ImageDraw.Draw(img)
+        
+        center = diameter // 2
+        
+        # Fill inner area with subtle gray background (matching frontend preview)
+        border_width = int(3 * scale)
+        inner_gap = int(8 * scale)
+        
+        # Draw filled inner circle with light gray background
+        fill_color = (245, 245, 245, 255)  # Light gray background like frontend preview
+        draw.ellipse([border_width + inner_gap + 2, border_width + inner_gap + 2, 
+                     diameter - border_width - inner_gap - 3, diameter - border_width - inner_gap - 3], 
+                    fill=fill_color)
+        
+        # Double border - outer and inner circles (matching preview)
+        draw.ellipse([border_width, border_width, diameter-border_width-1, diameter-border_width-1], 
+                    outline=rgb_color, width=border_width)
+        
+        draw.ellipse([border_width + inner_gap, border_width + inner_gap, 
+                     diameter - border_width - inner_gap - 1, diameter - border_width - inner_gap - 1], 
+                    outline=rgb_color, width=int(2 * scale))
+        
+        # ★ TLS VERIFIED ★ - Curved along TOP arc of circle
+        badge_text = "★ TLS VERIFIED ★"
+        radius = int(80 * scale)  # Radius for text arc
+        # Arc from 230° to 310° going counter-clockwise at top (in standard coords, top is 270°)
+        # For top arc: start at ~220° and end at ~320° 
+        start_angle = -130  # Top left
+        end_angle = -50     # Top right
+        
+        # Calculate angle per character
+        total_angle = end_angle - start_angle
+        char_angle = total_angle / (len(badge_text) - 1) if len(badge_text) > 1 else 0
+        
+        # Draw each character along the arc
+        for i, char in enumerate(badge_text):
+            angle_deg = start_angle + (i * char_angle)
+            angle_rad = math.radians(angle_deg)
+            
+            # Calculate position on arc
+            x = center + int(radius * math.cos(angle_rad))
+            y = center + int(radius * math.sin(angle_rad))
+            
+            # Create a temporary image for the rotated character
+            char_size = int(16*scale)
+            char_img = Image.new('RGBA', (char_size, char_size), (0, 0, 0, 0))
+            char_draw = ImageDraw.Draw(char_img)
+            char_draw.text((char_size//2, char_size//2), char, font=font_small, fill=rgb_color, anchor="mm")
+            
+            # Rotate so text reads along the arc (letters upright, following curve)
+            rotation = -(angle_deg + 90)
+            char_rotated = char_img.rotate(rotation, resample=Image.Resampling.BICUBIC, expand=False)
+            
+            # Paste onto main image
+            paste_x = x - char_size//2
+            paste_y = y - char_size//2
+            img.paste(char_rotated, (paste_x, paste_y), char_rotated)
+        
+        # QR Code Box - Larger, more visible (no TLS logo)
+        qr_box_size = int(70 * scale)
+        qr_box_x = center - qr_box_size // 2
+        qr_box_y = int(45 * scale)
+        draw.rounded_rectangle([qr_box_x, qr_box_y, qr_box_x + qr_box_size, qr_box_y + qr_box_size], 
+                              radius=int(6*scale), fill=(255, 255, 255, 255), outline=rgb_color, width=int(2*scale))
+        # Paste QR - larger
+        qr_display_size = int(60 * scale)
+        small_qr = qr_img.resize((qr_display_size, qr_display_size), Image.Resampling.LANCZOS)
+        qr_paste_x = center - qr_display_size // 2
+        qr_paste_y = qr_box_y + (qr_box_size - qr_display_size) // 2
+        img.paste(small_qr, (qr_paste_x, qr_paste_y), small_qr)
+        
+        # Stamp ID below QR - clearer with larger font
+        id_y = qr_box_y + qr_box_size + int(8 * scale)
+        draw.text((center, id_y), stamp_id, font=font_small, fill=rgb_color, anchor="mm")
+        
+        # Date below stamp ID
+        date_y = id_y + int(12 * scale)
+        draw.text((center, date_y), current_date, font=font_small, fill=medium_text, anchor="mm")
+        
+        # Advocate name below date (if enabled)
+        if show_advocate_name and advocate_name:
+            name_y = date_y + int(12 * scale)
+            draw.text((center, name_y), advocate_name, font=font_bold_small, fill=rgb_color, anchor="mm")
+        
+        return img
+    
+    # ============ OVAL STAMP - HORIZONTAL layout, centered, no logo ============
+    if shape == "oval":
+        # Horizontal oval (landscape) - wider than tall
+        width = int(240 * scale)
+        height = int(150 * scale)
+        img = Image.new('RGBA', (width, height), transparent_bg)
+        draw = ImageDraw.Draw(img)
+        
+        center_x = width // 2
+        center_y = height // 2
+        
+        # Fill inner area with subtle gray background
+        border_width = int(3 * scale)
+        inner_gap = int(5 * scale)
+        
+        # Draw filled inner oval with light gray background
+        fill_color = (245, 245, 245, 255)
+        draw.ellipse([border_width + inner_gap + 2, border_width + inner_gap + 2, 
+                     width - border_width - inner_gap - 3, height - border_width - inner_gap - 3], 
+                    fill=fill_color)
+        
+        # Double border - outer and inner ovals
+        draw.ellipse([border_width, border_width, width-border_width-1, height-border_width-1], 
+                    outline=rgb_color, width=border_width)
+        draw.ellipse([border_width + inner_gap, border_width + inner_gap, 
+                     width - border_width - inner_gap - 1, height - border_width - inner_gap - 1], 
+                    outline=rgb_color, width=int(2 * scale))
+        
+        # ★ TLS VERIFIED ★ - horizontal text at top
+        badge_text = "★ TLS VERIFIED ★"
+        badge_y = int(16 * scale)
+        draw.text((center_x, badge_y), badge_text, font=font_small, fill=rgb_color, anchor="mm")
+        
+        # Center layout: QR on left, text on right - both vertically centered
+        content_y = center_y + int(5 * scale)
+        
+        # QR Code Box - on left side, centered vertically
+        qr_box_size = int(50 * scale)
+        qr_box_x = int(30 * scale)
+        qr_box_y = content_y - qr_box_size // 2
+        draw.rounded_rectangle([qr_box_x, qr_box_y, qr_box_x + qr_box_size, qr_box_y + qr_box_size], 
+                              radius=int(4*scale), fill=(255, 255, 255, 255), outline=rgb_color, width=int(2*scale))
+        # Paste QR
+        qr_display_size = int(42 * scale)
+        small_qr = qr_img.resize((qr_display_size, qr_display_size), Image.Resampling.LANCZOS)
+        qr_paste_x = qr_box_x + (qr_box_size - qr_display_size) // 2
+        qr_paste_y = qr_box_y + (qr_box_size - qr_display_size) // 2
+        img.paste(small_qr, (qr_paste_x, qr_paste_y), small_qr)
+        
+        # Text info on right side - centered vertically as a group
+        text_x = int(155 * scale)
+        text_start_y = content_y - int(25 * scale)
+        
+        # Stamp ID
+        draw.text((text_x, text_start_y), stamp_id, font=font_small, fill=rgb_color, anchor="mm")
+        
+        # Date
+        draw.text((text_x, text_start_y + int(14 * scale)), current_date, font=font_small, fill=medium_text, anchor="mm")
+        
+        # Advocate Name
+        if show_advocate_name and advocate_name:
+            draw.text((text_x, text_start_y + int(28 * scale)), advocate_name, font=font_small, fill=rgb_color, anchor="mm")
+        
+        # SCAN TO VERIFY - horizontal text at bottom
+        scan_y = height - int(16 * scale)
+        draw.text((center_x, scan_y), "SCAN TO VERIFY", font=font_small, fill=rgb_color, anchor="mm")
+        
+        return img
+    
+    # ============ RECTANGLE LAYOUTS - Transparent with white content backing ============
+    # For rectangle shapes, use layout-based rendering
+    if layout == "horizontal":
+        # Professional horizontal layout - must match frontend preview exactly
+        # Frontend expects 200x105 PDF points (aspect ratio ~1.9)
+        # Backend generates at 2x scale, so 400x210 pixels
+        width = int(400 * scale)
+        height = int(210 * scale)  # Fixed to match frontend aspect ratio
+        
+        # Calculate component proportions within the fixed height
+        header_height = int(34 * scale)   # ~16% of height
+        body_height = int(66 * scale)     # ~31% of height - reduced
+        advocate_height = int(20 * scale) if show_advocate_name else 0  # ~10% of height
+        footer_height = int(18 * scale)   # ~9% of height
+        # Remaining space goes to body
+        body_height = height - header_height - advocate_height - footer_height - int(8 * scale)  # 8px padding
+        
+        img = Image.new('RGBA', (width, height), transparent_bg)  # Fully transparent background
+        draw = ImageDraw.Draw(img)
+        
+        # Rounded border - must have rounded corners like frontend (rounded-sm)
+        border_width = int(3 * scale)
+        corner_radius = int(6 * scale)  # Small radius like rounded-sm
+        
+        # Draw rounded rectangle border
+        draw.rounded_rectangle([0, 0, width-1, height-1], radius=corner_radius, outline=rgb_color, width=border_width)
+        
+        # Header with TLS logo on LEFT and "TLS VERIFIED" on RIGHT - like frontend
+        header_top = border_width
+        header_left = border_width
+        header_right = width - border_width
+        header_bottom = header_height
+        
+        # Fill header with color (account for rounded top corners)
+        header_bg = rgb_color + (255,)  # Opaque header
+        draw.rounded_rectangle([header_left, header_top, header_right, header_bottom], 
+                               radius=corner_radius, fill=header_bg)
+        # Square off bottom of header
+        draw.rectangle([header_left, header_height - corner_radius, header_right, header_bottom], fill=header_bg)
+        
+        # TLS Logo in header on LEFT with SQUARE white background (as requested by user)
+        logo_x = int(10 * scale)
+        logo_center_y = (header_top + header_height) // 2
+        if tls_logo and show_tls_logo:
+            logo_size = int(22 * scale)  # Smaller to fit header
+            logo_resized = tls_logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+            # Square background for logo with small rounded corners
+            square_size = logo_size + int(6 * scale)
+            square_x = logo_x
+            square_y = logo_center_y - square_size // 2
+            draw.rounded_rectangle([square_x, square_y, square_x + square_size, square_y + square_size], 
+                                   radius=int(3*scale), fill=(255, 255, 255))
+            img.paste(logo_resized, (square_x + int(3*scale), square_y + int(3*scale)), logo_resized)
+        
+        # Header text on RIGHT - "TLS VERIFIED" only (like frontend)
+        header_text_color = (255, 255, 255)
+        text_right_x = width - int(15 * scale)
+        draw.text((text_right_x, logo_center_y), "TLS VERIFIED", fill=header_text_color, font=font_bold_medium, anchor="rm")
+        
+        # Body section - white background
+        body_top = header_height
+        body_bottom = body_top + body_height
+        draw.rectangle([border_width, body_top, width-border_width, body_bottom], fill=content_bg)
+        
+        # QR Code on LEFT (matches frontend - make it larger for scannability)
+        qr_margin = int(8 * scale)
+        qr_box_size = min(int(56 * scale), body_height - int(8 * scale))  # Fit within body
+        qr_box_x = qr_margin + border_width
+        qr_box_y = body_top + (body_height - qr_box_size) // 2  # Center vertically
+        
+        # QR background with subtle border
+        draw.rounded_rectangle([qr_box_x, qr_box_y, qr_box_x + qr_box_size, qr_box_y + qr_box_size],
+                              radius=int(3*scale), fill=(255, 255, 255), outline=rgb_color + (60,), width=1)
+        
+        # Resize QR to fit and center in box
+        qr_img_resized = qr_img.resize((qr_box_size - int(8*scale), qr_box_size - int(8*scale)), Image.Resampling.LANCZOS)
+        qr_paste_x = qr_box_x + int(4*scale)
+        qr_paste_y = qr_box_y + int(4*scale)
+        img.paste(qr_img_resized, (qr_paste_x, qr_paste_y), qr_img_resized)
+        
+        # Info section - right of QR (matches frontend layout: STAMP ID, value, DATE, value)
+        info_x = qr_box_x + qr_box_size + int(10 * scale)
+        info_y = body_top + int(6 * scale)
+        
+        text_color = dark_text
+        label_color = light_text
+        
+        # STAMP ID label and value
+        draw.text((info_x, info_y), "STAMP ID", fill=label_color, font=font_bold_small)
+        draw.text((info_x, info_y + int(12*scale)), stamp_id, fill=text_color, font=font_bold_medium)
+        
+        # DATE label and value
+        draw.text((info_x, info_y + int(30*scale)), "DATE", fill=label_color, font=font_bold_small)
+        draw.text((info_x, info_y + int(42*scale)), current_date, fill=text_color, font=font_small)
+        
+        # Advocate Name section - centered, separate row (like frontend)
+        if show_advocate_name:
+            advocate_y = body_bottom
+            draw.rectangle([border_width, advocate_y, width-border_width, advocate_y + advocate_height], fill=content_bg)
+            draw.text((width//2, advocate_y + advocate_height//2), advocate_name, fill=rgb_color, font=font_bold_small, anchor="mm")
+        
+        # Footer with scan instruction
+        footer_y = height - footer_height - border_width
+        draw.rectangle([border_width, footer_y, width-border_width, height-border_width], fill=content_bg)
+        draw.text((width//2, footer_y + footer_height//2), "Scan to Verify", fill=rgb_color, font=font_bold_small, anchor="mm")
+    
+    elif layout == "vertical":
+        # Vertical layout - narrow, stacked - NO signature inside (it's drawn outside)
+        width = int(180 * scale)
+        header_height = int(40 * scale)
+        body_height = int(90 * scale)
+        name_height = int(20 * scale) if show_advocate_name else 0
+        footer_height = int(18 * scale)
+        height = header_height + body_height + name_height + footer_height
+        
+        img = Image.new('RGBA', (width, height), transparent_bg)  # Fully transparent
+        draw = ImageDraw.Draw(img)
+        
+        # Border only (no fill)
+        draw.rectangle([0, 0, width-1, height-1], outline=rgb_color, width=int(3 * scale))
+        
+        # Header - opaque colored
+        draw.rectangle([int(3*scale), int(3*scale), width-int(3*scale), header_height], fill=rgb_color + (255,))
+        
+        # TLS Logo at top of header - square background
+        if tls_logo and show_tls_logo:
+            logo_size = int(20 * scale)
+            logo_resized = tls_logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+            # Rounded square background
+            square_size = logo_size + int(4 * scale)
+            square_x = (width - square_size) // 2
+            square_y = int(6 * scale)
+            draw.rounded_rectangle([square_x, square_y, square_x + square_size, square_y + square_size], 
+                                   radius=int(3*scale), fill=content_bg)
+            img.paste(logo_resized, (square_x + int(2*scale), square_y + int(2*scale)), logo_resized)
+        
+        draw.text((width//2, int(32*scale)), "VERIFIED", fill=(255, 255, 255), font=font_bold_medium, anchor="mm")
+        
+        # Body - white background for content
+        body_y = header_height + int(8*scale)
+        body_content_height = body_height - int(16*scale)
+        
+        # White background for body content
+        draw.rectangle([int(3*scale), body_y - int(5*scale), width-int(3*scale), body_y + body_content_height], fill=content_bg)
+        
+        qr_size_v = int(56 * scale)
+        qr_img_v = generate_qr_code_image(verification_url, qr_size_v, brand_color).convert('RGBA')
+        
+        qr_box_size = int(60 * scale)
+        qr_box_x = (width - qr_box_size) // 2
+        
+        qr_paste_x = qr_box_x + (qr_box_size - qr_size_v) // 2
+        qr_paste_y = body_y + (qr_box_size - qr_size_v) // 2
+        img.paste(qr_img_v, (qr_paste_x, qr_paste_y), qr_img_v)
+        
+        info_y = body_y + qr_box_size + int(8*scale)
+        draw.text((width//2, info_y), stamp_id, fill=(80, 80, 80), font=font_small, anchor="ma")
+        draw.text((width//2, info_y + int(12*scale)), current_date, fill=(128, 128, 128), font=font_small, anchor="ma")
+        
+        current_y = header_height + body_height
+        
+        # Advocate name with white background
+        if show_advocate_name:
+            name_y = current_y + int(4*scale)
+            name_text = advocate_name.split()[0] if ' ' in advocate_name else advocate_name
+            bbox = draw.textbbox((0, 0), name_text, font=font_bold_small)
+            name_width = bbox[2] - bbox[0]
+            name_height_px = bbox[3] - bbox[1]
+            name_x = (width - name_width) // 2
+            # White background behind name
+            draw.rectangle([name_x - 5, name_y - 2, name_x + name_width + 5, name_y + name_height_px + 2], fill=content_bg)
+            draw.text((width//2, name_y), name_text, fill=rgb_color, font=font_bold_small, anchor="ma")
+        
+        # Footer with white background
+        footer_y = height - footer_height
+        draw.rectangle([int(3*scale), footer_y, width-int(3*scale), height-int(3*scale)], fill=content_bg)
+        draw.text((width//2, footer_y + footer_height//2), "Scan to Verify", fill=rgb_color, font=font_small, anchor="mm")
+    
+    elif layout == "compact":
+        # Compact layout - minimal, side by side - transparent with white content backing
+        width = int(180 * scale)
+        height = int(70 * scale)
+        
+        img = Image.new('RGBA', (width, height), transparent_bg)  # Fully transparent
+        draw = ImageDraw.Draw(img)
+        
+        # Border only (no fill)
+        draw.rectangle([0, 0, width-1, height-1], outline=rgb_color, width=int(3 * scale))
+        
+        # Left side - QR with colored background (opaque panel)
+        left_width = int(60 * scale)
+        draw.rectangle([int(3*scale), int(3*scale), left_width, height-int(3*scale)], fill=rgb_color + (255,))
+        
+        qr_size_c = int(50 * scale)
+        qr_img_c = generate_qr_code_image(verification_url, qr_size_c, brand_color, for_colored_bg=True).convert('RGBA')
+        img.paste(qr_img_c, (int(8*scale), (height - qr_size_c) // 2), qr_img_c)
+        
+        # Right side - info with white background
+        info_x = left_width + int(10*scale)
+        info_area_width = width - left_width - int(6*scale)
+        # White background for info section
+        draw.rectangle([left_width, int(3*scale), width-int(3*scale), height-int(3*scale)], fill=content_bg)
+        
+        draw.text((info_x, int(12*scale)), "TLS VERIFIED", fill=rgb_color, font=font_bold_small)
+        draw.text((info_x, int(28*scale)), stamp_id, fill=(80, 80, 80), font=font_small)
+        if show_advocate_name:
+            draw.text((info_x, int(44*scale)), advocate_name.split()[0] if ' ' in advocate_name else advocate_name[:15], 
+                     fill=(100, 100, 100), font=font_small)
+    
+    elif layout in ["logo_left", "logo_right"]:
+        # Logo left/right layout - side panel design - transparent with white content backing
+        width = int(380 * scale)
+        height = int(140 * scale)
+        panel_width = int(110 * scale)
+        
+        img = Image.new('RGBA', (width, height), transparent_bg)  # Fully transparent
+        draw = ImageDraw.Draw(img)
+        
+        # Border only (no fill)
+        draw.rectangle([0, 0, width-1, height-1], outline=rgb_color, width=int(4 * scale))
+        
+        if layout == "logo_left":
+            # Left panel with color (opaque)
+            draw.rectangle([int(4*scale), int(4*scale), panel_width, height-int(4*scale)], fill=rgb_color + (255,))
+            
+            # TLS Logo in left panel - square background
+            if tls_logo and show_tls_logo:
+                logo_size = int(30 * scale)
+                logo_resized = tls_logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+                # Rounded square background
+                square_size = logo_size + int(6 * scale)
+                square_x = (panel_width - square_size) // 2
+                square_y = int(8 * scale)
+                draw.rounded_rectangle([square_x, square_y, square_x + square_size, square_y + square_size], 
+                                       radius=int(4*scale), fill=content_bg)
+                img.paste(logo_resized, (square_x + int(3*scale), square_y + int(3*scale)), logo_resized)
+            
+            # QR in left panel - larger
+            qr_size_l = int(55 * scale)
+            qr_img_l = generate_qr_code_image(verification_url, qr_size_l, brand_color, for_colored_bg=True).convert('RGBA')
+            img.paste(qr_img_l, ((panel_width - qr_size_l)//2, int(45*scale)), qr_img_l)
+            
+            draw.text((panel_width//2, int(112*scale)), "VERIFIED", fill=(255, 255, 255), font=font_bold_medium, anchor="mm")
+            
+            # Right side info with white background
+            info_x = panel_width + int(15*scale)
+            info_area_width = width - panel_width - int(8*scale)
+            # White background for info section
+            draw.rectangle([panel_width, int(4*scale), width-int(4*scale), height-int(4*scale)], fill=content_bg)
+            
+            draw.text((info_x, int(15*scale)), "STAMP ID", fill=(100, 100, 100), font=font_bold_small)
+            draw.text((info_x, int(32*scale)), stamp_id, fill=rgb_color, font=font_bold_large)
+            draw.text((info_x, int(60*scale)), f"Date: {current_date}", fill=(80, 80, 80), font=font_regular)
+            
+            if show_advocate_name:
+                draw.line([(info_x, int(80*scale)), (width - int(15*scale), int(80*scale))], fill=(220, 220, 220), width=1)
+                draw.text((info_x, int(90*scale)), "By:", fill=(100, 100, 100), font=font_small)
+                draw.text((info_x, int(108*scale)), advocate_name, fill=rgb_color, font=font_bold_medium)
+        
+        else:  # logo_right
+            # Right panel with color (opaque)
+            panel_x = width - panel_width
+            draw.rectangle([panel_x, int(4*scale), width-int(4*scale), height-int(4*scale)], fill=rgb_color + (255,))
+            
+            # TLS Logo in right panel - square background
+            if tls_logo and show_tls_logo:
+                logo_size = int(30 * scale)
+                logo_resized = tls_logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+                # Rounded square background
+                square_size = logo_size + int(6 * scale)
+                square_x = panel_x + (panel_width - square_size) // 2
+                square_y = int(8 * scale)
+                draw.rounded_rectangle([square_x, square_y, square_x + square_size, square_y + square_size], 
+                                       radius=int(4*scale), fill=content_bg)
+                img.paste(logo_resized, (square_x + int(3*scale), square_y + int(3*scale)), logo_resized)
+            
+            # QR in right panel - larger
+            qr_size_r = int(55 * scale)
+            qr_img_r = generate_qr_code_image(verification_url, qr_size_r, brand_color, for_colored_bg=True).convert('RGBA')
+            img.paste(qr_img_r, (panel_x + (panel_width - qr_size_r)//2, int(45*scale)), qr_img_r)
+            
+            draw.text((panel_x + panel_width//2, int(112*scale)), "Scan", fill=(255, 255, 255), font=font_regular, anchor="mm")
+            
+            # Left side info with white background
+            info_x = int(12*scale)
+            # White background for info section
+            draw.rectangle([int(4*scale), int(4*scale), panel_x, height-int(4*scale)], fill=content_bg)
+            
+            draw.text((info_x, int(12*scale)), "TLS VERIFIED", fill=rgb_color, font=font_bold_medium)
+            draw.text((info_x, int(30*scale)), "STAMP ID", fill=(128, 128, 128), font=font_small)
+            draw.text((info_x, int(44*scale)), stamp_id, fill=(60, 60, 60), font=font_bold_small)
+            draw.text((info_x, int(60*scale)), f"Date: {current_date}", fill=(100, 100, 100), font=font_small)
+            if show_advocate_name:
+                draw.text((info_x, int(78*scale)), f"By: ", fill=(128, 128, 128), font=font_small)
+                draw.text((info_x + int(20*scale), int(78*scale)), advocate_name, fill=rgb_color, font=font_bold_small)
+    
+    else:
+        # Default fallback - use horizontal layout for rectangle - transparent with white content backing
+        width = int(400 * scale)
+        header_height = int(50 * scale)
+        body_height = int(130 * scale)
+        sig_height = int(70 * scale)
+        footer_height = int(30 * scale)
+        height = header_height + body_height + sig_height + footer_height
+        
+        img = Image.new('RGBA', (width, height), transparent_bg)  # Fully transparent
+        draw = ImageDraw.Draw(img)
+        border_width = int(4 * scale)
+        draw.rectangle([0, 0, width-1, height-1], outline=rgb_color, width=border_width)
+        
+        # Header with opaque background
+        draw.rectangle([border_width, border_width, width-border_width, header_height], fill=rgb_color + (255,))
+        draw.text((int(12*scale), int(15*scale)), "TLS VERIFIED", fill=(255, 255, 255), font=font_bold_large)
+        
+        # Body with white background
+        body_y = header_height + int(10 * scale)
+        body_content_height = body_height - int(15 * scale)
+        draw.rectangle([border_width, body_y - int(5*scale), width-border_width, body_y + body_content_height], fill=content_bg)
+        
+        # QR Code
+        qr_box_x = int(15 * scale)
+        qr_box_size = int(100 * scale)
+        draw.rounded_rectangle([qr_box_x, body_y, qr_box_x + qr_box_size, body_y + qr_box_size],
+                              radius=int(6*scale), fill=content_bg)
+        qr_paste_x = qr_box_x + (qr_box_size - qr_size) // 2
+        qr_paste_y = body_y + (qr_box_size - qr_size) // 2
+        img.paste(qr_img, (qr_paste_x, qr_paste_y), qr_img)
+        
+        # Info
+        info_x = qr_box_x + qr_box_size + int(15 * scale)
+        draw.text((info_x, body_y), "STAMP ID", fill=light_text, font=font_bold_small)
+        draw.text((info_x, body_y + int(14*scale)), stamp_id, fill=dark_text, font=font_bold_xlarge)
+        draw.text((info_x, body_y + int(45*scale)), current_date, fill=medium_text, font=font_bold_medium)
+        if show_advocate_name:
+            draw.text((info_x, body_y + int(75*scale)), advocate_name, fill=rgb_color, font=font_bold_medium)
+        
+        # Footer with white background
+        footer_y = height - footer_height
+        draw.rectangle([border_width, footer_y, width-border_width, height-border_width], fill=content_bg)
+        draw.text((width//2, footer_y + footer_height//2), "Scan QR Code to Verify", fill=rgb_color, font=font_bold_small, anchor="mm")
+    
+    return img
+
+
+async def get_system_settings() -> dict:
+    """Get system settings from database or return defaults"""
+    settings = await db.system_settings.find_one({"type": "verification_fees"}, {"_id": 0})
+    if not settings:
+        return {
+            "verification_fee_fixed": 500.0,
+            "verification_fee_percentage": 0.0,
+            "advocate_revenue_share": 30.0,
+            "currency": "TZS",
+            "official_stamp_price": 5000.0,
+            "commissioner_stamp_price": 7500.0,
+            "notary_stamp_price": 10000.0
+        }
+    return settings
+
+async def calculate_verification_revenue(stamp_price: float = 0) -> dict:
+    """Calculate revenue split for a verification"""
+    settings = await get_system_settings()
+    fixed_fee = settings.get("verification_fee_fixed", 500.0)
+    percentage_fee = (settings.get("verification_fee_percentage", 0) / 100) * stamp_price
+    total_fee = fixed_fee + percentage_fee
+    advocate_share = (settings.get("advocate_revenue_share", 30) / 100) * total_fee
+    platform_share = total_fee - advocate_share
+    return {
+        "total_fee": total_fee,
+        "advocate_share": advocate_share,
+        "platform_share": platform_share
+    }
+
+# =============== STAMP TYPES (Seed Data) ===============
+STAMP_TYPES = [
+    {"id": "advocate_official", "name": "Advocate Official Stamp", "description": "Official TLS-approved stamp for legal documents", "price": 150000.0, "currency": "TZS"},
+    {"id": "commissioner_oaths", "name": "Commissioner for Oaths Stamp", "description": "Stamp for oath administration documents", "price": 200000.0, "currency": "TZS"},
+    {"id": "notary_public", "name": "Notary Public Stamp", "description": "Stamp for notarization services", "price": 250000.0, "currency": "TZS"},
+]
+
+DIGITAL_STAMP_PRICES = {
+    "official": 5000.0,
+    "commissioner": 7500.0,
+    "notary": 10000.0
+}
+
+# =============== AUTH ROUTES ===============
+
+@api_router.post("/auth/register", response_model=Token)
+async def register(data: AdvocateRegister):
+    existing = await db.advocates.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    existing_roll = await db.advocates.find_one({"roll_number": data.roll_number})
+    if existing_roll:
+        raise HTTPException(status_code=400, detail="Roll number already registered")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    advocate_id = str(uuid.uuid4())
+    
+    advocate = {
+        "id": advocate_id,
+        "email": data.email,
+        "password_hash": hash_password(data.password),
+        "full_name": data.full_name,
+        "roll_number": data.roll_number,
+        "tls_member_number": generate_tls_member_number(data.roll_number),
+        "phone": data.phone,
+        "region": data.region,
+        "court_jurisdiction": "High Court of Tanzania",
+        "firm_affiliation": None,
+        "admission_year": datetime.now().year,
+        "practicing_status": "Active",
+        "profile_photo": None,
+        "role": "advocate",
+        "verified": False,
+        "total_earnings": 0.0,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.advocates.insert_one(advocate)
+    
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "advocate_registered",
+        "user_id": advocate_id,
+        "details": {"email": data.email, "roll_number": data.roll_number},
+        "timestamp": now
+    })
+    
+    token = create_access_token({"sub": advocate_id, "role": "advocate"})
+    return Token(access_token=token)
+
+@api_router.post("/auth/login")
+async def login(data: AdvocateLogin):
+    # Check advocates collection first
+    user = await db.advocates.find_one({"email": data.email})
+    
+    # If not found in advocates, check users collection (for admin/super_admin)
+    if not user:
+        user = await db.users.find_one({"email": data.email})
+    
+    if not user:
+        logger.error(f"User not found: {data.email}")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not verify_password(data.password, user.get("password_hash", "")):
+        logger.error(f"Password mismatch for: {data.email}")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Check if advocate is suspended
+    if user.get("practicing_status") == "Suspended":
+        raise HTTPException(status_code=403, detail="Account suspended. Contact TLS administration.")
+    
+    token = create_access_token({"sub": user["id"], "role": user.get("role", "advocate")})
+    
+    # Return user info with token
+    user_data = {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}
+    return {"access_token": token, "token_type": "bearer", "user": user_data}
+
+@api_router.get("/auth/me")
+async def get_me(user: dict = Depends(get_current_user)):
+    # Return user data without password hash
+    return {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}
+
+# =============== PROFILE ROUTES ===============
+
+@api_router.put("/profile", response_model=AdvocateProfile)
+async def update_profile(data: AdvocateUpdate, user: dict = Depends(get_current_user)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.advocates.update_one({"id": user["id"]}, {"$set": update_data})
+    
+    updated = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 0})
+    return AdvocateProfile(**updated)
+
+@api_router.get("/profile/{advocate_id}", response_model=AdvocateProfile)
+async def get_advocate_profile(advocate_id: str):
+    advocate = await db.advocates.find_one({"id": advocate_id}, {"_id": 0, "password_hash": 0})
+    if not advocate:
+        raise HTTPException(status_code=404, detail="Advocate not found")
+    return AdvocateProfile(**advocate)
+
+@api_router.get("/advocates/public/{advocate_id}")
+async def get_public_advocate_profile(advocate_id: str):
+    """Get public profile of an advocate (for public viewing)"""
+    advocate = await db.advocates.find_one(
+        {"id": advocate_id},
+        {"_id": 0, "password_hash": 0}
+    )
+    if not advocate:
+        raise HTTPException(status_code=404, detail="Advocate not found")
+    
+    # Check if profile is public
+    if not advocate.get("public_profile_enabled", True):
+        raise HTTPException(status_code=403, detail="This advocate's profile is private")
+    
+    # Get public profile data
+    public_profile = advocate.get("public_profile", {})
+    
+    # Get stamp statistics
+    stamps = await db.document_stamps.find({"advocate_id": advocate_id}, {"verification_count": 1}).to_list(None)
+    stamp_count = len(stamps)
+    total_verifications = sum(s.get("verification_count", 0) for s in stamps)
+    
+    # Calculate profile completion
+    completion_fields = ["bio", "practice_areas", "education", "experience", "profile_photo", "location"]
+    filled = sum(1 for f in completion_fields if public_profile.get(f))
+    profile_completion = int((filled / len(completion_fields)) * 100)
+    
+    # Calculate percentile rank for achievements
+    all_advocates = await db.advocates.find({"status": {"$ne": "suspended"}}).to_list(None)
+    advocate_verifications = []
+    for adv in all_advocates:
+        adv_stamps = await db.document_stamps.find({"advocate_id": adv["id"]}, {"verification_count": 1}).to_list(None)
+        adv_total = sum(s.get("verification_count", 0) for s in adv_stamps)
+        advocate_verifications.append({"id": adv["id"], "verifications": adv_total})
+    
+    advocate_verifications.sort(key=lambda x: x["verifications"], reverse=True)
+    
+    # Find this advocate's rank
+    rank = 1
+    for i, adv in enumerate(advocate_verifications):
+        if adv["id"] == advocate_id:
+            rank = i + 1
+            break
+    
+    total_advocates = len(advocate_verifications)
+    percentile_rank = int((rank / total_advocates) * 100) if total_advocates > 0 else 100
+    is_top_10_percent = rank <= (total_advocates * 0.1) if total_advocates > 0 else False
+    
+    # Get earned achievements
+    achievements = calculate_achievements(stamp_count, total_verifications, profile_completion, percentile_rank)
+    earned_achievements = [a for a in achievements if a["earned"]]
+    
+    return {
+        "id": advocate["id"],
+        "full_name": advocate.get("full_name"),
+        "email": advocate.get("email") if public_profile.get("show_email", False) else None,
+        "phone": advocate.get("phone") if public_profile.get("show_phone", False) else None,
+        "show_email": public_profile.get("show_email", False),
+        "show_phone": public_profile.get("show_phone", False),
+        "title": public_profile.get("title", "Advocate of the High Court"),
+        "bio": public_profile.get("bio"),
+        "profile_photo": public_profile.get("profile_photo"),
+        "location": public_profile.get("location"),
+        "firm_name": public_profile.get("firm_name"),
+        "website": public_profile.get("website"),
+        "practice_areas": public_profile.get("practice_areas", []),
+        "education": public_profile.get("education", []),
+        "experience": public_profile.get("experience", []),
+        "languages": public_profile.get("languages", []),
+        "experience_years": public_profile.get("experience_years"),
+        # Professional showcase fields
+        "achievements": public_profile.get("achievements", []),
+        "publications": public_profile.get("publications", []),
+        "memberships": public_profile.get("memberships", []),
+        "bar_admissions": public_profile.get("bar_admissions", []),
+        "testimonials": public_profile.get("testimonials", []),
+        # TLS credentials
+        "roll_number": advocate.get("roll_number"),
+        "admission_date": advocate.get("admission_date"),
+        "practicing_status": advocate.get("practicing_status", "active"),
+        "documents_stamped": stamp_count,
+        "verification_count": total_verifications,
+        "profile_completion": profile_completion,
+        # Trust metrics and achievements
+        "rank": rank,
+        "total_advocates": total_advocates,
+        "percentile_rank": percentile_rank,
+        "is_top_10_percent": is_top_10_percent,
+        "earned_achievements": earned_achievements,
+        "uses_digital_stamps": stamp_count > 0
+    }
+
+@api_router.put("/user/public-profile")
+async def update_public_profile(
+    title: str = Form(None),
+    bio: str = Form(None),
+    location: str = Form(None),
+    firm_name: str = Form(None),
+    website: str = Form(None),
+    practice_areas: str = Form(None),  # JSON array string
+    education: str = Form(None),  # JSON array string [{degree, institution, year}]
+    experience: str = Form(None),  # JSON array string [{position, company, duration, description}]
+    languages: str = Form(None),  # JSON array string
+    experience_years: int = Form(None),
+    achievements: str = Form(None),  # JSON array string [{title, year}]
+    publications: str = Form(None),  # JSON array string [{title, publication, year}]
+    memberships: str = Form(None),  # JSON array string (plain strings)
+    bar_admissions: str = Form(None),  # JSON array string (plain strings)
+    testimonials: str = Form(None),  # JSON array string [{text, client_name, client_title}]
+    show_email: str = Form("false"),
+    show_phone: str = Form("false"),
+    public_profile_enabled: str = Form("true"),
+    user: dict = Depends(get_current_user)
+):
+    """Update advocate's public profile with professional information"""
+    import json
+    
+    public_profile = {}
+    if title: public_profile["title"] = title
+    if bio: public_profile["bio"] = bio
+    if location: public_profile["location"] = location
+    if firm_name: public_profile["firm_name"] = firm_name
+    if website: public_profile["website"] = website
+    if experience_years: public_profile["experience_years"] = experience_years
+    public_profile["show_email"] = show_email.lower() == "true"
+    public_profile["show_phone"] = show_phone.lower() == "true"
+    
+    # Parse JSON arrays
+    try:
+        if practice_areas: public_profile["practice_areas"] = json.loads(practice_areas)
+        if education: public_profile["education"] = json.loads(education)
+        if experience: public_profile["experience"] = json.loads(experience)
+        if languages: public_profile["languages"] = json.loads(languages)
+        if achievements: public_profile["achievements"] = json.loads(achievements)
+        if publications: public_profile["publications"] = json.loads(publications)
+        if memberships: public_profile["memberships"] = json.loads(memberships)
+        if bar_admissions: public_profile["bar_admissions"] = json.loads(bar_admissions)
+        if testimonials: public_profile["testimonials"] = json.loads(testimonials)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format for array fields")
+    
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "public_profile": public_profile,
+            "public_profile_enabled": public_profile_enabled.lower() == "true",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Public profile updated successfully", "public_profile": public_profile}
+
+@api_router.post("/user/profile-photo")
+async def upload_profile_photo(
+    photo: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Upload advocate's profile photo"""
+    import base64
+    
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
+    if photo.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG, PNG, and WebP are allowed.")
+    
+    # Validate file size (max 5MB)
+    contents = await photo.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
+    
+    # Convert to base64 data URL
+    base64_image = base64.b64encode(contents).decode('utf-8')
+    data_url = f"data:{photo.content_type};base64,{base64_image}"
+    
+    # Update user's profile photo in public_profile
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "public_profile.profile_photo": data_url,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Profile photo uploaded successfully", "profile_photo": data_url}
+
+@api_router.delete("/user/profile-photo")
+async def delete_profile_photo(user: dict = Depends(get_current_user)):
+    """Delete advocate's profile photo"""
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "public_profile.profile_photo": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Profile photo deleted successfully"}
+
+# =============== ACHIEVEMENTS & GAMIFICATION ===============
+
+ACHIEVEMENT_DEFINITIONS = [
+    {"id": "first_stamp", "name": "First Step", "description": "Created your first digital stamp", "icon": "🎯", "threshold": 1, "type": "stamps"},
+    {"id": "stamps_10", "name": "Getting Started", "description": "Stamped 10 documents", "icon": "📄", "threshold": 10, "type": "stamps"},
+    {"id": "stamps_50", "name": "Regular User", "description": "Stamped 50 documents", "icon": "📋", "threshold": 50, "type": "stamps"},
+    {"id": "stamps_100", "name": "Century Club", "description": "Stamped 100 documents", "icon": "🥉", "threshold": 100, "type": "stamps"},
+    {"id": "stamps_500", "name": "Power Stamper", "description": "Stamped 500 documents", "icon": "🥈", "threshold": 500, "type": "stamps"},
+    {"id": "stamps_1000", "name": "Stamp Master", "description": "Stamped 1,000 documents", "icon": "🥇", "threshold": 1000, "type": "stamps"},
+    {"id": "verified_100", "name": "Trusted Advocate", "description": "Documents verified 100 times", "icon": "✅", "threshold": 100, "type": "verifications"},
+    {"id": "verified_500", "name": "Highly Verified", "description": "Documents verified 500 times", "icon": "🔒", "threshold": 500, "type": "verifications"},
+    {"id": "verified_1000", "name": "Verification Champion", "description": "Documents verified 1,000 times", "icon": "🏆", "threshold": 1000, "type": "verifications"},
+    {"id": "digital_pioneer", "name": "Digital Pioneer", "description": "Early adopter of digital stamps", "icon": "⚡", "threshold": 1, "type": "special"},
+    {"id": "profile_complete", "name": "Professional Profile", "description": "Completed public profile 100%", "icon": "👤", "threshold": 100, "type": "profile"},
+    {"id": "top_10_percent", "name": "Top 10%", "description": "Among top 10% most verified advocates", "icon": "⭐", "threshold": 10, "type": "ranking"},
+]
+
+def calculate_achievements(stamp_count: int, verification_count: int, profile_completion: int, percentile_rank: int) -> list:
+    """Calculate which achievements an advocate has earned"""
+    earned = []
+    for achievement in ACHIEVEMENT_DEFINITIONS:
+        earned_flag = False
+        if achievement["type"] == "stamps" and stamp_count >= achievement["threshold"]:
+            earned_flag = True
+        elif achievement["type"] == "verifications" and verification_count >= achievement["threshold"]:
+            earned_flag = True
+        elif achievement["type"] == "profile" and profile_completion >= achievement["threshold"]:
+            earned_flag = True
+        elif achievement["type"] == "ranking" and percentile_rank <= achievement["threshold"]:
+            earned_flag = True
+        elif achievement["type"] == "special" and stamp_count >= 1:
+            earned_flag = True
+        
+        if earned_flag:
+            earned.append({**achievement, "earned": True})
+        else:
+            earned.append({**achievement, "earned": False})
+    
+    return earned
+
+def calculate_cost_savings(stamp_count: int) -> dict:
+    """Calculate estimated savings vs physical stamps"""
+    # Estimated costs
+    physical_stamp_cost = 150000  # TZS for basic stamp
+    ink_pad_yearly = 50000  # TZS per year
+    years_of_use = max(1, stamp_count / 365)  # Estimate based on stamps
+    
+    physical_total = physical_stamp_cost + (ink_pad_yearly * years_of_use)
+    digital_cost = 0  # Free with TLS membership
+    
+    return {
+        "physical_stamp_cost": physical_stamp_cost,
+        "ink_replacement_cost": int(ink_pad_yearly * years_of_use),
+        "total_physical_cost": int(physical_total),
+        "digital_cost": digital_cost,
+        "total_savings": int(physical_total),
+        "stamps_created": stamp_count
+    }
+
+@api_router.get("/advocate/stats")
+async def get_advocate_stats(user: dict = Depends(get_current_user)):
+    """Get comprehensive stats for the logged-in advocate"""
+    advocate_id = user["id"]
+    
+    # Get stamp count
+    stamp_count = await db.document_stamps.count_documents({"advocate_id": advocate_id})
+    
+    # Get total verifications
+    stamps = await db.document_stamps.find({"advocate_id": advocate_id}, {"verification_count": 1}).to_list(None)
+    total_verifications = sum(s.get("verification_count", 0) for s in stamps)
+    
+    # Get this week's stamps
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    this_week_stamps = await db.document_stamps.count_documents({
+        "advocate_id": advocate_id,
+        "created_at": {"$gte": week_ago.isoformat()}
+    })
+    
+    # Get this month's stamps
+    month_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    this_month_stamps = await db.document_stamps.count_documents({
+        "advocate_id": advocate_id,
+        "created_at": {"$gte": month_ago.isoformat()}
+    })
+    
+    # Calculate percentile rank
+    all_advocates = await db.advocates.find({"status": {"$ne": "suspended"}}).to_list(None)
+    advocate_verifications = []
+    for adv in all_advocates:
+        adv_stamps = await db.document_stamps.find({"advocate_id": adv["id"]}, {"verification_count": 1}).to_list(None)
+        adv_total = sum(s.get("verification_count", 0) for s in adv_stamps)
+        advocate_verifications.append(adv_total)
+    
+    advocate_verifications.sort(reverse=True)
+    if total_verifications > 0 and advocate_verifications:
+        rank = advocate_verifications.index(total_verifications) + 1 if total_verifications in advocate_verifications else len(advocate_verifications)
+        percentile_rank = int((rank / len(advocate_verifications)) * 100)
+    else:
+        percentile_rank = 100
+    
+    # Calculate profile completion
+    public_profile = user.get("public_profile", {})
+    profile_fields = ["bio", "practice_areas", "education", "experience", "profile_photo", "location"]
+    filled = sum(1 for f in profile_fields if public_profile.get(f))
+    profile_completion = int((filled / len(profile_fields)) * 100)
+    
+    # Get achievements
+    achievements = calculate_achievements(stamp_count, total_verifications, profile_completion, percentile_rank)
+    earned_achievements = [a for a in achievements if a["earned"]]
+    
+    # Calculate savings
+    savings = calculate_cost_savings(stamp_count)
+    
+    # Get next achievement
+    next_achievement = None
+    for ach in achievements:
+        if not ach["earned"]:
+            if ach["type"] == "stamps":
+                ach["progress"] = min(100, int((stamp_count / ach["threshold"]) * 100))
+                ach["current"] = stamp_count
+            elif ach["type"] == "verifications":
+                ach["progress"] = min(100, int((total_verifications / ach["threshold"]) * 100))
+                ach["current"] = total_verifications
+            else:
+                ach["progress"] = 0
+                ach["current"] = 0
+            next_achievement = ach
+            break
+    
+    return {
+        "stamp_count": stamp_count,
+        "total_verifications": total_verifications,
+        "this_week_stamps": this_week_stamps,
+        "this_month_stamps": this_month_stamps,
+        "percentile_rank": percentile_rank,
+        "profile_completion": profile_completion,
+        "achievements": achievements,
+        "earned_achievements": earned_achievements,
+        "next_achievement": next_achievement,
+        "savings": savings
+    }
+
+@api_router.get("/advocate/recent-verifications")
+async def get_recent_verifications(user: dict = Depends(get_current_user), limit: int = Query(10, le=50)):
+    """Get recent verification events for the advocate's stamps"""
+    advocate_id = user["id"]
+    
+    # Get verification logs for this advocate's stamps
+    verifications = await db.verification_logs.find(
+        {"advocate_id": advocate_id}
+    ).sort("verified_at", -1).limit(limit).to_list(limit)
+    
+    result = []
+    for v in verifications:
+        result.append({
+            "id": str(v.get("_id", "")),
+            "stamp_id": v.get("stamp_id"),
+            "verified_at": v.get("verified_at"),
+            "verifier_type": v.get("verifier_type", "public"),
+            "location": v.get("location"),
+            "institution": v.get("institution_name")
+        })
+    
+    return {"verifications": result}
+
+@api_router.get("/advocates/leaderboard")
+async def get_advocates_leaderboard(limit: int = Query(10, le=50)):
+    """Get top advocates by verification count"""
+    advocates = await db.advocates.find(
+        {"status": {"$ne": "suspended"}},
+        {"_id": 0, "password_hash": 0}
+    ).to_list(None)
+    
+    leaderboard = []
+    for adv in advocates:
+        public_profile = adv.get("public_profile", {})
+        stamps = await db.document_stamps.find({"advocate_id": adv["id"]}, {"verification_count": 1}).to_list(None)
+        total_verifications = sum(s.get("verification_count", 0) for s in stamps)
+        stamp_count = len(stamps)
+        
+        if stamp_count > 0:  # Only include advocates who have used digital stamps
+            leaderboard.append({
+                "id": adv["id"],
+                "full_name": adv.get("full_name"),
+                "title": public_profile.get("title", "Advocate"),
+                "profile_photo": public_profile.get("profile_photo"),
+                "region": public_profile.get("location") or adv.get("region"),
+                "firm_name": public_profile.get("firm_name"),
+                "stamp_count": stamp_count,
+                "verification_count": total_verifications
+            })
+    
+    # Sort by verification count
+    leaderboard.sort(key=lambda x: x["verification_count"], reverse=True)
+    
+    # Add rank and percentile
+    total = len(leaderboard)
+    for i, adv in enumerate(leaderboard[:limit]):
+        adv["rank"] = i + 1
+        adv["percentile"] = int(((total - i) / total) * 100) if total > 0 else 0
+        adv["is_top_10_percent"] = (i + 1) <= (total * 0.1)
+    
+    return {"leaderboard": leaderboard[:limit], "total_advocates": total}
+
+@api_router.get("/advocates/directory")
+async def get_advocates_directory(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    search: str = Query(None, description="Search by name, firm, or practice area"),
+    practice_area: str = Query(None, description="Filter by practice area"),
+    region: str = Query(None, description="Filter by region")
+):
+    """Get paginated advocates with public profiles for the directory"""
+    
+    # Build query filters
+    query = {
+        "status": {"$ne": "suspended"},
+        "$or": [
+            {"public_profile_enabled": True},
+            {"public_profile_enabled": {"$exists": False}}  # Default to visible
+        ]
+    }
+    
+    # Get total count first (without pagination)
+    total_count = await db.advocates.count_documents(query)
+    
+    # Calculate skip for pagination
+    skip = (page - 1) * limit
+    
+    # Fetch advocates with pagination
+    advocates = await db.advocates.find(
+        query,
+        {"_id": 0, "password_hash": 0}
+    ).skip(skip).limit(limit).to_list(limit)
+    
+    directory = []
+    for adv in advocates:
+        public_profile = adv.get("public_profile", {})
+        
+        # Get stamp count and verifications
+        stamps = await db.document_stamps.find({"advocate_id": adv["id"]}, {"verification_count": 1}).to_list(None)
+        stamp_count = len(stamps)
+        total_verifications = sum(s.get("verification_count", 0) for s in stamps)
+        
+        advocate_data = {
+            "id": adv["id"],
+            "full_name": adv.get("full_name"),
+            "title": public_profile.get("title", "Advocate of the High Court"),
+            "profile_photo": public_profile.get("profile_photo"),
+            "location": public_profile.get("location") or adv.get("region"),
+            "firm_name": public_profile.get("firm_name") or adv.get("firm_affiliation"),
+            "practice_areas": public_profile.get("practice_areas", []),
+            "experience_years": public_profile.get("experience_years"),
+            "region": adv.get("region"),
+            "documents_stamped": stamp_count,
+            "verification_count": total_verifications,
+            "uses_digital_stamps": stamp_count > 0
+        }
+        
+        # Apply client-side filters (for now - can be moved to DB query for better performance)
+        include = True
+        
+        # Search filter
+        if search:
+            search_lower = search.lower()
+            name_match = advocate_data.get("full_name", "").lower().find(search_lower) >= 0
+            firm_match = (advocate_data.get("firm_name") or "").lower().find(search_lower) >= 0
+            area_match = any(a.lower().find(search_lower) >= 0 for a in advocate_data.get("practice_areas", []))
+            include = name_match or firm_match or area_match
+        
+        # Practice area filter
+        if include and practice_area and practice_area != "All Areas":
+            include = practice_area in advocate_data.get("practice_areas", [])
+        
+        # Region filter
+        if include and region and region != "All Regions":
+            include = (advocate_data.get("region") == region or 
+                      region in (advocate_data.get("location") or ""))
+        
+        if include:
+            directory.append(advocate_data)
+    
+    # Sort by stamp count (most active first)
+    directory.sort(key=lambda x: x.get("documents_stamped", 0), reverse=True)
+    
+    # Calculate pagination info
+    total_pages = (total_count + limit - 1) // limit
+    has_more = page < total_pages
+    
+    return {
+        "advocates": directory,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "has_more": has_more
+    }
+
+# =============== STAMP TYPES ROUTES ===============
+
+@api_router.get("/stamp-types", response_model=List[StampType])
+async def get_stamp_types():
+    return [StampType(**st) for st in STAMP_TYPES]
+
+# =============== STAMP ORDER ROUTES ===============
+
+@api_router.post("/orders", response_model=StampOrder)
+async def create_order(data: StampOrderCreate, user: dict = Depends(get_current_user)):
+    stamp_type = next((st for st in STAMP_TYPES if st["id"] == data.stamp_type_id), None)
+    if not stamp_type:
+        raise HTTPException(status_code=400, detail="Invalid stamp type")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    order_id = str(uuid.uuid4())
+    
+    order = {
+        "id": order_id,
+        "advocate_id": user["id"],
+        "stamp_type_id": data.stamp_type_id,
+        "stamp_type_name": stamp_type["name"],
+        "quantity": data.quantity,
+        "customization": {
+            "name": user["full_name"],
+            "tls_number": user.get("tls_member_number", ""),
+            **data.customization
+        },
+        "delivery_address": data.delivery_address,
+        "total_price": stamp_type["price"] * data.quantity,
+        "currency": stamp_type["currency"],
+        "status": "pending_approval",
+        "payment_status": "pending",
+        "payment_method": None,
+        "tracking_number": None,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.stamp_orders.insert_one(order)
+    return StampOrder(**order)
+
+@api_router.get("/orders", response_model=List[StampOrder])
+async def get_orders(user: dict = Depends(get_current_user)):
+    query = {"advocate_id": user["id"]} if user.get("role") not in ["admin", "super_admin"] else {}
+    orders = await db.stamp_orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [StampOrder(**o) for o in orders]
+
+@api_router.get("/orders/{order_id}", response_model=StampOrder)
+async def get_order(order_id: str, user: dict = Depends(get_current_user)):
+    order = await db.stamp_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if user.get("role") not in ["admin", "super_admin"] and order["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return StampOrder(**order)
+
+# =============== PHYSICAL ORDERS ROUTES ===============
+
+@api_router.post("/physical-orders")
+async def create_physical_order(data: PhysicalOrderCreate, user: dict = Depends(get_current_user)):
+    """Create a new physical stamp order with multiple items"""
+    order_id = f"PHY-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{secrets.token_hex(4).upper()}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Calculate total price
+    total_price = sum(item.total_price for item in data.items)
+    
+    order = {
+        "id": order_id,
+        "advocate_id": user["id"],
+        "advocate_name": user["full_name"],
+        "items": [item.dict() for item in data.items],
+        "delivery_address": data.delivery_address,
+        "special_instructions": data.special_instructions or "",
+        "customization": {
+            "advocate_name": user["full_name"],
+            "tls_number": user.get("tls_member_number", ""),
+            "roll_number": user.get("roll_number", ""),
+            **data.customization
+        },
+        "total_price": total_price,
+        "currency": "TZS",
+        "status": "pending_review",
+        "payment_status": "pending",
+        "payment_method": None,
+        "tracking_number": None,
+        "status_history": [
+            {"status": "pending_review", "timestamp": now, "by": "system", "note": "Order created"}
+        ],
+        "notes": [],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.physical_orders.insert_one(order)
+    order.pop("_id", None)
+    return order
+
+@api_router.get("/physical-orders")
+async def get_physical_orders(user: dict = Depends(get_current_user)):
+    """Get all physical orders (filtered by role)"""
+    if user.get("role") == "super_admin":
+        query = {}  # IDC sees all orders
+    elif user.get("role") == "admin":
+        query = {}  # TLS admin sees all orders (read-only)
+    else:
+        query = {"advocate_id": user["id"]}  # Advocates see only their orders
+    
+    orders = await db.physical_orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return orders
+
+@api_router.get("/physical-orders/{order_id}")
+async def get_physical_order(order_id: str, user: dict = Depends(get_current_user)):
+    """Get a specific physical order"""
+    order = await db.physical_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if user.get("role") not in ["admin", "super_admin"] and order["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return order
+
+@api_router.put("/physical-orders/{order_id}/status")
+async def update_physical_order_status(
+    order_id: str,
+    status: str = Query(...),
+    note: str = Query(""),
+    tracking_number: str = Query(None),
+    user: dict = Depends(get_current_user)
+):
+    """Update physical order status (IDC Super Admin only)"""
+    if user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Only IDC can update order status")
+    
+    valid_statuses = ["pending_review", "approved", "in_production", "quality_check", "ready_dispatch", "dispatched", "delivered", "cancelled"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    update_data = {
+        "status": status,
+        "updated_at": now
+    }
+    
+    if tracking_number:
+        update_data["tracking_number"] = tracking_number
+    
+    # Add to status history
+    history_entry = {
+        "status": status,
+        "timestamp": now,
+        "by": user["full_name"],
+        "note": note
+    }
+    
+    result = await db.physical_orders.update_one(
+        {"id": order_id},
+        {
+            "$set": update_data,
+            "$push": {"status_history": history_entry}
+        }
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {"message": f"Order status updated to {status}", "status": status}
+
+@api_router.post("/physical-orders/{order_id}/notes")
+async def add_physical_order_note(
+    order_id: str,
+    note: str = Query(...),
+    user: dict = Depends(get_current_user)
+):
+    """Add a note to a physical order"""
+    if user.get("role") not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Only admin/IDC can add notes")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    note_entry = {
+        "text": note,
+        "timestamp": now,
+        "by": user["full_name"],
+        "role": user.get("role")
+    }
+    
+    result = await db.physical_orders.update_one(
+        {"id": order_id},
+        {
+            "$push": {"notes": note_entry},
+            "$set": {"updated_at": now}
+        }
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {"message": "Note added", "note": note_entry}
+
+@api_router.get("/physical-orders/stats/summary")
+async def get_physical_orders_stats(user: dict = Depends(get_current_user)):
+    """Get order statistics for admin dashboard"""
+    if user.get("role") not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Count orders by status
+    pipeline = [
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]
+    status_counts = await db.physical_orders.aggregate(pipeline).to_list(20)
+    
+    # Total revenue
+    revenue_pipeline = [
+        {"$match": {"payment_status": "paid"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_price"}}}
+    ]
+    revenue_result = await db.physical_orders.aggregate(revenue_pipeline).to_list(1)
+    
+    total_orders = await db.physical_orders.count_documents({})
+    
+    return {
+        "total_orders": total_orders,
+        "by_status": {item["_id"]: item["count"] for item in status_counts},
+        "total_revenue": revenue_result[0]["total"] if revenue_result else 0
+    }
+
+# =============== PAYMENT ROUTES (Mock) ===============
+
+@api_router.post("/payments/initiate")
+async def initiate_payment(data: PaymentInitiate, user: dict = Depends(get_current_user)):
+    # Try physical orders first, then stamp orders
+    order = await db.physical_orders.find_one({"id": data.order_id}, {"_id": 0})
+    if not order:
+        order = await db.stamp_orders.find_one({"id": data.order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    payment_ref = f"PAY-{secrets.token_hex(8).upper()}"
+    
+    await db.payments.insert_one({
+        "id": str(uuid.uuid4()),
+        "payment_ref": payment_ref,
+        "order_id": data.order_id,
+        "advocate_id": user["id"],
+        "amount": order["total_price"],
+        "currency": order["currency"],
+        "method": data.payment_method,
+        "provider": data.provider,
+        "phone_number": data.phone_number,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "payment_ref": payment_ref,
+        "amount": order["total_price"],
+        "currency": order["currency"],
+        "status": "pending",
+        "message": f"Payment initiated via {data.provider}. Please complete on your mobile."
+    }
+
+@api_router.post("/payments/confirm/{payment_ref}")
+async def confirm_payment(payment_ref: str, user: dict = Depends(get_current_user)):
+    payment = await db.payments.find_one({"payment_ref": payment_ref})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.payments.update_one({"payment_ref": payment_ref}, {"$set": {"status": "completed", "completed_at": now}})
+    
+    # Update both physical orders and stamp orders
+    await db.physical_orders.update_one(
+        {"id": payment["order_id"]},
+        {"$set": {"payment_status": "paid", "payment_method": payment["provider"], "updated_at": now}}
+    )
+    await db.stamp_orders.update_one(
+        {"id": payment["order_id"]},
+        {"$set": {"payment_status": "paid", "payment_method": payment["provider"], "status": "approved", "updated_at": now}}
+    )
+    
+    return {"status": "completed", "message": "Payment confirmed successfully"}
+
+# =============== DOCUMENT STAMP ROUTES ===============
+
+def convert_docx_to_pdf(docx_content: bytes) -> bytes:
+    """Convert DOCX to PDF"""
+    if not DOCX_SUPPORTED:
+        raise HTTPException(status_code=400, detail="DOCX conversion not supported")
+    
+    try:
+        # Read DOCX
+        doc = DocxDocument(BytesIO(docx_content))
+        
+        # Create PDF
+        pdf_buffer = BytesIO()
+        pdf_doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        for para in doc.paragraphs:
+            if para.text.strip():
+                # Determine style based on paragraph style
+                if para.style and 'Heading' in para.style.name:
+                    story.append(Paragraph(para.text, styles['Heading1']))
+                else:
+                    story.append(Paragraph(para.text, styles['Normal']))
+                story.append(Spacer(1, 12))
+        
+        pdf_doc.build(story)
+        return pdf_buffer.getvalue()
+    except Exception as e:
+        logger.error(f"DOCX conversion error: {e}")
+        raise HTTPException(status_code=400, detail="Failed to convert DOCX to PDF")
+
+def convert_image_to_pdf(image_content: bytes, content_type: str) -> bytes:
+    """Convert image to PDF"""
+    try:
+        # Open image
+        img = Image.open(BytesIO(image_content))
+        if img.mode == 'RGBA':
+            img = img.convert('RGB')
+        
+        # Create PDF
+        pdf_buffer = BytesIO()
+        img.save(pdf_buffer, 'PDF', resolution=100.0)
+        return pdf_buffer.getvalue()
+    except Exception as e:
+        logger.error(f"Image to PDF conversion error: {e}")
+        raise HTTPException(status_code=400, detail="Failed to convert image to PDF")
+
+@api_router.post("/documents/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Upload a document and get its metadata for stamping. Converts all formats to PDF."""
+    if user.get("practicing_status") != "Active":
+        raise HTTPException(status_code=403, detail="Only active advocates can stamp documents")
+    
+    # Read file content
+    content = await file.read()
+    original_content_type = file.content_type
+    
+    # Validate file type
+    allowed_types = [
+        "application/pdf", 
+        "image/png", 
+        "image/jpeg", 
+        "image/jpg",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # DOCX
+        "application/msword"  # DOC (will show error)
+    ]
+    
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF, DOCX, PNG, or JPG.")
+    
+    # Convert to PDF if needed
+    pdf_content = content
+    converted = False
+    
+    if file.content_type in ["image/png", "image/jpeg", "image/jpg"]:
+        pdf_content = convert_image_to_pdf(content, file.content_type)
+        converted = True
+    elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        pdf_content = convert_docx_to_pdf(content)
+        converted = True
+    elif file.content_type == "application/msword":
+        raise HTTPException(status_code=400, detail="DOC format not supported. Please convert to DOCX or PDF.")
+    
+    # Generate document hash from original content
+    doc_hash = generate_document_hash(content)
+    
+    # Get page count for PDF
+    pages = 1
+    try:
+        pdf_reader = PdfReader(BytesIO(pdf_content))
+        pages = len(pdf_reader.pages)
+    except Exception:
+        pages = 1
+    
+    # Return metadata with PDF for preview
+    return {
+        "filename": file.filename,
+        "original_content_type": original_content_type,
+        "content_type": "application/pdf",  # Always PDF now
+        "size": len(content),
+        "hash": doc_hash,
+        "pages": pages,
+        "converted": converted,
+        "document_data": base64.b64encode(pdf_content).decode()  # Return PDF for client-side preview
+    }
+
+@api_router.post("/documents/stamp")
+async def create_document_stamp(
+    file: UploadFile = File(...),
+    stamp_type: str = Form("certification"),
+    stamp_position: str = Form('{"page": 1, "x": 400, "y": 50, "width": 150, "height": 150}'),
+    document_name: str = Form(None),
+    document_type: str = Form("contract"),
+    description: str = Form(""),
+    recipient_name: str = Form(""),
+    recipient_org: str = Form(""),
+    brand_color: str = Form("#10B981"),
+    show_advocate_name: str = Form("true"),
+    show_tls_logo: str = Form("true"),
+    layout: str = Form("horizontal"),
+    shape: str = Form("rectangle"),
+    include_signature: str = Form("false"),
+    show_signature_placeholder: str = Form("false"),
+    stamp_size: int = Form(100),
+    opacity: int = Form(90),
+    transparent_background: str = Form("false"),
+    user: dict = Depends(get_current_user)
+):
+    """Create a stamped document with QR code embedded"""
+    # DEBUG: Log received parameters
+    print(f"DEBUG RECEIVED: layout={layout}, shape={shape}, show_sig_placeholder={show_signature_placeholder}")
+    
+    if user.get("practicing_status") != "Active":
+        raise HTTPException(status_code=403, detail="Only active advocates can stamp documents")
+    
+    content = await file.read()
+    
+    # Validate file type
+    if file.content_type not in ["application/pdf", "image/png", "image/jpeg", "image/jpg"]:
+        raise HTTPException(status_code=400, detail="Only PDF and image files are allowed")
+    
+    # Parse stamp position
+    try:
+        position = json.loads(stamp_position)
+    except:
+        position = {"page": 1, "x": 400, "y": 50, "width": 150, "height": 150}
+    
+    # Generate document hash
+    doc_hash = generate_document_hash(content)
+    
+    # Get page count
+    pages = 1
+    if file.content_type == "application/pdf":
+        try:
+            pdf_reader = PdfReader(BytesIO(content))
+            pages = len(pdf_reader.pages)
+        except:
+            pages = 1
+    
+    now = datetime.now(timezone.utc)
+    stamp_id = generate_stamp_id()
+    hash_value = generate_stamp_hash(stamp_id, user["id"], doc_hash, now.isoformat())
+    
+    # Generate verification URL and branded QR code
+    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://pdf-positioning-test.preview.emergentagent.com')}/verify?id={stamp_id}"
+    qr_data = generate_branded_qr_code(verification_url, position.get("width", 150), brand_color)
+    
+    expires_at = (now + timedelta(days=365)).isoformat()
+    
+    # Get user's signature if they want to include it
+    signature_data = None
+    if include_signature.lower() == "true":
+        user_full = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1})
+        if user_full:
+            signature_data = user_full.get("signature_data")
+    
+    # Branding options
+    branding = {
+        "color": brand_color,
+        "show_advocate_name": show_advocate_name.lower() == "true",
+        "show_tls_logo": True,  # Always show TLS logo
+        "layout": layout,
+        "shape": shape,
+        "include_signature": include_signature.lower() == "true",
+        "show_signature_placeholder": show_signature_placeholder.lower() == "true",
+        "stamp_size": stamp_size,
+        "opacity": opacity,
+        "transparent_background": transparent_background.lower() == "true"
+    }
+    
+    # Create stamp record (metadata only - no document stored)
+    stamp_record = {
+        "id": str(uuid.uuid4()),
+        "stamp_id": stamp_id,
+        "advocate_id": user["id"],
+        "advocate_name": user["full_name"],
+        "advocate_roll_number": user["roll_number"],
+        "advocate_tls_number": user.get("tls_member_number", ""),
+        "document_name": document_name or file.filename,
+        "document_type": document_type,
+        "description": description,
+        "recipient_name": recipient_name,
+        "recipient_org": recipient_org,
+        "document_hash": doc_hash,
+        "document_pages": pages,
+        "stamp_type": stamp_type,
+        "stamp_position": position,
+        "branding": branding,
+        "signature_data": signature_data,
+        "hash_value": hash_value,
+        "qr_code_data": qr_data,
+        "status": "active",
+        "verification_count": 0,
+        "total_earnings": 0.0,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at
+    }
+    
+    await db.document_stamps.insert_one(stamp_record)
+    
+    # Log audit
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "document_stamp_created",
+        "user_id": user["id"],
+        "details": {"stamp_id": stamp_id, "type": stamp_type, "document_hash": doc_hash},
+        "timestamp": now.isoformat()
+    })
+    
+    # Generate stamped document
+    stamped_content = await embed_stamp_in_document(content, file.content_type, stamp_record, user)
+    
+    # Return stamped document
+    return {
+        "stamp_id": stamp_id,
+        "document_name": document_name or file.filename,
+        "document_hash": doc_hash,
+        "hash_value": hash_value,
+        "qr_code_data": qr_data,
+        "status": "active",
+        "created_at": now.isoformat(),
+        "expires_at": expires_at,
+        "stamped_document": base64.b64encode(stamped_content).decode(),
+        "content_type": file.content_type
+    }
+
+async def embed_stamp_in_document(content: bytes, content_type: str, stamp_record: dict, user: dict) -> bytes:
+    """Embed QR code stamp into document"""
+    position = stamp_record["stamp_position"]
+    
+    if content_type == "application/pdf":
+        return await embed_stamp_in_pdf(content, stamp_record, user, position)
+    else:
+        return await embed_stamp_in_image(content, stamp_record, user, position)
+
+async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, position: dict) -> bytes:
+    """Embed branded stamp into PDF document"""
+    try:
+        # Read original PDF
+        pdf_reader = PdfReader(BytesIO(content))
+        pdf_writer = PdfWriter()
+        
+        target_page = position.get("page", 1) - 1  # Convert to 0-indexed
+        x = position.get("x", 400)
+        y = position.get("y", 50)
+        
+        # Get branding options
+        branding = stamp_record.get("branding", {})
+        brand_color = branding.get("color", "#10B981")
+        layout = branding.get("layout", "horizontal")
+        show_advocate_name = branding.get("show_advocate_name", True)
+        show_tls_logo = branding.get("show_tls_logo", True)
+        include_signature = branding.get("include_signature", False)
+        stamp_size = branding.get("stamp_size", 100)
+        opacity = branding.get("opacity", 90)
+        transparent_bg = branding.get("transparent_background", False)
+        
+        # Get signature data
+        signature_data = stamp_record.get("signature_data")
+        
+        # Fixed optimal stamp sizes - not user configurable
+        # These sizes ensure QR codes are scannable and text is readable
+        shape = branding.get("shape", "rectangle")
+        layout = branding.get("layout", "horizontal")  # Ensure layout is extracted here
+        
+        # DEBUG: Log what we're receiving
+        print(f"DEBUG BRANDING: shape={shape}, layout={layout}")
+        
+        # Generate stamp at higher resolution for better QR scanning
+        # The stamp will be scaled down to target size when placed on PDF,
+        # but higher resolution source = better QR quality
+        if shape == "circle":
+            scale = 2.5  # 500x500px source - ensures QR is scannable when scaled down
+        elif shape == "oval":
+            scale = 2.5  # 600x375px source - ensures QR is scannable when scaled down
+        else:  # rectangle
+            scale = 2.0  # 800x560px - optimal for QR scanning
+        
+        # Generate the branded stamp image (WITHOUT signature - signature goes below)
+        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://pdf-positioning-test.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
+        show_sig_placeholder = branding.get("show_signature_placeholder", False)
+        stamp_img = generate_branded_stamp_image(
+            stamp_id=stamp_record['stamp_id'],
+            advocate_name=user['full_name'],
+            verification_url=verification_url,
+            brand_color=brand_color,
+            layout=layout,
+            shape=shape,
+            show_advocate_name=show_advocate_name,
+            show_tls_logo=show_tls_logo,
+            include_signature=False,  # Signature placed below stamp, not inside
+            signature_data=None,
+            show_signature_placeholder=False,
+            scale=scale,
+            transparent_background=transparent_bg
+        )
+        
+        # Note: Stamps are now generated with built-in transparency
+        # No additional opacity adjustment needed - white backgrounds behind content are opaque,
+        # transparent areas remain transparent as designed
+        
+        # Save stamp to buffer
+        stamp_buffer = BytesIO()
+        stamp_img.save(stamp_buffer, format='PNG')
+        stamp_buffer.seek(0)
+        
+        # Get stamp dimensions for PDF placement
+        stamp_width = stamp_img.width
+        stamp_height = stamp_img.height
+        
+        # Use the width/height from position to scale the stamp on the PDF
+        # This ensures the stamp appears at the same size as the preview
+        target_width = position.get("width", stamp_width)
+        target_height = position.get("height", stamp_height)
+        
+        # Get frontend page dimensions for verification
+        frontend_page_width = position.get("frontendPageWidth", 0)
+        frontend_page_height = position.get("frontendPageHeight", 0)
+        
+        # DEBUG: Log stamp dimensions
+        print(f"DEBUG STAMP: Generated {stamp_width}x{stamp_height}, Target {target_width}x{target_height}")
+        print(f"DEBUG STAMP: Layout={layout}, Shape={shape}")
+        print(f"DEBUG FRONTEND: Page dimensions from frontend: {frontend_page_width}x{frontend_page_height}")
+        
+        # Get pages to stamp - support multi-page stamping
+        pages_to_stamp = position.get("pages", [target_page + 1])  # Default to target page if not specified
+        pages_to_stamp_0indexed = [p - 1 for p in pages_to_stamp]  # Convert to 0-indexed
+        
+        # Get per-page positions if available
+        per_page_positions = position.get("positions", {})
+        
+        for page_num, page in enumerate(pdf_reader.pages):
+            if page_num in pages_to_stamp_0indexed:
+                # Create overlay with stamp
+                packet = BytesIO()
+                
+                # Get page dimensions and rotation
+                page_rotation = page.get('/Rotate', 0) or 0
+                
+                # Get mediabox - may have non-zero origin
+                mediabox = page.mediabox
+                box_left = float(mediabox.left)
+                box_bottom = float(mediabox.bottom)
+                orig_width = float(mediabox.width)
+                orig_height = float(mediabox.height)
+                
+                # DEBUG: Log mediabox details
+                print(f"DEBUG MEDIABOX: Page {page_num+1}")
+                print(f"  - MediaBox: left={box_left}, bottom={box_bottom}, width={orig_width}, height={orig_height}")
+                print(f"  - Rotation: {page_rotation}")
+                
+                # Handle rotated pages - swap dimensions if rotated 90 or 270 degrees
+                if page_rotation in [90, 270, -90, -270]:
+                    # Page is displayed rotated, so visual width/height are swapped
+                    page_width = orig_height
+                    page_height = orig_width
+                else:
+                    page_width = orig_width
+                    page_height = orig_height
+                
+                # Use original mediabox for canvas (not the visual dimensions)
+                # NOTE: We set pagesize to full mediabox dimensions
+                page_size = (box_left + orig_width, box_bottom + orig_height)
+                c = canvas.Canvas(packet, pagesize=page_size)
+                
+                # Get position for this specific page (1-indexed key in positions dict)
+                page_key = str(page_num + 1)
+                if page_key in per_page_positions:
+                    page_pos = per_page_positions[page_key]
+                    pos_x = page_pos.get("x", x)
+                    pos_y = page_pos.get("y", y)
+                else:
+                    pos_x = x
+                    pos_y = y
+                
+                # Convert visual coordinates (from frontend) to PDF mediabox coordinates
+                # Frontend positions are in visual space (how pdf.js renders, with rotation applied)
+                # Backend needs mediabox coordinates (raw PDF coordinate system)
+                
+                # Visual dimensions (what user sees)
+                visual_width = page_width   # Already accounts for rotation
+                visual_height = page_height  # Already accounts for rotation
+                
+                # Check for dimension mismatch between frontend and backend
+                # This can happen if pdf.js and PyPDF2 interpret the page differently
+                if frontend_page_width > 0 and frontend_page_height > 0:
+                    if abs(visual_width - frontend_page_width) > 5 or abs(visual_height - frontend_page_height) > 5:
+                        print(f"DEBUG MISMATCH: Frontend={frontend_page_width}x{frontend_page_height}, Backend visual={visual_width}x{visual_height}")
+                        # Adjust positions to account for the mismatch
+                        # The frontend position is relative to its page size, so we need to scale
+                        scale_x = visual_width / frontend_page_width if frontend_page_width > 0 else 1
+                        scale_y = visual_height / frontend_page_height if frontend_page_height > 0 else 1
+                        pos_x = pos_x * scale_x
+                        pos_y = pos_y * scale_y
+                        print(f"DEBUG MISMATCH: Adjusted position to ({pos_x}, {pos_y}) with scale ({scale_x}, {scale_y})")
+                
+                # pos_x, pos_y are visual coordinates (top-left origin, after rotation)
+                # We need to convert to mediabox coordinates (bottom-left origin, before rotation)
+                
+                if page_rotation in [90, -270]:
+                    # Page rotated 90° clockwise
+                    # Visual coordinate system is rotated: visual X maps to mediabox Y (inverted), visual Y maps to mediabox X
+                    # Visual (vx, vy) with stamp of visual size (sw, sh) maps to:
+                    # mediabox_x = vy
+                    # mediabox_y = mediabox_height - vx - sw (because visual X runs along negative mediabox Y direction)
+                    pdf_x = pos_y
+                    pdf_y = orig_height - pos_x - target_width
+                    draw_width = target_height  # Stamp appears rotated, so swap
+                    draw_height = target_width
+                elif page_rotation in [180, -180]:
+                    # Page rotated 180°: visual (x,y) -> mediabox (width-x-w, height-y-h)
+                    pdf_x = orig_width - pos_x - target_width
+                    pdf_y = pos_y  # Y coordinate stays similar but from bottom
+                    draw_width = target_width
+                    draw_height = target_height
+                elif page_rotation in [270, -90]:
+                    # Page rotated 270° clockwise (90° counter-clockwise)
+                    # Visual (x,y) -> mediabox (height-y-h, x)
+                    pdf_x = orig_height - pos_y - target_height
+                    pdf_y = pos_x
+                    draw_width = target_height
+                    draw_height = target_width
+                else:
+                    # No rotation (0°): just convert Y from top-left to bottom-left origin
+                    pdf_x = pos_x
+                    pdf_y = orig_height - pos_y - target_height
+                    draw_width = target_width
+                    draw_height = target_height
+                
+                # DEBUG: Log all coordinate info
+                print(f"DEBUG COORDS: Page {page_num+1}")
+                print(f"  - Page rotation: {page_rotation}")
+                print(f"  - Mediabox: {orig_width}x{orig_height}")
+                print(f"  - Visual size: {visual_width}x{visual_height}")
+                print(f"  - Frontend page size: {frontend_page_width}x{frontend_page_height}")
+                print(f"  - Frontend visual pos: ({pos_x}, {pos_y})")
+                print(f"  - Target size: {target_width}x{target_height}")
+                print(f"  - PDF coords BEFORE bounds: pdf_x={pdf_x}, pdf_y={pdf_y}, draw={draw_width}x{draw_height}")
+                
+                # Ensure stamp stays within page bounds (using mediabox dimensions)
+                pdf_x = max(10, min(pdf_x, orig_width - draw_width - 10))
+                pdf_y = max(10, min(pdf_y, orig_height - draw_height - 10))
+                
+                print(f"  - PDF coords AFTER bounds: pdf_x={pdf_x}, pdf_y={pdf_y}")
+                
+                # Draw the branded stamp image - reset buffer for each page
+                stamp_buffer.seek(0)
+                c.drawImage(ImageReader(stamp_buffer), pdf_x, pdf_y, width=draw_width, height=draw_height, mask='auto')
+                
+                # Draw signature BELOW the stamp (outside of it)
+                signature_height = 30  # Height for signature area
+                signature_y = pdf_y - signature_height - 5  # 5px gap below stamp
+                
+                if include_signature and signature_data:
+                    # Draw digital signature
+                    try:
+                        sig_bytes = base64.b64decode(signature_data)
+                        sig_img = Image.open(BytesIO(sig_bytes))
+                        sig_buffer = BytesIO()
+                        sig_img.save(sig_buffer, format='PNG')
+                        sig_buffer.seek(0)
+                        
+                        # Calculate signature width maintaining aspect ratio
+                        sig_aspect = sig_img.width / sig_img.height
+                        sig_width = min(draw_width, signature_height * sig_aspect)
+                        sig_x = pdf_x + (draw_width - sig_width) / 2  # Center under stamp
+                        
+                        if signature_y > 10:  # Only draw if there's space
+                            c.drawImage(ImageReader(sig_buffer), sig_x, signature_y, width=sig_width, height=signature_height, mask='auto')
+                    except Exception as e:
+                        print(f"Error drawing signature: {e}")
+                        
+                elif show_sig_placeholder:
+                    # Draw signature placeholder box with dashed border (matches frontend)
+                    box_width = draw_width
+                    box_height = signature_height
+                    box_x = pdf_x
+                    box_y = signature_y
+                    
+                    if signature_y > 10:  # Only draw if there's space
+                        # White background with rounded corners
+                        c.setFillColor(colors.white)
+                        c.roundRect(box_x, box_y, box_width, box_height, radius=3, fill=1, stroke=0)
+                        
+                        # Dashed border in brand color
+                        c.setStrokeColor(colors.HexColor(brand_color))
+                        c.setLineWidth(1.5)
+                        c.setDash([4, 3])  # Dashed line pattern
+                        c.roundRect(box_x, box_y, box_width, box_height, radius=3, fill=0, stroke=1)
+                        c.setDash([])  # Reset to solid line
+                        
+                        # "Sign Here" text centered in box
+                        c.setFillColor(colors.HexColor(brand_color))
+                        c.setFont("Helvetica-Bold", 8)
+                        c.drawCentredString(box_x + box_width/2, box_y + box_height/2 - 3, "Sign Here")
+                
+                c.save()
+                packet.seek(0)
+                
+                # Merge overlay with page
+                overlay_reader = PdfReader(packet)
+                page.merge_page(overlay_reader.pages[0])
+            
+            pdf_writer.add_page(page)
+        
+        output = BytesIO()
+        pdf_writer.write(output)
+        return output.getvalue()
+        
+    except Exception as e:
+        logger.error(f"PDF stamping error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return content
+
+async def embed_stamp_in_image(content: bytes, stamp_record: dict, user: dict, position: dict) -> bytes:
+    """Embed branded stamp into image document"""
+    try:
+        # Open original image
+        img = Image.open(BytesIO(content))
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+        
+        x = position.get("x", 50)
+        y = position.get("y", 50)
+        
+        # Get branding options
+        branding = stamp_record.get("branding", {})
+        brand_color = branding.get("color", "#10B981")
+        layout = branding.get("layout", "horizontal")
+        show_advocate_name = branding.get("show_advocate_name", True)
+        show_tls_logo = branding.get("show_tls_logo", True)
+        include_signature = branding.get("include_signature", False)
+        show_sig_placeholder = branding.get("show_signature_placeholder", False)
+        stamp_size = branding.get("stamp_size", 100)
+        opacity = branding.get("opacity", 90)
+        transparent_bg = branding.get("transparent_background", False)
+        
+        # Get signature data
+        signature_data = stamp_record.get("signature_data")
+        
+        # Calculate scale based on stamp_size
+        scale = stamp_size / 100.0
+        
+        # Generate the branded stamp image
+        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://pdf-positioning-test.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
+        shape = branding.get("shape", "rectangle")
+        stamp_img = generate_branded_stamp_image(
+            stamp_id=stamp_record['stamp_id'],
+            advocate_name=user['full_name'],
+            verification_url=verification_url,
+            brand_color=brand_color,
+            layout=layout,
+            shape=shape,
+            show_advocate_name=show_advocate_name,
+            show_tls_logo=show_tls_logo,
+            include_signature=include_signature,
+            signature_data=signature_data,
+            show_signature_placeholder=show_sig_placeholder,
+            scale=scale,
+            transparent_background=transparent_bg
+        )
+        
+        # Note: Stamps are now generated with built-in transparency
+        # No additional opacity adjustment needed - white backgrounds behind content are opaque,
+        # transparent areas remain transparent as designed
+        
+        # Paste stamp onto image
+        img.paste(stamp_img, (x, y), stamp_img)
+        
+        # Save result
+        output = BytesIO()
+        img.save(output, format='PNG')
+        return output.getvalue()
+        
+    except Exception as e:
+        logger.error(f"Image stamping error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return content
+
+@api_router.get("/documents/stamps", response_model=List[DocumentStamp])
+async def get_document_stamps(user: dict = Depends(get_current_user)):
+    """Get all document stamps for current user"""
+    query = {"advocate_id": user["id"]} if user.get("role") not in ["admin", "super_admin"] else {}
+    stamps = await db.document_stamps.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [DocumentStamp(**s) for s in stamps]
+
+@api_router.get("/documents/stamps/{stamp_id}")
+async def get_document_stamp(stamp_id: str, user: dict = Depends(get_current_user)):
+    """Get specific document stamp"""
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id}, {"_id": 0})
+    if not stamp:
+        raise HTTPException(status_code=404, detail="Stamp not found")
+    if user.get("role") not in ["admin", "super_admin"] and stamp["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return stamp
+
+@api_router.post("/documents/stamps/{stamp_id}/revoke")
+async def revoke_document_stamp(stamp_id: str, user: dict = Depends(get_current_user)):
+    """Revoke a document stamp"""
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id})
+    if not stamp:
+        raise HTTPException(status_code=404, detail="Stamp not found")
+    if user.get("role") not in ["admin", "super_admin"] and stamp["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    await db.document_stamps.update_one(
+        {"stamp_id": stamp_id},
+        {"$set": {"status": "revoked", "revoked_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Document stamp revoked successfully"}
+
+# =============== LEGACY DIGITAL STAMP ROUTES (Keep for compatibility) ===============
+
+class DigitalStampCreate(BaseModel):
+    document_reference: Optional[str] = None
+    stamp_type: str = "official"
+
+class DigitalStamp(BaseModel):
+    id: str
+    stamp_id: str
+    advocate_id: str
+    advocate_name: str
+    advocate_roll_number: str
+    document_reference: Optional[str]
+    stamp_type: str
+    hash_value: str
+    qr_code_data: str
+    status: str
+    created_at: str
+    expires_at: str
+    used_count: int = 0
+
+@api_router.post("/digital-stamps", response_model=DigitalStamp)
+async def create_digital_stamp(data: DigitalStampCreate, user: dict = Depends(get_current_user)):
+    if user.get("practicing_status") != "Active":
+        raise HTTPException(status_code=403, detail="Only active advocates can create stamps")
+    
+    now = datetime.now(timezone.utc)
+    stamp_id = generate_stamp_id()
+    hash_value = generate_stamp_hash(stamp_id, user["id"], "", now.isoformat())
+    
+    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://pdf-positioning-test.preview.emergentagent.com')}/verify?id={stamp_id}"
+    qr_data = generate_qr_code(verification_url)
+    
+    expires_at = (now + timedelta(days=365)).isoformat()
+    
+    stamp = {
+        "id": str(uuid.uuid4()),
+        "stamp_id": stamp_id,
+        "advocate_id": user["id"],
+        "advocate_name": user["full_name"],
+        "advocate_roll_number": user["roll_number"],
+        "document_reference": data.document_reference,
+        "stamp_type": data.stamp_type,
+        "hash_value": hash_value,
+        "qr_code_data": qr_data,
+        "status": "active",
+        "created_at": now.isoformat(),
+        "expires_at": expires_at,
+        "used_count": 0
+    }
+    
+    await db.digital_stamps.insert_one(stamp)
+    
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "digital_stamp_created",
+        "user_id": user["id"],
+        "details": {"stamp_id": stamp_id, "type": data.stamp_type},
+        "timestamp": now.isoformat()
+    })
+    
+    return DigitalStamp(**stamp)
+
+@api_router.get("/digital-stamps", response_model=List[DigitalStamp])
+async def get_digital_stamps(user: dict = Depends(get_current_user)):
+    query = {"advocate_id": user["id"]} if user.get("role") not in ["admin", "super_admin"] else {}
+    stamps = await db.digital_stamps.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [DigitalStamp(**s) for s in stamps]
+
+@api_router.post("/digital-stamps/{stamp_id}/revoke")
+async def revoke_stamp(stamp_id: str, user: dict = Depends(get_current_user)):
+    stamp = await db.digital_stamps.find_one({"stamp_id": stamp_id})
+    if not stamp:
+        raise HTTPException(status_code=404, detail="Stamp not found")
+    if user.get("role") not in ["admin", "super_admin"] and stamp["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    await db.digital_stamps.update_one(
+        {"stamp_id": stamp_id},
+        {"$set": {"status": "revoked", "revoked_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Stamp revoked successfully"}
+
+# =============== PUBLIC VERIFICATION ROUTES ===============
+
+@api_router.get("/verify/stamp/{stamp_id}", response_model=VerificationResult)
+async def verify_stamp(stamp_id: str):
+    """Public verification endpoint - checks both document stamps and digital stamps"""
+    
+    # First check document stamps
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id}, {"_id": 0})
+    is_document_stamp = True
+    
+    # If not found, check legacy digital stamps
+    if not stamp:
+        stamp = await db.digital_stamps.find_one({"stamp_id": stamp_id}, {"_id": 0})
+        is_document_stamp = False
+    
+    if not stamp:
+        return VerificationResult(valid=False, message="Stamp not found. This may be a fraudulent stamp.")
+    
+    advocate = await db.advocates.find_one({"id": stamp["advocate_id"]}, {"_id": 0})
+    
+    # Check stamp status
+    warning = None
+    if stamp["status"] == "revoked":
+        warning = "This stamp has been revoked and is no longer valid."
+    elif stamp["status"] == "expired" or datetime.fromisoformat(stamp["expires_at"]) < datetime.now(timezone.utc):
+        warning = "This stamp has expired."
+        stamp["status"] = "expired"
+    
+    # Check advocate status
+    if advocate and advocate.get("practicing_status") == "Suspended":
+        warning = "The advocate who issued this stamp is currently suspended."
+    
+    # Calculate and record revenue for valid verifications
+    if stamp["status"] == "active" and not warning:
+        revenue = await calculate_verification_revenue(DIGITAL_STAMP_PRICES.get(stamp.get("stamp_type", "official"), 5000))
+        
+        # Update stamp verification count and earnings
+        collection = "document_stamps" if is_document_stamp else "digital_stamps"
+        if is_document_stamp:
+            await db[collection].update_one(
+                {"stamp_id": stamp_id},
+                {"$inc": {"verification_count": 1, "total_earnings": revenue["advocate_share"]}}
+            )
+        else:
+            await db[collection].update_one(
+                {"stamp_id": stamp_id},
+                {"$inc": {"used_count": 1}}
+            )
+        
+        # Update advocate earnings
+        if advocate:
+            await db.advocates.update_one(
+                {"id": advocate["id"]},
+                {"$inc": {"total_earnings": revenue["advocate_share"]}}
+            )
+        
+        # Record verification transaction
+        await db.verification_transactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "stamp_id": stamp_id,
+            "advocate_id": stamp["advocate_id"],
+            "total_fee": revenue["total_fee"],
+            "advocate_share": revenue["advocate_share"],
+            "platform_share": revenue["platform_share"],
+            "verified_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Log verification
+    await db.verification_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "stamp_id": stamp_id,
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "result": "valid" if not warning else "warning"
+    })
+    
+    return VerificationResult(
+        valid=stamp["status"] == "active" and not warning,
+        stamp_id=stamp["stamp_id"],
+        advocate_name=stamp["advocate_name"],
+        advocate_roll_number=stamp["advocate_roll_number"],
+        advocate_tls_number=stamp.get("advocate_tls_number") or advocate.get("tls_member_number") if advocate else None,
+        advocate_status=advocate.get("practicing_status") if advocate else "Unknown",
+        advocate_photo=advocate.get("profile_photo") if advocate else None,
+        stamp_status=stamp["status"],
+        stamp_type=stamp.get("stamp_type"),
+        document_name=stamp.get("document_name"),
+        document_type=stamp.get("document_type"),
+        description=stamp.get("description"),
+        recipient_name=stamp.get("recipient_name"),
+        recipient_org=stamp.get("recipient_org"),
+        document_hash=stamp.get("document_hash"),
+        created_at=stamp["created_at"],
+        expires_at=stamp["expires_at"],
+        verification_count=stamp.get("verification_count", stamp.get("used_count", 0)),
+        warning=warning,
+        message="Stamp verified successfully" if not warning else warning
+    )
+
+@api_router.post("/verify/document")
+async def verify_document_by_hash(file: UploadFile = File(...)):
+    """Verify document by uploading and checking hash"""
+    content = await file.read()
+    doc_hash = generate_document_hash(content)
+    
+    # Find stamp by document hash
+    stamp = await db.document_stamps.find_one({"document_hash": doc_hash}, {"_id": 0})
+    
+    if not stamp:
+        return VerificationResult(
+            valid=False,
+            message="No stamp found for this document. The document may have been modified or was never stamped."
+        )
+    
+    # Use the stamp verification logic
+    return await verify_stamp(stamp["stamp_id"])
+
+@api_router.get("/verify/advocate/{roll_number}", response_model=VerificationResult)
+async def verify_advocate(roll_number: str):
+    advocate = await db.advocates.find_one({"roll_number": roll_number}, {"_id": 0, "password_hash": 0})
+    
+    if not advocate:
+        return VerificationResult(valid=False, message="Advocate not found with this roll number.")
+    
+    warning = None
+    if advocate.get("practicing_status") == "Suspended":
+        warning = "This advocate is currently suspended."
+    elif advocate.get("practicing_status") == "Retired":
+        warning = "This advocate is retired."
+    
+    return VerificationResult(
+        valid=advocate.get("practicing_status") == "Active",
+        advocate_name=advocate["full_name"],
+        advocate_roll_number=advocate["roll_number"],
+        advocate_status=advocate.get("practicing_status"),
+        advocate_photo=advocate.get("profile_photo"),
+        created_at=advocate["created_at"],
+        warning=warning,
+        message="Advocate is in good standing" if not warning else warning
+    )
+
+# =============== STAMP TEMPLATES ROUTES ===============
+
+class StampTemplate(BaseModel):
+    name: str
+    document_type: str = "contract"
+    stamp_type: str = "official"
+    shape: str = "rectangle"  # rectangle, circle, oval - Max 3 templates allowed
+    brand_color: str = "#10B981"
+    layout: str = "horizontal"  # horizontal, vertical, compact, logo_left, logo_right
+    show_advocate_name: bool = True
+    show_tls_logo: bool = True
+    include_signature: bool = False  # Whether to include signature box
+    signature_data: Optional[str] = None  # Base64 encoded signature image
+    advocate_address: Optional[str] = None  # Address for circle/oval stamps outer ring
+    position_preset: str = "bottom-right"  # top-left, top-right, bottom-left, bottom-right, center
+    apply_to_pages: str = "first"  # first, last, all
+    stamp_size: int = 100  # percentage 50-150
+    logo_size: int = 100  # percentage 50-150
+    opacity: int = 90  # percentage 30-100
+    margin_from_edge: int = 35  # pixels 10-100
+    default_position: dict = {"x": 400, "y": 50, "width": 150, "height": 150}
+    default_recipient_name: Optional[str] = None
+    default_recipient_org: Optional[str] = None
+    is_default: bool = False
+
+@api_router.get("/stamp-templates")
+async def get_stamp_templates(user: dict = Depends(get_current_user)):
+    """Get all stamp templates for current user"""
+    templates = await db.stamp_templates.find(
+        {"advocate_id": user["id"]}, 
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return templates
+
+@api_router.post("/advocate/signature")
+async def upload_signature(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Upload advocate's signature image"""
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    content = await file.read()
+    if len(content) > 500000:  # 500KB max
+        raise HTTPException(status_code=400, detail="Signature image too large (max 500KB)")
+    
+    # Convert to base64
+    signature_base64 = base64.b64encode(content).decode()
+    
+    # Save to user profile
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "signature_data": signature_base64, 
+            "signature_source": "uploaded",
+            "signature_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Signature uploaded successfully", "signature_data": signature_base64, "source": "uploaded"}
+
+class SignatureData(BaseModel):
+    signature_data: str  # Base64 encoded signature image
+    source: str = "drawn"  # "drawn" or "uploaded"
+
+@api_router.post("/advocate/signature/save")
+async def save_drawn_signature(data: SignatureData, user: dict = Depends(get_current_user)):
+    """Save advocate's drawn signature (base64)"""
+    # Validate base64 data size
+    if len(data.signature_data) > 700000:  # ~500KB in base64
+        raise HTTPException(status_code=400, detail="Signature data too large (max 500KB)")
+    
+    # Save to user profile
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "signature_data": data.signature_data, 
+            "signature_source": data.source,
+            "signature_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Signature saved successfully", "source": data.source}
+
+@api_router.get("/advocate/signature")
+async def get_signature(user: dict = Depends(get_current_user)):
+    """Get advocate's saved signature"""
+    advocate = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1, "signature_source": 1})
+    return {
+        "signature_data": advocate.get("signature_data") if advocate else None,
+        "source": advocate.get("signature_source", "unknown") if advocate else None
+    }
+
+@api_router.delete("/advocate/signature")
+async def delete_signature(user: dict = Depends(get_current_user)):
+    """Delete advocate's saved signature"""
+    await db.advocates.update_one(
+        {"id": user["id"]},
+        {"$unset": {"signature_data": "", "signature_updated_at": ""}}
+    )
+    return {"message": "Signature deleted successfully"}
+
+@api_router.post("/stamp-templates")
+async def create_stamp_template(template: StampTemplate, user: dict = Depends(get_current_user)):
+    """Create a new stamp template - Maximum 3 templates allowed per advocate"""
+    now = datetime.now(timezone.utc).isoformat()
+    template_id = str(uuid.uuid4())
+    
+    # Check template count - max 3 allowed
+    template_count = await db.stamp_templates.count_documents({"advocate_id": user["id"]})
+    if template_count >= 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 stamp templates allowed. Please delete an existing template first.")
+    
+    # Validate shape
+    if template.shape not in ["rectangle", "circle", "oval"]:
+        raise HTTPException(status_code=400, detail="Invalid shape. Must be rectangle, circle, or oval.")
+    
+    # If this is set as default, unset other defaults
+    if template.is_default:
+        await db.stamp_templates.update_many(
+            {"advocate_id": user["id"], "is_default": True},
+            {"$set": {"is_default": False}}
+        )
+    
+    template_data = {
+        "id": template_id,
+        "advocate_id": user["id"],
+        "name": template.name,
+        "document_type": template.document_type,
+        "stamp_type": template.stamp_type,
+        "shape": template.shape,
+        "brand_color": template.brand_color,
+        "layout": template.layout,
+        "show_advocate_name": template.show_advocate_name,
+        "show_tls_logo": template.show_tls_logo,
+        "include_signature": template.include_signature,
+        "signature_data": template.signature_data,
+        "advocate_address": template.advocate_address,
+        "position_preset": template.position_preset,
+        "apply_to_pages": template.apply_to_pages,
+        "stamp_size": template.stamp_size,
+        "logo_size": template.logo_size,
+        "opacity": template.opacity,
+        "margin_from_edge": template.margin_from_edge,
+        "default_position": template.default_position,
+        "default_recipient_name": template.default_recipient_name,
+        "default_recipient_org": template.default_recipient_org,
+        "is_default": template.is_default,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.stamp_templates.insert_one(template_data)
+    
+    return {"message": "Template created successfully", "template": {k: v for k, v in template_data.items() if k != "_id"}}
+
+@api_router.put("/stamp-templates/{template_id}")
+async def update_stamp_template(template_id: str, template: StampTemplate, user: dict = Depends(get_current_user)):
+    """Update a stamp template"""
+    existing = await db.stamp_templates.find_one({"id": template_id, "advocate_id": user["id"]})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # If this is set as default, unset other defaults
+    if template.is_default:
+        await db.stamp_templates.update_many(
+            {"advocate_id": user["id"], "is_default": True, "id": {"$ne": template_id}},
+            {"$set": {"is_default": False}}
+        )
+    
+    update_data = {
+        "name": template.name,
+        "document_type": template.document_type,
+        "stamp_type": template.stamp_type,
+        "shape": template.shape,
+        "brand_color": template.brand_color,
+        "layout": template.layout,
+        "show_advocate_name": template.show_advocate_name,
+        "show_tls_logo": template.show_tls_logo,
+        "include_signature": template.include_signature,
+        "signature_data": template.signature_data,
+        "advocate_address": template.advocate_address,
+        "position_preset": template.position_preset,
+        "apply_to_pages": template.apply_to_pages,
+        "stamp_size": template.stamp_size,
+        "logo_size": template.logo_size,
+        "opacity": template.opacity,
+        "margin_from_edge": template.margin_from_edge,
+        "default_position": template.default_position,
+        "default_recipient_name": template.default_recipient_name,
+        "default_recipient_org": template.default_recipient_org,
+        "is_default": template.is_default,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.stamp_templates.update_one(
+        {"id": template_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Template updated successfully"}
+
+@api_router.delete("/stamp-templates/{template_id}")
+async def delete_stamp_template(template_id: str, user: dict = Depends(get_current_user)):
+    """Delete a stamp template"""
+    result = await db.stamp_templates.delete_one({"id": template_id, "advocate_id": user["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"message": "Template deleted successfully"}
+
+@api_router.post("/stamp-templates/{template_id}/set-default")
+async def set_default_template(template_id: str, user: dict = Depends(get_current_user)):
+    """Set a template as default"""
+    existing = await db.stamp_templates.find_one({"id": template_id, "advocate_id": user["id"]})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Unset all other defaults
+    await db.stamp_templates.update_many(
+        {"advocate_id": user["id"], "is_default": True},
+        {"$set": {"is_default": False}}
+    )
+    
+    # Set this as default
+    await db.stamp_templates.update_one(
+        {"id": template_id},
+        {"$set": {"is_default": True}}
+    )
+    
+    return {"message": "Template set as default"}
+
+# =============== ADVOCATE SUBSCRIPTION ROUTES ===============
+
+@api_router.get("/subscription/packages")
+async def get_subscription_packages():
+    """Get available subscription packages"""
+    return {
+        "packages": SUBSCRIPTION_PACKAGES,
+        "trial_period_days": TRIAL_PERIOD_DAYS,
+        "grace_period_days": GRACE_PERIOD_DAYS,
+        "currency": "TZS"
+    }
+
+@api_router.get("/subscription/status")
+async def get_subscription_status(user: dict = Depends(get_current_user)):
+    """Get current subscription status for advocate"""
+    subscription = await db.subscriptions.find_one(
+        {"advocate_id": user["id"]},
+        {"_id": 0}
+    )
+    
+    now = datetime.now(timezone.utc)
+    
+    if not subscription:
+        # No subscription - check if they have any stamps (for trial eligibility)
+        stamp_count = await db.document_stamps.count_documents({"advocate_id": user["id"]})
+        return {
+            "status": "none",
+            "is_trial": False,
+            "can_earn_revenue": False,
+            "eligible_for_trial": stamp_count == 0,
+            "total_stamps_created": stamp_count,
+            "message": "No active subscription. Start your 30-day free trial with your first stamp!"
+        }
+    
+    # Calculate current status
+    status = subscription.get("status", "none")
+    is_trial = subscription.get("is_trial", False)
+    can_earn_revenue = False
+    
+    if is_trial:
+        trial_ends = datetime.fromisoformat(subscription.get("trial_ends_at", now.isoformat()))
+        if now > trial_ends:
+            status = "trial_expired"
+        else:
+            status = "trial"
+        can_earn_revenue = False  # No earnings during trial
+    elif status == "active":
+        sub_ends = datetime.fromisoformat(subscription.get("subscription_ends_at", now.isoformat()))
+        if now > sub_ends:
+            grace_ends = sub_ends + timedelta(days=GRACE_PERIOD_DAYS)
+            if now > grace_ends:
+                status = "expired"
+                can_earn_revenue = False
+            else:
+                status = "grace"
+                can_earn_revenue = False  # No earnings during grace
+                subscription["grace_ends_at"] = grace_ends.isoformat()
+        else:
+            can_earn_revenue = True
+    
+    subscription["status"] = status
+    subscription["can_earn_revenue"] = can_earn_revenue
+    
+    # Get stamp count
+    stamp_count = await db.document_stamps.count_documents({"advocate_id": user["id"]})
+    subscription["total_stamps_created"] = stamp_count
+    
+    return subscription
+
+@api_router.post("/subscription/start-trial")
+async def start_trial(user: dict = Depends(get_current_user)):
+    """Start 30-day free trial (only for first stamp)"""
+    # Check if already has subscription
+    existing = await db.subscriptions.find_one({"advocate_id": user["id"]})
+    if existing:
+        raise HTTPException(status_code=400, detail="Trial already used or subscription exists")
+    
+    # Check if they have stamps already
+    stamp_count = await db.document_stamps.count_documents({"advocate_id": user["id"]})
+    if stamp_count > 0:
+        raise HTTPException(status_code=400, detail="Trial only available before first stamp")
+    
+    now = datetime.now(timezone.utc)
+    trial_ends = now + timedelta(days=TRIAL_PERIOD_DAYS)
+    
+    subscription = {
+        "id": str(uuid.uuid4()),
+        "advocate_id": user["id"],
+        "package": "trial",
+        "status": "trial",
+        "is_trial": True,
+        "trial_started_at": now.isoformat(),
+        "trial_ends_at": trial_ends.isoformat(),
+        "subscription_started_at": None,
+        "subscription_ends_at": None,
+        "can_earn_revenue": False,
+        "total_stamps_created": 0,
+        "created_at": now.isoformat()
+    }
+    
+    await db.subscriptions.insert_one(subscription)
+    
+    return {
+        "message": "30-day free trial started!",
+        "trial_ends_at": trial_ends.isoformat(),
+        "note": "During trial, you can use QR stamps but won't earn from verifications. Subscribe to unlock earnings!"
+    }
+
+@api_router.post("/subscription/subscribe")
+async def subscribe(data: SubscriptionCreate, user: dict = Depends(get_current_user)):
+    """Subscribe to a package (MOCKED payment)"""
+    if data.package not in SUBSCRIPTION_PACKAGES:
+        raise HTTPException(status_code=400, detail="Invalid package")
+    
+    package = SUBSCRIPTION_PACKAGES[data.package]
+    now = datetime.now(timezone.utc)
+    ends_at = now + timedelta(days=package["duration_days"])
+    
+    subscription_data = {
+        "advocate_id": user["id"],
+        "package": data.package,
+        "status": "active",
+        "is_trial": False,
+        "subscription_started_at": now.isoformat(),
+        "subscription_ends_at": ends_at.isoformat(),
+        "can_earn_revenue": True,
+        "payment_amount": package["price"],
+        "payment_method": data.payment_method,
+        "payment_status": "paid",  # MOCKED
+        "updated_at": now.isoformat()
+    }
+    
+    # Update or create subscription
+    result = await db.subscriptions.update_one(
+        {"advocate_id": user["id"]},
+        {"$set": subscription_data},
+        upsert=True
+    )
+    
+    return {
+        "message": f"Subscribed to {package['name']} package!",
+        "subscription_ends_at": ends_at.isoformat(),
+        "can_earn_revenue": True,
+        "note": "PAYMENT MOCKED - You can now earn from stamp verifications!"
+    }
+
+@api_router.get("/advocate/verification-stats")
+async def get_verification_stats(user: dict = Depends(get_current_user)):
+    """Get verification statistics for advocate dashboard"""
+    now = datetime.now(timezone.utc)
+    
+    # Get subscription status
+    subscription = await db.subscriptions.find_one({"advocate_id": user["id"]}, {"_id": 0})
+    
+    # Get stamps
+    stamps = await db.document_stamps.find(
+        {"advocate_id": user["id"]},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    total_stamps = len(stamps)
+    active_stamps = sum(1 for s in stamps if s.get("status") == "active")
+    total_verifications = sum(s.get("verification_count", 0) for s in stamps)
+    
+    # Get earnings
+    settings = await get_system_settings()
+    advocate_share_pct = settings.get("advocate_revenue_share", 30.0) / 100
+    
+    # Calculate earnings
+    total_earnings = sum(s.get("total_earnings", 0) for s in stamps)
+    
+    # Get recent verifications (last 30 days)
+    thirty_days_ago = (now - timedelta(days=30)).isoformat()
+    recent_verifications = await db.verification_transactions.find(
+        {"advocate_id": user["id"], "verified_at": {"$gte": thirty_days_ago}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Group by day for chart
+    daily_stats = {}
+    for v in recent_verifications:
+        date = v["verified_at"][:10]
+        if date not in daily_stats:
+            daily_stats[date] = {"verifications": 0, "earnings": 0}
+        daily_stats[date]["verifications"] += 1
+        daily_stats[date]["earnings"] += v.get("advocate_share", 0)
+    
+    # Convert to chart data
+    chart_data = [
+        {"date": date, **data}
+        for date, data in sorted(daily_stats.items())
+    ]
+    
+    # Revenue breakdown
+    revenue_breakdown = {
+        "advocate_share_pct": settings.get("advocate_revenue_share", 30.0),
+        "tls_share_pct": 35.0,  # Fixed for TLS
+        "idc_share_pct": 35.0,  # Fixed for IDC
+        "total_advocate_earnings": total_earnings,
+        "can_withdraw": subscription.get("can_earn_revenue", False) if subscription else False
+    }
+    
+    # Recent stamps
+    recent_stamps = sorted(stamps, key=lambda x: x.get("created_at", ""), reverse=True)[:5]
+    
+    return {
+        "summary": {
+            "total_stamps": total_stamps,
+            "active_stamps": active_stamps,
+            "total_verifications": total_verifications,
+            "total_earnings": total_earnings,
+            "currency": "TZS"
+        },
+        "subscription": subscription,
+        "chart_data": chart_data,
+        "revenue_breakdown": revenue_breakdown,
+        "recent_stamps": recent_stamps,
+        "recent_verifications": recent_verifications[:10]
+    }
+
+# =============== PUBLIC SETTINGS (STAMP PRICES) ===============
+
+@api_router.get("/settings/stamp-prices")
+async def get_stamp_prices():
+    """Get stamp prices (public endpoint for authenticated users)"""
+    settings = await get_system_settings()
+    return {
+        "official": settings.get("official_stamp_price", 5000.0),
+        "commissioner": settings.get("commissioner_stamp_price", 7500.0),
+        "notary": settings.get("notary_stamp_price", 10000.0),
+        "currency": settings.get("currency", "TZS")
+    }
+
+# =============== SUPER ADMIN ROUTES ===============
+
+@api_router.get("/super-admin/settings")
+async def get_system_settings_api(user: dict = Depends(require_super_admin)):
+    """Get current system settings"""
+    return await get_system_settings()
+
+@api_router.put("/super-admin/settings")
+async def update_system_settings(settings: SystemSettings, user: dict = Depends(require_super_admin)):
+    """Update system settings (Super Admin only)"""
+    settings_data = {
+        "type": "verification_fees",
+        "verification_fee_fixed": settings.verification_fee_fixed,
+        "verification_fee_percentage": settings.verification_fee_percentage,
+        "advocate_revenue_share": settings.advocate_revenue_share,
+        "currency": settings.currency,
+        "official_stamp_price": settings.official_stamp_price,
+        "commissioner_stamp_price": settings.commissioner_stamp_price,
+        "notary_stamp_price": settings.notary_stamp_price,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": user["id"]
+    }
+    
+    await db.system_settings.update_one(
+        {"type": "verification_fees"},
+        {"$set": settings_data},
+        upsert=True
+    )
+    
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "system_settings_updated",
+        "user_id": user["id"],
+        "details": settings_data,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Settings updated successfully", "settings": settings_data}
+
+@api_router.get("/super-admin/stats")
+async def get_super_admin_stats(user: dict = Depends(require_super_admin)):
+    """Get comprehensive platform statistics"""
+    total_advocates = await db.advocates.count_documents({"role": "advocate"})
+    total_admins = await db.advocates.count_documents({"role": "admin"})
+    total_document_stamps = await db.document_stamps.count_documents({})
+    total_digital_stamps = await db.digital_stamps.count_documents({})
+    total_verifications = await db.verification_logs.count_documents({})
+    
+    # Revenue stats
+    pipeline = [{"$group": {"_id": None, "total": {"$sum": "$total_fee"}}}]
+    revenue_result = await db.verification_transactions.aggregate(pipeline).to_list(1)
+    total_revenue = revenue_result[0]["total"] if revenue_result else 0
+    
+    advocate_earnings_pipeline = [{"$group": {"_id": None, "total": {"$sum": "$advocate_share"}}}]
+    advocate_earnings_result = await db.verification_transactions.aggregate(advocate_earnings_pipeline).to_list(1)
+    total_advocate_earnings = advocate_earnings_result[0]["total"] if advocate_earnings_result else 0
+    
+    return {
+        "total_advocates": total_advocates,
+        "total_admins": total_admins,
+        "total_document_stamps": total_document_stamps,
+        "total_digital_stamps": total_digital_stamps,
+        "total_stamps": total_document_stamps + total_digital_stamps,
+        "total_verifications": total_verifications,
+        "total_revenue": total_revenue,
+        "total_advocate_earnings": total_advocate_earnings,
+        "platform_revenue": total_revenue - total_advocate_earnings
+    }
+
+@api_router.get("/super-admin/admins")
+async def get_all_admins(user: dict = Depends(require_super_admin)):
+    """Get all admin users"""
+    admins = await db.advocates.find(
+        {"role": {"$in": ["admin", "super_admin"]}},
+        {"_id": 0, "password_hash": 0}
+    ).to_list(100)
+    return admins
+
+@api_router.post("/super-admin/create-admin")
+async def create_admin(
+    email: EmailStr = Form(...),
+    password: str = Form(...),
+    full_name: str = Form(...),
+    organization: str = Form("TLS"),
+    user: dict = Depends(require_super_admin)
+):
+    """Create a new admin user (Super Admin only)"""
+    existing = await db.advocates.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    admin_id = str(uuid.uuid4())
+    
+    admin = {
+        "id": admin_id,
+        "email": email,
+        "password_hash": hash_password(password),
+        "full_name": full_name,
+        "roll_number": f"ADMIN{secrets.token_hex(3).upper()}",
+        "tls_member_number": f"TLS/ADMIN/{datetime.now().year}",
+        "phone": "",
+        "region": "Dar es Salaam",
+        "court_jurisdiction": "N/A",
+        "firm_affiliation": organization,
+        "admission_year": datetime.now().year,
+        "practicing_status": "Active",
+        "profile_photo": None,
+        "role": "admin",
+        "verified": True,
+        "total_earnings": 0.0,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.advocates.insert_one(admin)
+    
+    return {"message": f"Admin {full_name} created successfully", "id": admin_id}
+
+# =============== ADMIN ROUTES ===============
+
+@api_router.get("/admin/stats", response_model=AdminStats)
+async def get_admin_stats(user: dict = Depends(require_admin)):
+    total_advocates = await db.advocates.count_documents({"role": "advocate"})
+    active_advocates = await db.advocates.count_documents({"practicing_status": "Active", "role": "advocate"})
+    suspended_advocates = await db.advocates.count_documents({"practicing_status": "Suspended"})
+    
+    total_doc_stamps = await db.document_stamps.count_documents({})
+    active_doc_stamps = await db.document_stamps.count_documents({"status": "active"})
+    total_digital_stamps = await db.digital_stamps.count_documents({})
+    active_digital_stamps = await db.digital_stamps.count_documents({"status": "active"})
+    
+    total_orders = await db.stamp_orders.count_documents({})
+    pending_orders = await db.stamp_orders.count_documents({"status": "pending_approval"})
+    
+    total_verifications = await db.verification_logs.count_documents({})
+    
+    pipeline = [{"$match": {"payment_status": "paid"}}, {"$group": {"_id": None, "total": {"$sum": "$total_price"}}}]
+    revenue_result = await db.stamp_orders.aggregate(pipeline).to_list(1)
+    total_revenue = revenue_result[0]["total"] if revenue_result else 0
+    
+    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_pipeline = [
+        {"$match": {"payment_status": "paid", "created_at": {"$gte": month_start.isoformat()}}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_price"}}}
+    ]
+    monthly_result = await db.stamp_orders.aggregate(monthly_pipeline).to_list(1)
+    monthly_revenue = monthly_result[0]["total"] if monthly_result else 0
+    
+    fraud_alerts = await db.document_stamps.count_documents({"verification_count": {"$gt": 100}})
+    
+    return AdminStats(
+        total_advocates=total_advocates,
+        active_advocates=active_advocates,
+        suspended_advocates=suspended_advocates,
+        total_stamps_issued=total_doc_stamps + total_digital_stamps,
+        active_stamps=active_doc_stamps + active_digital_stamps,
+        total_orders=total_orders,
+        pending_orders=pending_orders,
+        total_revenue=total_revenue,
+        monthly_revenue=monthly_revenue,
+        total_verifications=total_verifications,
+        fraud_alerts=fraud_alerts
+    )
+
+@api_router.get("/admin/advocates", response_model=List[AdvocateProfile])
+async def get_all_advocates(
+    status: Optional[str] = None,
+    region: Optional[str] = None,
+    user: dict = Depends(require_admin)
+):
+    query = {"role": "advocate"}
+    if status:
+        query["practicing_status"] = status
+    if region:
+        query["region"] = region
+    
+    advocates = await db.advocates.find(query, {"_id": 0, "password_hash": 0}).to_list(1000)
+    return [AdvocateProfile(**a) for a in advocates]
+
+@api_router.put("/admin/advocates/{advocate_id}/status")
+async def update_advocate_status(advocate_id: str, status: str, user: dict = Depends(require_admin)):
+    if status not in ["Active", "Suspended", "Retired"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    result = await db.advocates.update_one(
+        {"id": advocate_id},
+        {"$set": {"practicing_status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Advocate not found")
+    
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "advocate_status_updated",
+        "user_id": user["id"],
+        "target_id": advocate_id,
+        "details": {"new_status": status},
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": f"Advocate status updated to {status}"}
+
+@api_router.put("/admin/orders/{order_id}/status")
+async def update_order_status(order_id: str, status: str, tracking_number: Optional[str] = None, user: dict = Depends(require_admin)):
+    valid_statuses = ["pending_approval", "approved", "in_production", "dispatched", "delivered", "cancelled"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    update_data = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if tracking_number:
+        update_data["tracking_number"] = tracking_number
+    
+    result = await db.stamp_orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {"message": f"Order status updated to {status}"}
+
+@api_router.get("/admin/audit-logs")
+async def get_audit_logs(limit: int = Query(default=100, le=500), user: dict = Depends(require_admin)):
+    logs = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(limit)
+    return logs
+
+@api_router.get("/admin/verification-logs")
+async def get_verification_logs(limit: int = Query(default=100, le=500), user: dict = Depends(require_admin)):
+    logs = await db.verification_logs.find({}, {"_id": 0}).sort("verified_at", -1).to_list(limit)
+    return logs
+
+# =============== ADVOCATE EARNINGS ROUTES ===============
+
+@api_router.get("/earnings/summary")
+async def get_earnings_summary(user: dict = Depends(get_current_user)):
+    """Get earnings summary for advocate"""
+    # Get total earnings from user profile
+    total_earnings = user.get("total_earnings", 0.0)
+    
+    # Get recent transactions
+    transactions = await db.verification_transactions.find(
+        {"advocate_id": user["id"]},
+        {"_id": 0}
+    ).sort("verified_at", -1).to_list(10)
+    
+    # Get monthly earnings
+    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_pipeline = [
+        {"$match": {"advocate_id": user["id"], "verified_at": {"$gte": month_start.isoformat()}}},
+        {"$group": {"_id": None, "total": {"$sum": "$advocate_share"}}}
+    ]
+    monthly_result = await db.verification_transactions.aggregate(monthly_pipeline).to_list(1)
+    monthly_earnings = monthly_result[0]["total"] if monthly_result else 0
+    
+    # Get total verifications
+    total_verifications = await db.verification_transactions.count_documents({"advocate_id": user["id"]})
+    
+    return {
+        "total_earnings": total_earnings,
+        "monthly_earnings": monthly_earnings,
+        "total_verifications": total_verifications,
+        "recent_transactions": transactions,
+        "currency": "TZS"
+    }
+
+# =============== INSTITUTIONAL API ===============
+
+@api_router.post("/institutional/verify-bulk")
+async def bulk_verify(stamp_ids: List[str], api_key: str = Query(...)):
+    """Bulk verification for institutional accounts - no payment required"""
+    # Validate API key
+    institution = await db.institutional_accounts.find_one({"api_key": api_key, "status": "active"}, {"_id": 0})
+    if not institution:
+        raise HTTPException(status_code=401, detail="Invalid institutional API key")
+    
+    results = []
+    for stamp_id in stamp_ids[:50]:
+        result = await verify_stamp(stamp_id)
+        results.append(result.model_dump())
+    
+    # Update institution's verification count
+    await db.institutional_accounts.update_one(
+        {"api_key": api_key},
+        {"$inc": {"verification_count": len(results), "total_verifications": len(results)}}
+    )
+    
+    return {"results": results, "count": len(results)}
+
+# =============== PUBLIC BUSINESS REGISTRATION ===============
+
+class BusinessRegistrationRequest(BaseModel):
+    name: str
+    type: str
+    registration_number: str
+    contact_name: str
+    contact_email: str
+    contact_phone: str
+    address: Optional[str] = ""
+    expected_volume: Optional[str] = ""
+    use_case: Optional[str] = ""
+    password: str
+
+@api_router.post("/institutions/register")
+async def register_business(data: BusinessRegistrationRequest):
+    """Public endpoint for businesses to register for verification access"""
+    # Check if email already exists
+    existing = await db.institutional_applications.find_one({"contact_email": data.contact_email})
+    if existing:
+        raise HTTPException(status_code=400, detail="An application with this email already exists")
+    
+    existing_account = await db.institutional_accounts.find_one({"contact_email": data.contact_email})
+    if existing_account:
+        raise HTTPException(status_code=400, detail="An account with this email already exists")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    application_id = str(uuid.uuid4())
+    
+    # Hash the password
+    hashed_password = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
+    
+    application = {
+        "id": application_id,
+        "name": data.name,
+        "organization_type": data.type,
+        "registration_number": data.registration_number,
+        "contact_name": data.contact_name,
+        "contact_email": data.contact_email,
+        "contact_phone": data.contact_phone,
+        "address": data.address,
+        "expected_volume": data.expected_volume,
+        "use_case": data.use_case,
+        "password_hash": hashed_password,
+        "status": "pending",  # pending, approved, rejected
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.institutional_applications.insert_one(application)
+    
+    # Log the application
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "business_application_submitted",
+        "details": {"application_id": application_id, "name": data.name, "email": data.contact_email},
+        "timestamp": now
+    })
+    
+    return {
+        "message": "Registration submitted successfully",
+        "application_id": application_id,
+        "status": "pending",
+        "note": "Your application will be reviewed within 24-48 hours. You will receive an email with your API credentials once approved."
+    }
+
+@api_router.get("/institutions/application-status/{email}")
+async def check_application_status(email: str):
+    """Check the status of a business registration application"""
+    application = await db.institutional_applications.find_one(
+        {"contact_email": email},
+        {"_id": 0, "password_hash": 0}
+    )
+    if not application:
+        raise HTTPException(status_code=404, detail="No application found with this email")
+    
+    return {
+        "status": application.get("status"),
+        "name": application.get("name"),
+        "submitted_at": application.get("created_at")
+    }
+
+# =============== INSTITUTIONAL ACCOUNTS MANAGEMENT (Super Admin) ===============
+
+@api_router.get("/super-admin/institutions")
+async def get_institutions(user: dict = Depends(require_super_admin)):
+    """Get all institutional accounts"""
+    institutions = await db.institutional_accounts.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return institutions
+
+@api_router.post("/super-admin/institutions")
+async def create_institution(data: InstitutionalAccountCreate, user: dict = Depends(require_super_admin)):
+    """Create a new institutional account"""
+    now = datetime.now(timezone.utc).isoformat()
+    institution_id = str(uuid.uuid4())
+    api_key = f"INST-{secrets.token_hex(16).upper()}"
+    
+    institution = {
+        "id": institution_id,
+        "name": data.name,
+        "organization_type": data.organization_type,
+        "api_key": api_key,
+        "contact_name": data.contact_name,
+        "contact_email": data.contact_email,
+        "contact_phone": data.contact_phone,
+        "billing_address": data.billing_address,
+        "billing_period": data.billing_period,
+        "verification_count": 0,
+        "total_verifications": 0,
+        "last_billed_at": None,
+        "status": "active",
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.institutional_accounts.insert_one(institution)
+    
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "institution_created",
+        "user_id": user["id"],
+        "details": {"institution_id": institution_id, "name": data.name},
+        "timestamp": now
+    })
+    
+    return {"message": "Institutional account created", "institution": {k: v for k, v in institution.items() if k != "_id"}}
+
+@api_router.put("/super-admin/institutions/{institution_id}")
+async def update_institution(institution_id: str, data: InstitutionalAccountCreate, user: dict = Depends(require_super_admin)):
+    """Update an institutional account"""
+    existing = await db.institutional_accounts.find_one({"id": institution_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Institution not found")
+    
+    await db.institutional_accounts.update_one(
+        {"id": institution_id},
+        {"$set": {
+            "name": data.name,
+            "organization_type": data.organization_type,
+            "contact_name": data.contact_name,
+            "contact_email": data.contact_email,
+            "contact_phone": data.contact_phone,
+            "billing_address": data.billing_address,
+            "billing_period": data.billing_period,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Institution updated successfully"}
+
+@api_router.delete("/super-admin/institutions/{institution_id}")
+async def delete_institution(institution_id: str, user: dict = Depends(require_super_admin)):
+    """Deactivate an institutional account"""
+    result = await db.institutional_accounts.update_one(
+        {"id": institution_id},
+        {"$set": {"status": "inactive", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Institution not found")
+    return {"message": "Institution deactivated successfully"}
+
+@api_router.post("/super-admin/institutions/{institution_id}/reset-count")
+async def reset_institution_count(institution_id: str, user: dict = Depends(require_super_admin)):
+    """Reset institution's verification count (for billing)"""
+    result = await db.institutional_accounts.update_one(
+        {"id": institution_id},
+        {"$set": {
+            "verification_count": 0,
+            "last_billed_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Institution not found")
+    return {"message": "Verification count reset successfully"}
+
+# =============== VERIFICATION PRICING TIERS MANAGEMENT ===============
+
+@api_router.get("/verification-tiers")
+async def get_verification_tiers():
+    """Get all active verification pricing tiers (public endpoint)"""
+    # Get public verification fee from settings or use default
+    settings = await db.system_settings.find_one({"type": "verification_pricing"}, {"_id": 0})
+    public_fee = settings.get("public_verification_fee", PUBLIC_VERIFICATION_FEE) if settings else PUBLIC_VERIFICATION_FEE
+    
+    # Try to get tiers from DB, fall back to defaults
+    tiers = await db.verification_tiers.find({"active": True}, {"_id": 0}).sort("credits", 1).to_list(20)
+    if not tiers:
+        tiers = DEFAULT_VERIFICATION_TIERS
+    
+    # Calculate savings percentage based on public fee
+    for tier in tiers:
+        if "savings_percent" not in tier:
+            tier["savings_percent"] = round((1 - tier["price_per_unit"] / public_fee) * 100)
+    
+    return {
+        "public_fee": public_fee,
+        "public_fee_formatted": f"TZS {public_fee:,}",
+        "tiers": tiers,
+        "currency": "TZS",
+        "benefits": [
+            "Credits never expire",
+            "Top up anytime",
+            "Bank & Mobile Money accepted",
+            "Dedicated API access",
+            "Priority support"
+        ]
+    }
+
+@api_router.get("/super-admin/verification-tiers")
+async def get_all_verification_tiers(user: dict = Depends(require_super_admin)):
+    """Get all verification pricing tiers including inactive (Super Admin)"""
+    tiers = await db.verification_tiers.find({}, {"_id": 0}).sort("credits", 1).to_list(50)
+    if not tiers:
+        # Initialize with defaults if none exist
+        for tier in DEFAULT_VERIFICATION_TIERS:
+            tier["active"] = True
+            tier["created_at"] = datetime.now(timezone.utc).isoformat()
+            await db.verification_tiers.insert_one(tier)
+        return DEFAULT_VERIFICATION_TIERS
+    return {"tiers": tiers, "minimum_price": MINIMUM_PRICE_PER_VERIFICATION}
+
+@api_router.post("/super-admin/verification-tiers")
+async def create_verification_tier(data: VerificationTierCreate, user: dict = Depends(require_super_admin)):
+    """Create a new verification pricing tier"""
+    # Enforce minimum price
+    if data.price_per_unit < MINIMUM_PRICE_PER_VERIFICATION:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Price per unit cannot be less than {MINIMUM_PRICE_PER_VERIFICATION} TZS"
+        )
+    
+    tier_id = f"tier_{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    tier = {
+        "id": tier_id,
+        "name": data.name,
+        "credits": data.credits,
+        "price_per_unit": data.price_per_unit,
+        "total_price": data.credits * data.price_per_unit,
+        "description": data.description,
+        "popular": data.popular,
+        "active": True,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.verification_tiers.insert_one(tier)
+    
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "verification_tier_created",
+        "user_id": user["id"],
+        "details": {"tier_id": tier_id, "name": data.name, "credits": data.credits, "price_per_unit": data.price_per_unit},
+        "timestamp": now
+    })
+    
+    return {"message": "Verification tier created", "tier": {k: v for k, v in tier.items() if k != "_id"}}
+
+@api_router.put("/super-admin/verification-tiers/{tier_id}")
+async def update_verification_tier(tier_id: str, data: VerificationTierCreate, user: dict = Depends(require_super_admin)):
+    """Update a verification pricing tier"""
+    if data.price_per_unit < MINIMUM_PRICE_PER_VERIFICATION:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Price per unit cannot be less than {MINIMUM_PRICE_PER_VERIFICATION} TZS"
+        )
+    
+    existing = await db.verification_tiers.find_one({"id": tier_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Tier not found")
+    
+    await db.verification_tiers.update_one(
+        {"id": tier_id},
+        {"$set": {
+            "name": data.name,
+            "credits": data.credits,
+            "price_per_unit": data.price_per_unit,
+            "total_price": data.credits * data.price_per_unit,
+            "description": data.description,
+            "popular": data.popular,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Tier updated successfully"}
+
+@api_router.delete("/super-admin/verification-tiers/{tier_id}")
+async def delete_verification_tier(tier_id: str, user: dict = Depends(require_super_admin)):
+    """Deactivate a verification pricing tier (soft delete)"""
+    result = await db.verification_tiers.update_one(
+        {"id": tier_id},
+        {"$set": {"active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Tier not found")
+    return {"message": "Tier deactivated successfully"}
+
+@api_router.get("/super-admin/verification-pricing-settings")
+async def get_verification_pricing_settings(user: dict = Depends(require_super_admin)):
+    """Get verification pricing settings"""
+    settings = await db.system_settings.find_one({"type": "verification_pricing"}, {"_id": 0})
+    if not settings:
+        settings = {
+            "type": "verification_pricing",
+            "minimum_price_per_verification": MINIMUM_PRICE_PER_VERIFICATION,
+            "currency": "TZS",
+            "payment_methods": ["bank_transfer", "mobile_money"],
+            "credits_never_expire": True
+        }
+    return settings
+
+@api_router.put("/super-admin/verification-pricing-settings")
+async def update_verification_pricing_settings(
+    minimum_price: int = Form(...),
+    user: dict = Depends(require_super_admin)
+):
+    """Update minimum price per verification"""
+    if minimum_price < 1000:
+        raise HTTPException(status_code=400, detail="Minimum price must be at least 1,000 TZS")
+    
+    await db.system_settings.update_one(
+        {"type": "verification_pricing"},
+        {"$set": {
+            "minimum_price_per_verification": minimum_price,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"message": "Pricing settings updated"}
+
+# =============== INSTITUTIONAL CREDIT TOP-UP ===============
+
+@api_router.post("/institutions/top-up")
+async def top_up_credits(data: CreditTopUp, api_key: str = Query(...)):
+    """Top up verification credits for an institutional account"""
+    # Verify institution
+    institution = await db.institutional_accounts.find_one({"api_key": api_key, "status": "active"})
+    if not institution:
+        raise HTTPException(status_code=401, detail="Invalid API key or inactive account")
+    
+    # Get tier
+    tier = await db.verification_tiers.find_one({"id": data.tier_id, "active": True})
+    if not tier:
+        # Check default tiers
+        tier = next((t for t in DEFAULT_VERIFICATION_TIERS if t["id"] == data.tier_id), None)
+        if not tier:
+            raise HTTPException(status_code=404, detail="Pricing tier not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
+    
+    # Create top-up transaction (MOCKED - in production, integrate payment gateway)
+    transaction = {
+        "id": transaction_id,
+        "institution_id": institution["id"],
+        "institution_name": institution["name"],
+        "tier_id": tier["id"],
+        "tier_name": tier["name"],
+        "credits_purchased": tier["credits"],
+        "amount": tier["total_price"],
+        "price_per_unit": tier["price_per_unit"],
+        "currency": "TZS",
+        "payment_method": data.payment_method,
+        "status": "completed",  # MOCKED - would be 'pending' until payment confirmed
+        "created_at": now
+    }
+    
+    await db.credit_transactions.insert_one(transaction)
+    
+    # Add credits to institution (MOCKED - would only happen after payment confirmation)
+    new_balance = institution.get("credit_balance", 0) + tier["credits"]
+    await db.institutional_accounts.update_one(
+        {"id": institution["id"]},
+        {"$set": {
+            "credit_balance": new_balance,
+            "updated_at": now
+        },
+        "$inc": {"total_credits_purchased": tier["credits"]}}
+    )
+    
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "credits_purchased",
+        "details": {
+            "institution_id": institution["id"],
+            "transaction_id": transaction_id,
+            "credits": tier["credits"],
+            "amount": tier["total_price"]
+        },
+        "timestamp": now
+    })
+    
+    return {
+        "message": "Credits added successfully",
+        "transaction_id": transaction_id,
+        "credits_added": tier["credits"],
+        "new_balance": new_balance,
+        "amount_charged": tier["total_price"],
+        "note": "MOCKED - In production, payment would be processed first"
+    }
+
+@api_router.get("/institutions/credit-balance")
+async def get_credit_balance(api_key: str = Query(...)):
+    """Get current credit balance for an institutional account"""
+    institution = await db.institutional_accounts.find_one(
+        {"api_key": api_key, "status": "active"},
+        {"_id": 0, "credit_balance": 1, "name": 1, "total_credits_purchased": 1, "total_verifications": 1}
+    )
+    if not institution:
+        raise HTTPException(status_code=401, detail="Invalid API key or inactive account")
+    
+    return {
+        "institution_name": institution.get("name"),
+        "credit_balance": institution.get("credit_balance", 0),
+        "total_credits_purchased": institution.get("total_credits_purchased", 0),
+        "total_verifications_used": institution.get("total_verifications", 0)
+    }
+
+@api_router.get("/institutions/transactions")
+async def get_credit_transactions(api_key: str = Query(...), limit: int = 20):
+    """Get credit purchase transaction history"""
+    institution = await db.institutional_accounts.find_one({"api_key": api_key, "status": "active"})
+    if not institution:
+        raise HTTPException(status_code=401, detail="Invalid API key or inactive account")
+    
+    transactions = await db.credit_transactions.find(
+        {"institution_id": institution["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"transactions": transactions}
+
+# =============== VERIFICATION PAYMENT WALL (MOCKED) ===============
+
+@api_router.get("/verify/preview/{stamp_id}")
+async def preview_stamp(stamp_id: str, api_key: Optional[str] = None):
+    """
+    Preview verification - returns basic info only.
+    Public users see limited info and need to pay for full details.
+    Institutional accounts (with valid api_key) get full access.
+    """
+    # Check if institutional user
+    is_institutional = False
+    if api_key:
+        institution = await db.institutional_accounts.find_one({"api_key": api_key, "status": "active"})
+        if institution:
+            is_institutional = True
+            # Update verification count
+            await db.institutional_accounts.update_one(
+                {"api_key": api_key},
+                {"$inc": {"verification_count": 1, "total_verifications": 1}}
+            )
+    
+    # Find stamp
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id}, {"_id": 0})
+    if not stamp:
+        stamp = await db.digital_stamps.find_one({"stamp_id": stamp_id}, {"_id": 0})
+    
+    if not stamp:
+        return {
+            "valid": False,
+            "requires_payment": False,
+            "message": "Stamp not found. This may be a fraudulent stamp."
+        }
+    
+    # Check basic validity
+    is_valid = stamp["status"] == "active"
+    warning = None
+    if stamp["status"] == "revoked":
+        warning = "This stamp has been revoked."
+        is_valid = False
+    elif datetime.fromisoformat(stamp["expires_at"]) < datetime.now(timezone.utc):
+        warning = "This stamp has expired."
+        is_valid = False
+    
+    # Basic info (shown to everyone)
+    basic_info = {
+        "stamp_id": stamp["stamp_id"],
+        "stamp_status": stamp["status"],
+        "stamp_type": stamp.get("stamp_type", "official"),
+        "created_at": stamp["created_at"],
+        "is_valid": is_valid,
+        "warning": warning
+    }
+    
+    # If institutional user or stamp is invalid, return full info
+    if is_institutional or not is_valid:
+        advocate = await db.advocates.find_one({"id": stamp["advocate_id"]}, {"_id": 0})
+        return {
+            "valid": is_valid,
+            "requires_payment": False,
+            "basic_info": basic_info,
+            "full_info": {
+                "advocate_name": stamp["advocate_name"],
+                "advocate_roll_number": stamp["advocate_roll_number"],
+                "advocate_tls_number": stamp.get("advocate_tls_number"),
+                "advocate_status": advocate.get("practicing_status") if advocate else "Unknown",
+                "document_name": stamp.get("document_name"),
+                "document_type": stamp.get("document_type"),
+                "recipient_name": stamp.get("recipient_name"),
+                "recipient_org": stamp.get("recipient_org"),
+                "expires_at": stamp["expires_at"],
+                "verification_count": stamp.get("verification_count", 0)
+            },
+            "message": "Verification complete (Institutional access)" if is_institutional else (warning or "Stamp verified")
+        }
+    
+    # Public user - requires payment for full details
+    # Use the PUBLIC_VERIFICATION_FEE (premium price for non-registered users)
+    pricing_settings = await db.system_settings.find_one({"type": "verification_pricing"}, {"_id": 0})
+    verification_fee = pricing_settings.get("public_verification_fee", PUBLIC_VERIFICATION_FEE) if pricing_settings else PUBLIC_VERIFICATION_FEE
+    
+    # Create verification session
+    verification_id = str(uuid.uuid4())
+    await db.verification_sessions.insert_one({
+        "id": verification_id,
+        "stamp_id": stamp_id,
+        "status": "pending",
+        "fee_amount": verification_fee,
+        "currency": "TZS",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+    })
+    
+    return {
+        "valid": True,
+        "requires_payment": True,
+        "verification_id": verification_id,
+        "fee_amount": verification_fee,
+        "fee_formatted": f"TZS {verification_fee:,}",
+        "currency": "TZS",
+        "basic_info": basic_info,
+        "message": "Payment required to view full verification details",
+        "business_cta": {
+            "message": "Verify documents for as low as TZS 15,000 each",
+            "savings": "Save up to 70% with a business account",
+            "link": "/business"
+        }
+    }
+
+@api_router.post("/verify/pay/{verification_id}")
+async def pay_for_verification(verification_id: str):
+    """
+    MOCKED: Process payment for verification.
+    In production, this would integrate with a payment gateway.
+    """
+    session = await db.verification_sessions.find_one({"id": verification_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Verification session not found")
+    
+    if session["status"] == "paid":
+        raise HTTPException(status_code=400, detail="Already paid")
+    
+    if datetime.fromisoformat(session["expires_at"]) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Verification session expired")
+    
+    # MOCK: Mark as paid immediately
+    await db.verification_sessions.update_one(
+        {"id": verification_id},
+        {"$set": {
+            "status": "paid",
+            "paid_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Get full stamp info
+    stamp = await db.document_stamps.find_one({"stamp_id": session["stamp_id"]}, {"_id": 0})
+    if not stamp:
+        stamp = await db.digital_stamps.find_one({"stamp_id": session["stamp_id"]}, {"_id": 0})
+    
+    advocate = await db.advocates.find_one({"id": stamp["advocate_id"]}, {"_id": 0})
+    
+    # Record revenue
+    revenue = await calculate_verification_revenue(DIGITAL_STAMP_PRICES.get(stamp.get("stamp_type", "official"), 5000))
+    
+    # Update stamp and advocate earnings
+    collection = "document_stamps" if await db.document_stamps.find_one({"stamp_id": session["stamp_id"]}) else "digital_stamps"
+    await db[collection].update_one(
+        {"stamp_id": session["stamp_id"]},
+        {"$inc": {"verification_count": 1, "total_earnings": revenue["advocate_share"]}}
+    )
+    
+    if advocate:
+        await db.advocates.update_one(
+            {"id": advocate["id"]},
+            {"$inc": {"total_earnings": revenue["advocate_share"]}}
+        )
+    
+    # Record transaction
+    await db.verification_transactions.insert_one({
+        "id": str(uuid.uuid4()),
+        "stamp_id": session["stamp_id"],
+        "advocate_id": stamp["advocate_id"],
+        "verification_id": verification_id,
+        "total_fee": revenue["total_fee"],
+        "advocate_share": revenue["advocate_share"],
+        "platform_share": revenue["platform_share"],
+        "verified_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "status": "paid",
+        "message": "Payment successful (MOCKED)",
+        "full_info": {
+            "stamp_id": stamp["stamp_id"],
+            "advocate_name": stamp["advocate_name"],
+            "advocate_roll_number": stamp["advocate_roll_number"],
+            "advocate_tls_number": stamp.get("advocate_tls_number"),
+            "advocate_status": advocate.get("practicing_status") if advocate else "Unknown",
+            "advocate_photo": advocate.get("profile_photo") if advocate else None,
+            "stamp_status": stamp["status"],
+            "stamp_type": stamp.get("stamp_type"),
+            "document_name": stamp.get("document_name"),
+            "document_type": stamp.get("document_type"),
+            "description": stamp.get("description"),
+            "recipient_name": stamp.get("recipient_name"),
+            "recipient_org": stamp.get("recipient_org"),
+            "document_hash": stamp.get("document_hash"),
+            "created_at": stamp["created_at"],
+            "expires_at": stamp["expires_at"],
+            "verification_count": stamp.get("verification_count", 0)
+        }
+    }
+
+# =============== INSTITUTIONAL PORTAL (Self-Service) ===============
+
+INSTITUTIONAL_PACKAGES = {
+    "starter": {"name": "Starter", "verifications": 100, "price": 3000000},  # 100 x 30,000
+    "business": {"name": "Business", "verifications": 500, "price": 15000000},  # 500 x 30,000
+    "enterprise": {"name": "Enterprise", "verifications": 2000, "price": 60000000},  # 2000 x 30,000
+    "unlimited": {"name": "Unlimited", "verifications": -1, "price": 100000000, "duration_days": 365}  # Annual unlimited
+}
+
+@api_router.post("/institutional/register")
+async def register_institution(
+    name: str = Form(...),
+    organization_type: str = Form(...),
+    contact_name: str = Form(...),
+    contact_email: str = Form(...),
+    contact_phone: str = Form(...),
+    billing_address: str = Form(...),
+    password: str = Form(...)
+):
+    """Register a new institutional account (self-service)"""
+    # Check if email already exists
+    existing = await db.institutional_accounts.find_one({"contact_email": contact_email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    institution_id = str(uuid.uuid4())
+    api_key = f"INST-{secrets.token_hex(16).upper()}"
+    
+    institution = {
+        "id": institution_id,
+        "name": name,
+        "organization_type": organization_type,
+        "api_key": api_key,
+        "contact_name": contact_name,
+        "contact_email": contact_email,
+        "contact_phone": contact_phone,
+        "billing_address": billing_address,
+        "password_hash": hash_password(password),
+        "billing_period": "monthly",
+        "package": None,
+        "verification_limit": 0,
+        "verification_count": 0,
+        "total_verifications": 0,
+        "subscription_ends_at": None,
+        "last_billed_at": None,
+        "status": "pending",  # Needs to subscribe to activate
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.institutional_accounts.insert_one(institution)
+    
+    return {
+        "message": "Registration successful! Please subscribe to activate your account.",
+        "institution_id": institution_id
+    }
+
+@api_router.post("/institutional/login")
+async def institutional_login(email: str = Form(...), password: str = Form(...)):
+    """Login for institutional accounts"""
+    institution = await db.institutional_accounts.find_one({"contact_email": email})
+    if not institution:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not institution.get("password_hash") or not verify_password(password, institution["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Create token
+    token_data = {"sub": institution["id"], "type": "institutional"}
+    token = create_access_token(token_data)
+    
+    return {
+        "token": token,
+        "institution": {
+            "id": institution["id"],
+            "name": institution["name"],
+            "organization_type": institution["organization_type"],
+            "status": institution["status"],
+            "package": institution.get("package"),
+            "api_key": institution["api_key"]
+        }
+    }
+
+async def get_current_institution(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current institutional user from token"""
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "institutional":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        institution_id = payload.get("sub")
+        institution = await db.institutional_accounts.find_one({"id": institution_id}, {"_id": 0, "password_hash": 0})
+        if not institution:
+            raise HTTPException(status_code=401, detail="Institution not found")
+        return institution
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@api_router.get("/institutional/packages")
+async def get_institutional_packages():
+    """Get available institutional subscription packages"""
+    return {
+        "packages": INSTITUTIONAL_PACKAGES,
+        "currency": "TZS"
+    }
+
+@api_router.get("/institutional/dashboard")
+async def institutional_dashboard(institution: dict = Depends(get_current_institution)):
+    """Get institutional account dashboard data"""
+    now = datetime.now(timezone.utc)
+    
+    # Get verification stats
+    thirty_days_ago = (now - timedelta(days=30)).isoformat()
+    
+    # Get verification history
+    verifications = await db.verification_logs.find(
+        {"institution_id": institution["id"]},
+        {"_id": 0}
+    ).sort("verified_at", -1).to_list(100)
+    
+    # Calculate usage
+    current_usage = institution.get("verification_count", 0)
+    limit = institution.get("verification_limit", 0)
+    usage_percentage = (current_usage / limit * 100) if limit > 0 else 0
+    
+    # Check subscription status
+    sub_status = "inactive"
+    days_remaining = 0
+    if institution.get("subscription_ends_at"):
+        sub_ends = datetime.fromisoformat(institution["subscription_ends_at"])
+        if sub_ends > now:
+            sub_status = "active"
+            days_remaining = (sub_ends - now).days
+        else:
+            sub_status = "expired"
+    
+    return {
+        "institution": {
+            "name": institution["name"],
+            "organization_type": institution["organization_type"],
+            "api_key": institution["api_key"],
+            "status": institution["status"],
+            "package": institution.get("package"),
+            "subscription_status": sub_status,
+            "days_remaining": days_remaining
+        },
+        "usage": {
+            "current": current_usage,
+            "limit": limit if limit > 0 else "Unlimited",
+            "percentage": round(usage_percentage, 1),
+            "total_all_time": institution.get("total_verifications", 0)
+        },
+        "recent_verifications": verifications[:20]
+    }
+
+@api_router.post("/institutional/subscribe")
+async def institutional_subscribe(
+    package: str = Form(...),
+    institution: dict = Depends(get_current_institution)
+):
+    """Subscribe to an institutional package (MOCKED payment)"""
+    if package not in INSTITUTIONAL_PACKAGES:
+        raise HTTPException(status_code=400, detail="Invalid package")
+    
+    pkg = INSTITUTIONAL_PACKAGES[package]
+    now = datetime.now(timezone.utc)
+    ends_at = now + timedelta(days=pkg["duration_days"])
+    
+    await db.institutional_accounts.update_one(
+        {"id": institution["id"]},
+        {"$set": {
+            "package": package,
+            "verification_limit": pkg["verification_limit"],
+            "verification_count": 0,  # Reset count on new subscription
+            "subscription_ends_at": ends_at.isoformat(),
+            "status": "active",
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    return {
+        "message": f"Subscribed to {pkg['name']} package! (MOCKED PAYMENT)",
+        "package": package,
+        "verification_limit": pkg["verification_limit"] if pkg["verification_limit"] > 0 else "Unlimited",
+        "subscription_ends_at": ends_at.isoformat()
+    }
+
+@api_router.get("/institutional/api-docs")
+async def institutional_api_docs(institution: dict = Depends(get_current_institution)):
+    """Get API documentation for institutional integration"""
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "https://api.tls-verify.tz")
+    
+    return {
+        "api_key": institution["api_key"],
+        "base_url": base_url,
+        "endpoints": [
+            {
+                "method": "POST",
+                "path": "/api/institutional/verify-bulk",
+                "description": "Verify multiple stamps in one request",
+                "params": {
+                    "api_key": "Your API key (query parameter)",
+                    "stamp_ids": "Array of stamp IDs to verify (body)"
+                },
+                "example": f'curl -X POST "{base_url}/api/institutional/verify-bulk?api_key={institution["api_key"]}" -H "Content-Type: application/json" -d \'{{"stamp_ids": ["TLS-ABC123", "TLS-DEF456"]}}\''
+            },
+            {
+                "method": "GET",
+                "path": "/api/verify/preview/{stamp_id}",
+                "description": "Verify a single stamp with full details",
+                "params": {
+                    "api_key": "Your API key (query parameter)"
+                },
+                "example": f'curl "{base_url}/api/verify/preview/TLS-ABC123?api_key={institution["api_key"]}"'
+            }
+        ]
+    }
+
+# =============== INSTITUTIONAL WEBHOOKS ===============
+
+class WebhookConfig(BaseModel):
+    url: str
+    events: List[str] = ["verification.success", "verification.failed"]
+    enabled: bool = True
+
+WEBHOOK_EVENTS = {
+    "verification.success": "Document verification successful",
+    "verification.failed": "Document verification failed",
+    "api.usage_warning": "API usage reached 80% of limit",
+    "api.usage_limit": "API usage limit reached",
+    "subscription.expiring": "Subscription expiring soon",
+    "subscription.expired": "Subscription has expired"
+}
+
+@api_router.get("/institutional/webhooks")
+async def get_webhooks(institution: dict = Depends(get_current_institution)):
+    """Get webhook configuration for institution"""
+    webhook = await db.institutional_webhooks.find_one(
+        {"institution_id": institution["id"]},
+        {"_id": 0}
+    )
+    
+    return {
+        "webhook": webhook,
+        "available_events": WEBHOOK_EVENTS,
+        "signing_secret": webhook.get("signing_secret") if webhook else None
+    }
+
+@api_router.post("/institutional/webhooks")
+async def create_or_update_webhook(
+    config: WebhookConfig,
+    institution: dict = Depends(get_current_institution)
+):
+    """Create or update webhook configuration"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Check if webhook exists
+    existing = await db.institutional_webhooks.find_one({"institution_id": institution["id"]})
+    
+    if existing:
+        # Update existing webhook
+        await db.institutional_webhooks.update_one(
+            {"institution_id": institution["id"]},
+            {"$set": {
+                "url": config.url,
+                "events": config.events,
+                "enabled": config.enabled,
+                "updated_at": now
+            }}
+        )
+        return {"message": "Webhook updated successfully", "webhook_id": existing["id"]}
+    else:
+        # Create new webhook
+        webhook_id = str(uuid.uuid4())
+        signing_secret = f"whsec_{secrets.token_hex(24)}"
+        
+        webhook = {
+            "id": webhook_id,
+            "institution_id": institution["id"],
+            "url": config.url,
+            "events": config.events,
+            "enabled": config.enabled,
+            "signing_secret": signing_secret,
+            "created_at": now,
+            "updated_at": now,
+            "last_triggered": None,
+            "success_count": 0,
+            "failure_count": 0
+        }
+        
+        await db.institutional_webhooks.insert_one(webhook)
+        return {
+            "message": "Webhook created successfully",
+            "webhook_id": webhook_id,
+            "signing_secret": signing_secret
+        }
+
+@api_router.delete("/institutional/webhooks")
+async def delete_webhook(institution: dict = Depends(get_current_institution)):
+    """Delete webhook configuration"""
+    result = await db.institutional_webhooks.delete_one({"institution_id": institution["id"]})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="No webhook found")
+    
+    return {"message": "Webhook deleted successfully"}
+
+@api_router.post("/institutional/webhooks/test")
+async def test_webhook(institution: dict = Depends(get_current_institution)):
+    """Send a test webhook to configured URL"""
+    webhook = await db.institutional_webhooks.find_one({"institution_id": institution["id"]})
+    
+    if not webhook:
+        raise HTTPException(status_code=404, detail="No webhook configured")
+    
+    if not webhook.get("enabled"):
+        raise HTTPException(status_code=400, detail="Webhook is disabled")
+    
+    # Send test webhook
+    import httpx
+    
+    payload = {
+        "event": "test",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": {
+            "message": "This is a test webhook from TLS Verify",
+            "institution_name": institution["name"]
+        }
+    }
+    
+    # Create signature
+    import hmac
+    import hashlib
+    signature = hmac.new(
+        webhook["signing_secret"].encode(),
+        json.dumps(payload).encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    headers = {
+        "Content-Type": "application/json",
+        "X-TLS-Signature": signature,
+        "X-TLS-Webhook-ID": webhook["id"]
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(webhook["url"], json=payload, headers=headers)
+            
+            # Log the test
+            await db.webhook_logs.insert_one({
+                "id": str(uuid.uuid4()),
+                "webhook_id": webhook["id"],
+                "institution_id": institution["id"],
+                "event": "test",
+                "payload": payload,
+                "response_status": response.status_code,
+                "response_body": response.text[:500],
+                "success": response.status_code < 400,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+            if response.status_code < 400:
+                return {"message": "Test webhook sent successfully", "status_code": response.status_code}
+            else:
+                return {"message": "Webhook returned error", "status_code": response.status_code, "response": response.text[:200]}
+    except Exception as e:
+        return {"message": f"Failed to send webhook: {str(e)}", "error": True}
+
+@api_router.get("/institutional/webhooks/logs")
+async def get_webhook_logs(
+    limit: int = Query(20, le=100),
+    institution: dict = Depends(get_current_institution)
+):
+    """Get recent webhook delivery logs"""
+    logs = await db.webhook_logs.find(
+        {"institution_id": institution["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    
+    return {"logs": logs}
+
+@api_router.post("/institutional/webhooks/regenerate-secret")
+async def regenerate_webhook_secret(institution: dict = Depends(get_current_institution)):
+    """Regenerate webhook signing secret"""
+    new_secret = f"whsec_{secrets.token_hex(24)}"
+    
+    result = await db.institutional_webhooks.update_one(
+        {"institution_id": institution["id"]},
+        {"$set": {
+            "signing_secret": new_secret,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="No webhook found")
+    
+    return {"message": "Signing secret regenerated", "signing_secret": new_secret}
+
+# Helper function to send webhooks
+async def send_webhook_notification(institution_id: str, event: str, data: dict):
+    """Send webhook notification to institution"""
+    webhook = await db.institutional_webhooks.find_one({
+        "institution_id": institution_id,
+        "enabled": True,
+        "events": event
+    })
+    
+    if not webhook:
+        return
+    
+    import httpx
+    
+    payload = {
+        "event": event,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": data
+    }
+    
+    # Create signature
+    import hmac
+    import hashlib
+    signature = hmac.new(
+        webhook["signing_secret"].encode(),
+        json.dumps(payload).encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    headers = {
+        "Content-Type": "application/json",
+        "X-TLS-Signature": signature,
+        "X-TLS-Webhook-ID": webhook["id"]
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(webhook["url"], json=payload, headers=headers)
+            success = response.status_code < 400
+            
+            # Log the webhook
+            await db.webhook_logs.insert_one({
+                "id": str(uuid.uuid4()),
+                "webhook_id": webhook["id"],
+                "institution_id": institution_id,
+                "event": event,
+                "payload": payload,
+                "response_status": response.status_code,
+                "success": success,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+            # Update webhook stats
+            if success:
+                await db.institutional_webhooks.update_one(
+                    {"id": webhook["id"]},
+                    {"$inc": {"success_count": 1}, "$set": {"last_triggered": datetime.now(timezone.utc).isoformat()}}
+                )
+            else:
+                await db.institutional_webhooks.update_one(
+                    {"id": webhook["id"]},
+                    {"$inc": {"failure_count": 1}, "$set": {"last_triggered": datetime.now(timezone.utc).isoformat()}}
+                )
+    except Exception as e:
+        logger.error(f"Webhook failed for {institution_id}: {e}")
+        await db.webhook_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "webhook_id": webhook["id"],
+            "institution_id": institution_id,
+            "event": event,
+            "payload": payload,
+            "error": str(e),
+            "success": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+
+# =============== INSTITUTIONAL BILLING ===============
+
+@api_router.get("/institutional/billing")
+async def get_billing_info(institution: dict = Depends(get_current_institution)):
+    """Get billing information for institution"""
+    # Get payment history
+    payments = await db.institutional_payments.find(
+        {"institution_id": institution["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    
+    # Get current subscription info
+    now = datetime.now(timezone.utc)
+    sub_status = "inactive"
+    days_remaining = 0
+    next_billing = None
+    
+    if institution.get("subscription_ends_at"):
+        sub_ends = datetime.fromisoformat(institution["subscription_ends_at"])
+        if sub_ends > now:
+            sub_status = "active"
+            days_remaining = (sub_ends - now).days
+            next_billing = sub_ends.isoformat()
+        else:
+            sub_status = "expired"
+    
+    current_package = institution.get("package")
+    package_info = INSTITUTIONAL_PACKAGES.get(current_package, {})
+    
+    return {
+        "subscription": {
+            "status": sub_status,
+            "package": current_package,
+            "package_name": package_info.get("name", "None"),
+            "price": package_info.get("price", 0),
+            "verification_limit": institution.get("verification_limit", 0),
+            "verification_used": institution.get("verification_count", 0),
+            "days_remaining": days_remaining,
+            "next_billing": next_billing,
+            "started_at": institution.get("subscription_started_at"),
+            "auto_renew": institution.get("auto_renew", False)
+        },
+        "billing_info": {
+            "organization_name": institution["name"],
+            "billing_address": institution.get("billing_address", ""),
+            "billing_email": institution.get("contact_email", ""),
+            "tax_id": institution.get("tax_id", "")
+        },
+        "payment_history": payments,
+        "available_packages": INSTITUTIONAL_PACKAGES
+    }
+
+@api_router.put("/institutional/billing/info")
+async def update_billing_info(
+    billing_address: str = Form(None),
+    billing_email: str = Form(None),
+    tax_id: str = Form(None),
+    institution: dict = Depends(get_current_institution)
+):
+    """Update billing information"""
+    updates = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if billing_address is not None:
+        updates["billing_address"] = billing_address
+    if billing_email is not None:
+        updates["billing_email"] = billing_email
+    if tax_id is not None:
+        updates["tax_id"] = tax_id
+    
+    await db.institutional_accounts.update_one(
+        {"id": institution["id"]},
+        {"$set": updates}
+    )
+    
+    return {"message": "Billing information updated"}
+
+@api_router.post("/institutional/billing/subscribe")
+async def subscribe_to_package(
+    package: str = Form(...),
+    auto_renew: bool = Form(False),
+    institution: dict = Depends(get_current_institution)
+):
+    """Subscribe to a package (MOCKED payment - would integrate with Stripe/PayPal in production)"""
+    if package not in INSTITUTIONAL_PACKAGES:
+        raise HTTPException(status_code=400, detail="Invalid package")
+    
+    pkg = INSTITUTIONAL_PACKAGES[package]
+    now = datetime.now(timezone.utc)
+    ends_at = now + timedelta(days=pkg["duration_days"])
+    
+    # Create payment record (MOCKED)
+    payment_id = str(uuid.uuid4())
+    payment = {
+        "id": payment_id,
+        "institution_id": institution["id"],
+        "package": package,
+        "amount": pkg["price"],
+        "currency": "TZS",
+        "status": "completed",  # MOCKED - would be pending until payment confirmed
+        "payment_method": "mocked",
+        "created_at": now.isoformat()
+    }
+    await db.institutional_payments.insert_one(payment)
+    
+    # Update subscription
+    await db.institutional_accounts.update_one(
+        {"id": institution["id"]},
+        {"$set": {
+            "package": package,
+            "verification_limit": pkg["verification_limit"],
+            "verification_count": 0,
+            "subscription_ends_at": ends_at.isoformat(),
+            "subscription_started_at": now.isoformat(),
+            "auto_renew": auto_renew,
+            "status": "active",
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # Generate invoice
+    invoice = {
+        "id": f"INV-{now.strftime('%Y%m%d')}-{payment_id[:8].upper()}",
+        "payment_id": payment_id,
+        "institution_id": institution["id"],
+        "institution_name": institution["name"],
+        "package": package,
+        "package_name": pkg["name"],
+        "amount": pkg["price"],
+        "currency": "TZS",
+        "period_start": now.isoformat(),
+        "period_end": ends_at.isoformat(),
+        "status": "paid",
+        "created_at": now.isoformat()
+    }
+    await db.institutional_invoices.insert_one(invoice)
+    
+    return {
+        "message": f"Successfully subscribed to {pkg['name']}! (MOCKED PAYMENT)",
+        "payment_id": payment_id,
+        "invoice_id": invoice["id"],
+        "subscription": {
+            "package": package,
+            "ends_at": ends_at.isoformat(),
+            "verification_limit": pkg["verification_limit"]
+        }
+    }
+
+@api_router.get("/institutional/billing/invoices")
+async def get_invoices(institution: dict = Depends(get_current_institution)):
+    """Get all invoices for institution"""
+    invoices = await db.institutional_invoices.find(
+        {"institution_id": institution["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return {"invoices": invoices}
+
+@api_router.get("/institutional/billing/invoices/{invoice_id}")
+async def get_invoice(invoice_id: str, institution: dict = Depends(get_current_institution)):
+    """Get a specific invoice"""
+    invoice = await db.institutional_invoices.find_one(
+        {"id": invoice_id, "institution_id": institution["id"]},
+        {"_id": 0}
+    )
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    return invoice
+
+@api_router.post("/institutional/billing/cancel")
+async def cancel_subscription(institution: dict = Depends(get_current_institution)):
+    """Cancel subscription (will not renew)"""
+    await db.institutional_accounts.update_one(
+        {"id": institution["id"]},
+        {"$set": {
+            "auto_renew": False,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Subscription will not auto-renew. You can continue using the service until the current period ends."}
+
+# =============== HEALTH CHECK ===============
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+# =============== PUSH NOTIFICATIONS ===============
+
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: dict
+
+class PushSubscriptionRequest(BaseModel):
+    subscription: PushSubscription
+    user_id: Optional[str] = None
+
+@api_router.post("/push/subscribe")
+async def subscribe_to_push(
+    request: PushSubscriptionRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Subscribe to push notifications"""
+    try:
+        subscription_data = {
+            "user_id": user["id"],
+            "endpoint": request.subscription.endpoint,
+            "keys": request.subscription.keys,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "active": True
+        }
+        
+        # Upsert subscription (update if endpoint exists, insert if new)
+        await db.push_subscriptions.update_one(
+            {"endpoint": request.subscription.endpoint},
+            {"$set": subscription_data},
+            upsert=True
+        )
+        
+        return {"success": True, "message": "Subscribed to push notifications"}
+    except Exception as e:
+        logger.error(f"Push subscription error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to subscribe")
+
+@api_router.delete("/push/unsubscribe")
+async def unsubscribe_from_push(
+    endpoint: str,
+    user: dict = Depends(get_current_user)
+):
+    """Unsubscribe from push notifications"""
+    try:
+        result = await db.push_subscriptions.delete_one({
+            "endpoint": endpoint,
+            "user_id": user["id"]
+        })
+        
+        if result.deleted_count > 0:
+            return {"success": True, "message": "Unsubscribed from push notifications"}
+        return {"success": False, "message": "Subscription not found"}
+    except Exception as e:
+        logger.error(f"Push unsubscribe error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to unsubscribe")
+
+@api_router.get("/push/status")
+async def get_push_status(user: dict = Depends(get_current_user)):
+    """Get push notification status for current user"""
+    subscription = await db.push_subscriptions.find_one(
+        {"user_id": user["id"], "active": True},
+        {"_id": 0, "endpoint": 1, "created_at": 1}
+    )
+    return {
+        "subscribed": subscription is not None,
+        "subscription": subscription
+    }
+
+# =============== NOTIFICATION PREFERENCES ===============
+
+@api_router.get("/notifications/preferences")
+async def get_notification_preferences(user: dict = Depends(get_current_user)):
+    """Get user's notification preferences"""
+    # Check advocates collection (primary) then users collection (admin/super_admin)
+    user_data = await db.advocates.find_one(
+        {"id": user["id"]},
+        {"notification_preferences": 1}
+    )
+    if not user_data:
+        user_data = await db.users.find_one(
+            {"id": user["id"]},
+            {"notification_preferences": 1}
+        )
+    user_prefs = user_data.get("notification_preferences", {}) if user_data else {}
+    
+    # Merge with defaults to ensure all preferences are included
+    preferences = {**DEFAULT_NOTIFICATION_PREFERENCES, **user_prefs}
+    
+    # Group preferences by category for easier frontend display
+    grouped = {
+        "document_stamping": {
+            "label": "Document Stamping",
+            "description": "Notifications about your stamped documents",
+            "preferences": {
+                "stamp_created": {"label": "Document stamped", "value": preferences["stamp_created"]},
+                "stamp_downloaded": {"label": "Document downloaded", "value": preferences["stamp_downloaded"]}
+            }
+        },
+        "verification": {
+            "label": "Verification",
+            "description": "When your documents are verified",
+            "preferences": {
+                "stamp_verified": {"label": "Document verified by others", "value": preferences["stamp_verified"]},
+                "verification_failed": {"label": "Failed verification attempts", "value": preferences["verification_failed"]}
+            }
+        },
+        "expiry_warnings": {
+            "label": "Expiry Warnings",
+            "description": "Reminders before your stamps expire",
+            "preferences": {
+                "stamp_expiring_30days": {"label": "30 days before expiry", "value": preferences["stamp_expiring_30days"]},
+                "stamp_expiring_7days": {"label": "7 days before expiry", "value": preferences["stamp_expiring_7days"]},
+                "stamp_expiring_1day": {"label": "1 day before expiry", "value": preferences["stamp_expiring_1day"]},
+                "stamp_expired": {"label": "When stamp expires", "value": preferences["stamp_expired"]}
+            }
+        },
+        "account_security": {
+            "label": "Account & Security",
+            "description": "Account activity and security alerts",
+            "preferences": {
+                "login_new_device": {"label": "Login from new device", "value": preferences["login_new_device"]},
+                "password_changed": {"label": "Password changed", "value": preferences["password_changed"]},
+                "profile_updated": {"label": "Profile updated", "value": preferences["profile_updated"]}
+            }
+        },
+        "billing": {
+            "label": "Subscription & Billing",
+            "description": "Payment and subscription updates",
+            "preferences": {
+                "subscription_expiring": {"label": "Subscription expiring", "value": preferences["subscription_expiring"]},
+                "payment_received": {"label": "Payment received", "value": preferences["payment_received"]},
+                "payment_failed": {"label": "Payment failed", "value": preferences["payment_failed"]}
+            }
+        },
+        "system": {
+            "label": "System",
+            "description": "System updates and announcements",
+            "preferences": {
+                "system_maintenance": {"label": "Scheduled maintenance", "value": preferences["system_maintenance"]},
+                "new_features": {"label": "New features", "value": preferences["new_features"]},
+                "security_alerts": {"label": "Security alerts", "value": preferences["security_alerts"]}
+            }
+        },
+        "offline_sync": {
+            "label": "Offline Sync",
+            "description": "Sync status for offline documents",
+            "preferences": {
+                "sync_completed": {"label": "Sync completed", "value": preferences["sync_completed"]},
+                "sync_failed": {"label": "Sync failed", "value": preferences["sync_failed"]}
+            }
+        }
+    }
+    
+    return {
+        "preferences": preferences,
+        "grouped": grouped
+    }
+
+@api_router.put("/notifications/preferences")
+async def update_notification_preferences(
+    updates: NotificationPreferencesUpdate,
+    user: dict = Depends(get_current_user)
+):
+    """Update user's notification preferences"""
+    # Check which collection the user is in
+    user_data = await db.advocates.find_one(
+        {"id": user["id"]},
+        {"notification_preferences": 1}
+    )
+    collection = db.advocates
+    if not user_data:
+        user_data = await db.users.find_one(
+            {"id": user["id"]},
+            {"notification_preferences": 1}
+        )
+        collection = db.users
+    
+    current_prefs = user_data.get("notification_preferences", {}) if user_data else {}
+    
+    # Apply updates (only non-None values)
+    updates_dict = updates.dict(exclude_none=True)
+    new_prefs = {**current_prefs, **updates_dict}
+    
+    # Save to correct database collection
+    await collection.update_one(
+        {"id": user["id"]},
+        {"$set": {"notification_preferences": new_prefs}}
+    )
+    
+    # Merge with defaults for response
+    full_prefs = {**DEFAULT_NOTIFICATION_PREFERENCES, **new_prefs}
+    
+    return {
+        "success": True,
+        "message": "Notification preferences updated",
+        "preferences": full_prefs
+    }
+
+@api_router.post("/notifications/preferences/reset")
+async def reset_notification_preferences(user: dict = Depends(get_current_user)):
+    """Reset notification preferences to defaults (all ON)"""
+    # Check which collection the user is in
+    user_data = await db.advocates.find_one({"id": user["id"]})
+    collection = db.advocates if user_data else db.users
+    
+    await collection.update_one(
+        {"id": user["id"]},
+        {"$set": {"notification_preferences": {}}}
+    )
+    
+    return {
+        "success": True,
+        "message": "Notification preferences reset to defaults",
+        "preferences": DEFAULT_NOTIFICATION_PREFERENCES
+    }
+
+@api_router.post("/notifications/preferences/toggle-all")
+async def toggle_all_notifications(
+    enabled: bool = Form(...),
+    user: dict = Depends(get_current_user)
+):
+    """Enable or disable all notifications at once"""
+    # Create preferences dict with all set to enabled value
+    all_prefs = {key: enabled for key in DEFAULT_NOTIFICATION_PREFERENCES.keys()}
+    
+    # Check which collection the user is in
+    user_data = await db.advocates.find_one({"id": user["id"]})
+    collection = db.advocates if user_data else db.users
+    
+    await collection.update_one(
+        {"id": user["id"]},
+        {"$set": {"notification_preferences": all_prefs}}
+    )
+    
+    return {
+        "success": True,
+        "message": f"All notifications {'enabled' if enabled else 'disabled'}",
+        "preferences": all_prefs
+    }
+
+# Helper function to send push notification
+async def send_push_notification(subscription_info: dict, title: str, body: str, data: dict = None, url: str = None):
+    """Send a push notification to a single subscription"""
+    if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
+        logger.warning("VAPID keys not configured, skipping push notification")
+        return False
+    
+    try:
+        payload = {
+            "title": title,
+            "body": body,
+            "icon": "/icons/icon-192x192.png",
+            "badge": "/icons/icon-96x96.png",
+            "tag": f"tls-{uuid.uuid4().hex[:8]}",
+            "data": data or {},
+            "requireInteraction": False
+        }
+        if url:
+            payload["data"]["url"] = url
+        
+        webpush(
+            subscription_info=subscription_info,
+            data=json.dumps(payload),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims=VAPID_CLAIMS
+        )
+        return True
+    except WebPushException as e:
+        logger.error(f"Push notification failed: {e}")
+        # If subscription is invalid, mark it inactive
+        if e.response and e.response.status_code in [404, 410]:
+            await db.push_subscriptions.update_one(
+                {"endpoint": subscription_info.get("endpoint")},
+                {"$set": {"active": False}}
+            )
+        return False
+    except Exception as e:
+        logger.error(f"Push notification error: {e}")
+        return False
+
+@api_router.post("/push/send-test")
+async def send_test_notification(user: dict = Depends(get_current_user)):
+    """Send a test push notification to current user's devices"""
+    subscriptions = await db.push_subscriptions.find(
+        {"user_id": user["id"], "active": True}
+    ).to_list(10)
+    
+    if not subscriptions:
+        return {
+            "success": False,
+            "message": "No active subscriptions found. Please enable notifications first."
+        }
+    
+    sent_count = 0
+    for sub in subscriptions:
+        subscription_info = {
+            "endpoint": sub["endpoint"],
+            "keys": sub["keys"]
+        }
+        success = await send_push_notification(
+            subscription_info,
+            title="TLS Verification",
+            body="Test notification - Push notifications are working!",
+            data={"type": "test"},
+            url="/dashboard"
+        )
+        if success:
+            sent_count += 1
+    
+    return {
+        "success": sent_count > 0,
+        "message": f"Sent to {sent_count}/{len(subscriptions)} device(s)",
+        "devices_reached": sent_count
+    }
+
+# Admin endpoint to send notifications to users
+@api_router.post("/admin/push/send")
+async def admin_send_notification(
+    title: str = Form(...),
+    body: str = Form(...),
+    user_ids: str = Form(None),  # Comma-separated user IDs, or "all" for everyone
+    url: str = Form(None),
+    user: dict = Depends(get_current_user)
+):
+    """Send push notification to users (admin only)"""
+    if user.get("role") not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Build query
+    query = {"active": True}
+    if user_ids and user_ids != "all":
+        ids = [id.strip() for id in user_ids.split(",")]
+        query["user_id"] = {"$in": ids}
+    
+    subscriptions = await db.push_subscriptions.find(query).to_list(1000)
+    
+    # Send notifications
+    sent_count = 0
+    failed_count = 0
+    
+    for sub in subscriptions:
+        subscription_info = {
+            "endpoint": sub["endpoint"],
+            "keys": sub["keys"]
+        }
+        success = await send_push_notification(
+            subscription_info,
+            title=title,
+            body=body,
+            url=url
+        )
+        if success:
+            sent_count += 1
+        else:
+            failed_count += 1
+    
+    # Store notification record
+    notification = {
+        "id": str(uuid.uuid4()),
+        "title": title,
+        "body": body,
+        "url": url,
+        "sent_by": user["id"],
+        "target_count": len(subscriptions),
+        "sent_count": sent_count,
+        "failed_count": failed_count,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "sent"
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        "success": sent_count > 0,
+        "notification_id": notification["id"],
+        "target_count": len(subscriptions),
+        "sent_count": sent_count,
+        "failed_count": failed_count,
+        "message": f"Sent to {sent_count}/{len(subscriptions)} device(s)"
+    }
+
+# Notify user about stamp events
+async def notify_stamp_event(user_id: str, event_type: str, stamp_id: str = None, document_name: str = None, extra_data: dict = None):
+    """Send push notification for various events, respecting user preferences"""
+    
+    # Get user's notification preferences (check advocates first, then users)
+    user = await db.advocates.find_one({"id": user_id}, {"notification_preferences": 1})
+    if not user:
+        user = await db.users.find_one({"id": user_id}, {"notification_preferences": 1})
+    user_prefs = user.get("notification_preferences", {}) if user else {}
+    
+    # Merge with defaults (defaults are all ON)
+    prefs = {**DEFAULT_NOTIFICATION_PREFERENCES, **user_prefs}
+    
+    # Check if user has this notification type enabled
+    if not prefs.get(event_type, True):
+        logger.info(f"Notification {event_type} disabled for user {user_id}")
+        return
+    
+    # All notification templates
+    notifications = {
+        # Document stamping events
+        "stamp_created": {
+            "title": "Document Stamped ✓",
+            "body": f"Your document '{document_name or stamp_id}' has been successfully stamped.",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/stamp-document"
+        },
+        "stamp_downloaded": {
+            "title": "Document Downloaded",
+            "body": f"Stamped document '{document_name}' was downloaded.",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/stamp-document"
+        },
+        
+        # Verification events
+        "stamp_verified": {
+            "title": "Document Verified",
+            "body": f"Someone verified your document '{document_name or stamp_id}'.",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/stamp-verification"
+        },
+        "verification_failed": {
+            "title": "Verification Attempt Failed",
+            "body": f"A verification attempt for stamp {stamp_id} failed.",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/stamp-verification"
+        },
+        
+        # Expiry warnings
+        "stamp_expiring_30days": {
+            "title": "Stamp Expiring in 30 Days",
+            "body": f"Your stamp for '{document_name or stamp_id}' will expire in 30 days.",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/my-stamps"
+        },
+        "stamp_expiring_7days": {
+            "title": "Stamp Expiring Soon",
+            "body": f"Your stamp for '{document_name or stamp_id}' will expire in 7 days.",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/my-stamps"
+        },
+        "stamp_expiring_1day": {
+            "title": "⚠️ Stamp Expires Tomorrow",
+            "body": f"Your stamp for '{document_name or stamp_id}' expires tomorrow!",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/my-stamps"
+        },
+        "stamp_expired": {
+            "title": "Stamp Expired",
+            "body": f"Your stamp for '{document_name or stamp_id}' has expired.",
+            "url": f"/verify/{stamp_id}" if stamp_id else "/my-stamps"
+        },
+        
+        # Account & security
+        "login_new_device": {
+            "title": "New Device Login",
+            "body": f"Your account was accessed from a new device. If this wasn't you, secure your account.",
+            "url": "/profile"
+        },
+        "password_changed": {
+            "title": "Password Changed",
+            "body": "Your password was successfully changed.",
+            "url": "/profile"
+        },
+        "profile_updated": {
+            "title": "Profile Updated",
+            "body": "Your profile information has been updated.",
+            "url": "/profile"
+        },
+        
+        # Subscription & billing
+        "subscription_expiring": {
+            "title": "Subscription Expiring",
+            "body": f"Your subscription expires in {extra_data.get('days', 7) if extra_data else 7} days.",
+            "url": "/profile"
+        },
+        "payment_received": {
+            "title": "Payment Received ✓",
+            "body": f"Payment of {extra_data.get('amount', '')} received successfully.",
+            "url": "/order-history"
+        },
+        "payment_failed": {
+            "title": "Payment Failed",
+            "body": "Your recent payment could not be processed. Please update your payment method.",
+            "url": "/order-history"
+        },
+        
+        # System notifications
+        "system_maintenance": {
+            "title": "Scheduled Maintenance",
+            "body": f"System maintenance scheduled for {extra_data.get('time', 'soon') if extra_data else 'soon'}.",
+            "url": "/"
+        },
+        "new_features": {
+            "title": "New Features Available",
+            "body": extra_data.get('message', 'Check out the new features in TLS Verify!') if extra_data else 'Check out the new features!',
+            "url": "/"
+        },
+        "security_alerts": {
+            "title": "Security Alert",
+            "body": extra_data.get('message', 'Please review your account security.') if extra_data else 'Security alert.',
+            "url": "/profile"
+        },
+        
+        # Offline sync
+        "sync_completed": {
+            "title": "Sync Complete",
+            "body": f"{extra_data.get('count', 'Your') if extra_data else 'Your'} queued documents have been synced.",
+            "url": "/stamp-document"
+        },
+        "sync_failed": {
+            "title": "Sync Failed",
+            "body": "Some documents failed to sync. Please try again.",
+            "url": "/stamp-document"
+        }
+    }
+    
+    notif = notifications.get(event_type)
+    if not notif:
+        logger.warning(f"Unknown notification type: {event_type}")
+        return
+    
+    subscriptions = await db.push_subscriptions.find(
+        {"user_id": user_id, "active": True}
+    ).to_list(10)
+    
+    sent_count = 0
+    for sub in subscriptions:
+        subscription_info = {
+            "endpoint": sub["endpoint"],
+            "keys": sub["keys"]
+        }
+        success = await send_push_notification(
+            subscription_info,
+            title=notif["title"],
+            body=notif["body"],
+            data={"type": event_type, "stamp_id": stamp_id, **(extra_data or {})},
+            url=notif["url"]
+        )
+        if success:
+            sent_count += 1
+    
+    logger.info(f"Notification {event_type} sent to {sent_count} devices for user {user_id}")
+    return sent_count
+
+# Helper to get user notification preferences
+async def get_user_notification_preferences(user_id: str) -> dict:
+    """Get user's notification preferences merged with defaults"""
+    # Check advocates first, then users
+    user = await db.advocates.find_one({"id": user_id}, {"notification_preferences": 1})
+    if not user:
+        user = await db.users.find_one({"id": user_id}, {"notification_preferences": 1})
+    user_prefs = user.get("notification_preferences", {}) if user else {}
+    return {**DEFAULT_NOTIFICATION_PREFERENCES, **user_prefs}
+
+# Include router
+app.include_router(api_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+async def startup_db_client():
+    # Create indexes
+    await db.advocates.create_index("email", unique=True)
+    await db.advocates.create_index("roll_number", unique=True)
+    await db.digital_stamps.create_index("stamp_id", unique=True)
+    await db.document_stamps.create_index("stamp_id", unique=True)
+    await db.document_stamps.create_index("document_hash")
+    await db.stamp_orders.create_index("advocate_id")
+    await db.verification_transactions.create_index("advocate_id")
+    
+    # Create default super admin if not exists
+    super_admin = await db.advocates.find_one({"role": "super_admin"})
+    if not super_admin:
+        admin_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        await db.advocates.insert_one({
+            "id": admin_id,
+            "email": "superadmin@idc.co.tz",
+            "password_hash": hash_password("IDC@SuperAdmin2024"),
+            "full_name": "IDC Super Administrator",
+            "roll_number": "SUPERADMIN001",
+            "tls_member_number": "IDC/SUPER/2024",
+            "phone": "+255700000001",
+            "region": "Dar es Salaam",
+            "court_jurisdiction": "N/A",
+            "firm_affiliation": "IDC - System Vendor",
+            "admission_year": 2024,
+            "practicing_status": "Active",
+            "profile_photo": None,
+            "role": "super_admin",
+            "verified": True,
+            "total_earnings": 0.0,
+            "created_at": now,
+            "updated_at": now
+        })
+        logger.info("Default super admin created: superadmin@idc.co.tz / IDC@SuperAdmin2024")
+    
+    # Create default TLS admin if not exists
+    admin = await db.advocates.find_one({"email": "admin@tls.or.tz"})
+    if not admin:
+        admin_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        await db.advocates.insert_one({
+            "id": admin_id,
+            "email": "admin@tls.or.tz",
+            "password_hash": hash_password("TLS@Admin2024"),
+            "full_name": "TLS Administrator",
+            "roll_number": "ADMIN001",
+            "tls_member_number": "TLS/ADMIN/2024",
+            "phone": "+255700000000",
+            "region": "Dar es Salaam",
+            "court_jurisdiction": "N/A",
+            "firm_affiliation": "Tanganyika Law Society",
+            "admission_year": 2024,
+            "practicing_status": "Active",
+            "profile_photo": None,
+            "role": "admin",
+            "verified": True,
+            "total_earnings": 0.0,
+            "created_at": now,
+            "updated_at": now
+        })
+        logger.info("Default TLS admin created: admin@tls.or.tz / TLS@Admin2024")
+    
+    # Initialize default system settings
+    settings = await db.system_settings.find_one({"type": "verification_fees"})
+    if not settings:
+        await db.system_settings.insert_one({
+            "type": "verification_fees",
+            "verification_fee_fixed": 500.0,
+            "verification_fee_percentage": 0.0,
+            "advocate_revenue_share": 30.0,
+            "currency": "TZS",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        logger.info("Default system settings initialized")
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    client.close()
