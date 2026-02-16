@@ -1302,7 +1302,7 @@ DIGITAL_STAMP_PRICES = {
 
 # =============== AUTH ROUTES ===============
 
-@api_router.post("/auth/register", response_model=Token)
+@api_router.post("/auth/register")
 @limiter.limit("5/minute")
 async def register(request: Request, data: AdvocateRegister):
     existing = await db.advocates.find_one({"email": data.email})
@@ -1321,6 +1321,10 @@ async def register(request: Request, data: AdvocateRegister):
     now = datetime.now(timezone.utc).isoformat()
     advocate_id = str(uuid.uuid4())
     
+    # Generate email verification token
+    verification_token = secrets.token_urlsafe(32)
+    verification_expires = (datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_EXPIRE_HOURS)).isoformat()
+    
     advocate = {
         "id": advocate_id,
         "email": data.email,
@@ -1337,6 +1341,9 @@ async def register(request: Request, data: AdvocateRegister):
         "profile_photo": None,
         "role": "advocate",
         "verified": False,
+        "email_verified": False,  # New field for email verification
+        "verification_token": verification_token,
+        "verification_token_expires": verification_expires,
         "total_earnings": 0.0,
         "created_at": now,
         "updated_at": now
@@ -1352,18 +1359,24 @@ async def register(request: Request, data: AdvocateRegister):
         "timestamp": now
     })
     
-    # Send welcome email
+    # Send email verification email
+    verification_url = f"{FRONTEND_URL}/verify-email?token={verification_token}"
     try:
         await send_email(
             to_email=data.email,
-            subject="Welcome to TLS Verification",
-            html_content=generate_welcome_email(data.full_name, f"{FRONTEND_URL}/login")
+            subject="Verify Your Email - TLS Verification",
+            html_content=generate_email_verification_email(verification_url, data.full_name)
         )
+        logger.info(f"Verification email sent to {data.email}")
     except Exception as e:
-        logger.warning(f"Failed to send welcome email: {e}")
+        logger.warning(f"Failed to send verification email: {e}")
     
-    token = create_access_token({"sub": advocate_id, "role": "advocate"})
-    return Token(access_token=token)
+    # Return success message instead of token (user must verify email first)
+    return {
+        "message": "Registration successful! Please check your email to verify your account.",
+        "email": data.email,
+        "requires_verification": True
+    }
 
 @api_router.post("/auth/login")
 @limiter.limit("5/minute")
