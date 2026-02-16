@@ -3727,8 +3727,8 @@ async def register_business(data: BusinessRegistrationRequest):
     now = datetime.now(timezone.utc).isoformat()
     application_id = str(uuid.uuid4())
     
-    # Hash the password
-    hashed_password = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
+    # Hash the password using passlib (consistent with rest of codebase)
+    hashed_password = hash_password(data.password)
     
     application = {
         "id": application_id,
