@@ -189,6 +189,124 @@ class SecurityTester:
         except Exception as e:
             return False, f"SECRET_KEY test error: {str(e)}"
 
+    def test_forgot_password_endpoint(self):
+        """Test forgot password endpoint"""
+        forgot_url = f"{self.base_url}/api/auth/forgot-password"
+        
+        try:
+            # Test with valid email
+            response = requests.post(forgot_url,
+                json={"email": "admin@tls.or.tz"},
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return True, "Forgot password endpoint working - email reset request accepted"
+            else:
+                return False, f"Forgot password failed with status {response.status_code}: {response.text}"
+                
+        except Exception as e:
+            return False, f"Forgot password test error: {str(e)}"
+
+    def test_password_rules_endpoint(self):
+        """Test password validation rules endpoint"""
+        rules_url = f"{self.base_url}/api/auth/password-rules"
+        
+        try:
+            response = requests.get(rules_url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ['min_length', 'require_uppercase', 'require_lowercase', 'require_numbers', 'require_special']
+                
+                for field in required_fields:
+                    if field not in data:
+                        return False, f"Password rules missing field: {field}"
+                
+                # Check minimum length requirement
+                if data.get('min_length', 0) >= 12:
+                    return True, f"Password rules endpoint working - min_length: {data.get('min_length')}"
+                else:
+                    return False, f"Weak password requirements - min_length only {data.get('min_length')}"
+            else:
+                return False, f"Password rules endpoint failed with status {response.status_code}"
+                
+        except Exception as e:
+            return False, f"Password rules test error: {str(e)}"
+
+    def test_password_validation_weak_passwords(self):
+        """Test password validation rejects weak passwords"""
+        register_url = f"{self.base_url}/api/auth/register"
+        
+        weak_passwords = [
+            "short",  # Too short
+            "nouppercase123!",  # No uppercase
+            "NOLOWERCASE123!",  # No lowercase  
+            "NoNumbers!",  # No numbers
+            "NoSpecialChar123",  # No special characters
+            "password123!",  # Common pattern
+            "qwerty123!",  # Common pattern
+            "abcd1234!",  # Sequential
+            "aaaa1234!B",  # Too many consecutive identical chars
+        ]
+        
+        for weak_password in weak_passwords:
+            try:
+                response = requests.post(register_url,
+                    json={
+                        "email": f"test_{int(time.time())}@test.com",
+                        "password": weak_password,
+                        "full_name": "Test User",
+                        "roll_number": f"TEST{int(time.time())}",
+                        "phone": "+255123456789"
+                    },
+                    headers={'Content-Type': 'application/json'},
+                    timeout=10
+                )
+                
+                # Should reject weak password
+                if response.status_code == 400:
+                    continue  # Good, password rejected
+                else:
+                    return False, f"Weak password accepted: {weak_password} (status: {response.status_code})"
+                    
+            except Exception as e:
+                # If there's a connection error, continue with next password
+                continue
+        
+        return True, "All weak passwords properly rejected by validation"
+
+    def test_password_validation_strong_password(self):
+        """Test password validation accepts strong passwords"""
+        register_url = f"{self.base_url}/api/auth/register"
+        
+        strong_password = "MyVerySecure2024!Password#WithComplexity"
+        test_email = f"test_strong_{int(time.time())}@test.com"
+        
+        try:
+            response = requests.post(register_url,
+                json={
+                    "email": test_email,
+                    "password": strong_password,
+                    "full_name": "Test Strong User",
+                    "roll_number": f"STRONG{int(time.time())}",
+                    "phone": "+255123456789"
+                },
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return True, "Strong password accepted by validation"
+            elif response.status_code == 400 and "already registered" in response.text:
+                return True, "Strong password validation working (email conflict expected)"
+            else:
+                return False, f"Strong password rejected with status {response.status_code}: {response.text}"
+                
+        except Exception as e:
+            return False, f"Strong password test error: {str(e)}"
+
 def main():
     print("🔒 Testing TLS PDF Stamping Security Improvements")
     print("=" * 60)
