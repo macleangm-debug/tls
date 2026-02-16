@@ -33,6 +33,13 @@ import "./App.css";
 
 const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
   const { user, loading } = useAuth();
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  
+  useEffect(() => {
+    if (user?.force_password_reset) {
+      setShowPasswordReset(true);
+    }
+  }, [user]);
   
   if (loading) {
     return (
