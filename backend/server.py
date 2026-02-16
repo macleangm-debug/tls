@@ -77,6 +77,9 @@ security = HTTPBearer()
 app = FastAPI(title="TLS Advocate Management System")
 api_router = APIRouter(prefix="/api")
 
+# Attach limiter to app state
+app.state.limiter = limiter
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
