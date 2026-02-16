@@ -42,17 +42,26 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, { email, password });
-    const { access_token } = response.data;
+    const { access_token, user: userData } = response.data;
     localStorage.setItem("tls_token", access_token);
     setToken(access_token);
+    setUser(userData);
     
-    // Fetch user data immediately after login
-    const userResponse = await axios.get(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${access_token}` }
-    });
-    setUser(userResponse.data);
-    
-    return userResponse.data;
+    // Return user data including force_password_reset flag
+    return userData;
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    const response = await axios.post(
+      `${API}/auth/change-password`,
+      { current_password: currentPassword, new_password: newPassword },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    // Update user to remove force_password_reset flag
+    if (user) {
+      setUser({ ...user, force_password_reset: false });
+    }
+    return response.data;
   };
 
   const register = async (data) => {
