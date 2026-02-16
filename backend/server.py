@@ -5681,10 +5681,11 @@ async def startup_db_client():
             "role": "super_admin",
             "verified": True,
             "total_earnings": 0.0,
+            "force_password_reset": True,  # Force password change on first login
             "created_at": now,
             "updated_at": now
         })
-        logger.info("Default super admin created: superadmin@idc.co.tz")
+        logger.info("Default super admin created: superadmin@idc.co.tz (password reset required)")
     
     # Create default TLS admin if not exists
     admin = await db.advocates.find_one({"email": "admin@tls.or.tz"})
@@ -5708,10 +5709,11 @@ async def startup_db_client():
             "role": "admin",
             "verified": True,
             "total_earnings": 0.0,
+            "force_password_reset": True,  # Force password change on first login
             "created_at": now,
             "updated_at": now
         })
-        logger.info("Default TLS admin created: admin@tls.or.tz")
+        logger.info("Default TLS admin created: admin@tls.or.tz (password reset required)")
     
     # Initialize default system settings
     settings = await db.system_settings.find_one({"type": "verification_fees"})
