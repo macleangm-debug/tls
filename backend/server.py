@@ -3734,7 +3734,8 @@ class BusinessRegistrationRequest(BaseModel):
     password: str
 
 @api_router.post("/institutions/register")
-async def register_business(data: BusinessRegistrationRequest):
+@limiter.limit("3/minute")
+async def register_business(request: Request, data: BusinessRegistrationRequest):
     """Public endpoint for businesses to register for verification access"""
     # Check if email already exists
     existing = await db.institutional_applications.find_one({"contact_email": data.contact_email})
