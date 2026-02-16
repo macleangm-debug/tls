@@ -128,6 +128,26 @@ const LoginPage = () => {
                 </Link>
               </div>
               
+              {showVerificationMessage && (
+                <div className="mt-4 p-4 bg-amber-500/10 rounded-xl border border-amber-500/30" data-testid="verification-warning">
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-200">
+                        Your email is not verified yet. Please check your inbox for the verification link.
+                      </p>
+                      <Link 
+                        to="/verify-email" 
+                        className="text-sm text-amber-400 hover:text-amber-300 font-medium mt-2 inline-block"
+                        data-testid="resend-verification-link"
+                      >
+                        Resend verification email
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="mt-4 text-center">
                 <p className="text-sm text-white/50">
                   Don't have an account?{" "}
