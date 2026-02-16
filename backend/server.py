@@ -1401,13 +1401,20 @@ async def login(request: Request, data: AdvocateLogin):
     if user.get("practicing_status") == "Suspended":
         raise HTTPException(status_code=403, detail="Account suspended. Contact TLS administration.")
     
+    # Check if email is verified (only for advocates, not admins)
+    if user.get("role") == "advocate" and not user.get("email_verified", False):
+        raise HTTPException(
+            status_code=403, 
+            detail="Please verify your email before logging in. Check your inbox for the verification link."
+        )
+    
     # Check if password reset is required (for default accounts)
     force_password_reset = user.get("force_password_reset", False)
     
     token = create_access_token({"sub": user["id"], "role": user.get("role", "advocate")})
     
     # Return user info with token
-    user_data = {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}
+    user_data = {k: v for k, v in user.items() if k not in ["_id", "password_hash", "verification_token", "verification_token_expires"]}
     user_data["force_password_reset"] = force_password_reset
     return {"access_token": token, "token_type": "bearer", "user": user_data}
 
