@@ -63,6 +63,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 PASSWORD_RESET_EXPIRE_MINUTES = 30  # Password reset token expires in 30 minutes
+EMAIL_VERIFICATION_EXPIRE_HOURS = 24  # Email verification link expires in 24 hours
 
 # Rate limiting configuration
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
