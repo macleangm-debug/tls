@@ -1523,9 +1523,14 @@ async def resend_verification(request: Request, data: ResendVerificationRequest)
             html_content=generate_email_verification_email(verification_url, user["full_name"])
         )
         logger.info(f"Verification email resent to {data.email}")
+    except HTTPException as e:
+        # If email service is in test mode, still return success to user
+        # The token is updated anyway, they can verify manually if needed
+        logger.warning(f"Email service error (resend verification): {e.detail}")
+        return {"message": "Verification email requested. If you don't receive it, please contact support."}
     except Exception as e:
         logger.error(f"Failed to resend verification email: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send verification email. Please try again.")
+        return {"message": "Verification email requested. If you don't receive it, please contact support."}
     
     return {"message": "Verification email sent. Please check your inbox."}
 
