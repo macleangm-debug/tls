@@ -308,7 +308,7 @@ class SecurityTester:
             return False, f"Strong password test error: {str(e)}"
 
 def main():
-    print("🔒 Testing TLS PDF Stamping Security Improvements")
+    print("🔒 Testing TLS Password Reset & Security Features")
     print("=" * 60)
     
     tester = SecurityTester()
@@ -321,6 +321,10 @@ def main():
         ("Default Admin Force Password Reset", tester.test_login_with_default_admin),
         ("Password Change Endpoint", tester.test_password_change_endpoint),
         ("SECRET_KEY Configuration", tester.test_secret_key_requirement),
+        ("Forgot Password Endpoint", tester.test_forgot_password_endpoint),
+        ("Password Rules Endpoint", tester.test_password_rules_endpoint),
+        ("Weak Password Validation", tester.test_password_validation_weak_passwords),
+        ("Strong Password Validation", tester.test_password_validation_strong_password),
     ]
     
     for test_name, test_func in tests:
