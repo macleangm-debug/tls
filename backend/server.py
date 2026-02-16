@@ -5555,12 +5555,50 @@ async def get_user_notification_preferences(user_id: str) -> dict:
 # Include router
 app.include_router(api_router)
 
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        # Prevent clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+        # XSS Protection
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        # Referrer Policy
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Content Security Policy (adjust as needed for your frontend)
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
+        # Permissions Policy
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        return response
+
+# Rate limit exceeded handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Please slow down.", "retry_after": str(exc.detail)}
+    )
+
+# Add middlewares in correct order
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(SlowAPIMiddleware)
+
+# Get allowed origins from environment or use restrictive default
+cors_origins = os.environ.get('CORS_ORIGINS', '')
+if cors_origins == '*' or not cors_origins:
+    # In development, allow all but log warning
+    allowed_origins = ["*"]
+    logging.warning("CORS_ORIGINS not properly configured. Using '*' (not recommended for production)")
+else:
+    allowed_origins = [origin.strip() for origin in cors_origins.split(',') if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"],
 )
 
 @app.on_event("startup")
