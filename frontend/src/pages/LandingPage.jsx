@@ -141,8 +141,6 @@ const LandingPage = () => {
           
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-6">
-            <a href="#about" className="text-white/70 hover:text-white transition-colors text-sm font-medium">About</a>
-            <a href="#services" className="text-white/70 hover:text-white transition-colors text-sm font-medium">Services</a>
             <a href="#news" className="text-white/70 hover:text-white transition-colors text-sm font-medium">News</a>
             <a href="#events" className="text-white/70 hover:text-white transition-colors text-sm font-medium">Events</a>
             <Link to="/directory" className="text-white/70 hover:text-white transition-colors text-sm font-medium">Find Advocate</Link>
