@@ -11,6 +11,8 @@ import PasswordResetModal from "./components/PasswordResetModal";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdvocateDashboard from "./pages/AdvocateDashboard";
 import ProfilePage from "./pages/ProfilePage";
 import StampOrderPage from "./pages/StampOrderPage";
