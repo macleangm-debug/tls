@@ -1216,7 +1216,8 @@ DIGITAL_STAMP_PRICES = {
 # =============== AUTH ROUTES ===============
 
 @api_router.post("/auth/register", response_model=Token)
-async def register(data: AdvocateRegister):
+@limiter.limit("5/minute")
+async def register(request: Request, data: AdvocateRegister):
     existing = await db.advocates.find_one({"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
