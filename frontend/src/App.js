@@ -61,7 +61,17 @@ const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false })
     return <Navigate to="/dashboard" replace />;
   }
   
-  return children;
+  return (
+    <>
+      {showPasswordReset && (
+        <PasswordResetModal 
+          isOpen={showPasswordReset} 
+          onClose={() => setShowPasswordReset(false)} 
+        />
+      )}
+      {children}
+    </>
+  );
 };
 
 function App() {
