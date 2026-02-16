@@ -7,7 +7,7 @@ import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, EyeOff, Scale, UserPlus } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, UserPlus, Mail, CheckCircle } from "lucide-react";
 
 const REGIONS = [
   "Dar es Salaam", "Arusha", "Dodoma", "Mwanza", "Mbeya",
@@ -25,6 +25,8 @@ const RegisterPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const { register } = useAuth();
   const navigate = useNavigate();
 
