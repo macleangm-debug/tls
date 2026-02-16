@@ -4356,7 +4356,9 @@ INSTITUTIONAL_PACKAGES = {
 }
 
 @api_router.post("/institutional/register")
+@limiter.limit("3/minute")
 async def register_institution(
+    request: Request,
     name: str = Form(...),
     organization_type: str = Form(...),
     contact_name: str = Form(...),
