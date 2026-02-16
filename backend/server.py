@@ -4405,7 +4405,8 @@ async def register_institution(
     }
 
 @api_router.post("/institutional/login")
-async def institutional_login(email: str = Form(...), password: str = Form(...)):
+@limiter.limit("5/minute")
+async def institutional_login(request: Request, email: str = Form(...), password: str = Form(...)):
     """Login for institutional accounts"""
     institution = await db.institutional_accounts.find_one({"contact_email": email})
     if not institution:
