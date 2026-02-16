@@ -1264,7 +1264,8 @@ async def register(request: Request, data: AdvocateRegister):
     return Token(access_token=token)
 
 @api_router.post("/auth/login")
-async def login(data: AdvocateLogin):
+@limiter.limit("5/minute")
+async def login(request: Request, data: AdvocateLogin):
     # Check advocates collection first
     user = await db.advocates.find_one({"email": data.email})
     
@@ -1273,21 +1274,26 @@ async def login(data: AdvocateLogin):
         user = await db.users.find_one({"email": data.email})
     
     if not user:
-        logger.error(f"User not found: {data.email}")
+        logger.error(f"Login attempt for non-existent user: {data.email}")
+        # Use same error message to prevent user enumeration
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     if not verify_password(data.password, user.get("password_hash", "")):
-        logger.error(f"Password mismatch for: {data.email}")
+        logger.warning(f"Failed login attempt for: {data.email}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Check if advocate is suspended
     if user.get("practicing_status") == "Suspended":
         raise HTTPException(status_code=403, detail="Account suspended. Contact TLS administration.")
     
+    # Check if password reset is required (for default accounts)
+    force_password_reset = user.get("force_password_reset", False)
+    
     token = create_access_token({"sub": user["id"], "role": user.get("role", "advocate")})
     
     # Return user info with token
     user_data = {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}
+    user_data["force_password_reset"] = force_password_reset
     return {"access_token": token, "token_type": "bearer", "user": user_data}
 
 @api_router.get("/auth/me")
