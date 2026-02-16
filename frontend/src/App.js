@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { initPWA } from "./lib/pwa";
@@ -7,6 +7,7 @@ import { initDB } from "./lib/offlineDB";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 import OfflineIndicator from "./components/OfflineIndicator";
 import BottomNavBar from "./components/BottomNavBar";
+import PasswordResetModal from "./components/PasswordResetModal";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
