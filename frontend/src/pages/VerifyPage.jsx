@@ -21,7 +21,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const VerifyPage = () => {
   const { stampId: routeStampId } = useParams();
   const [searchParams] = useSearchParams();
-  const queryStampId = searchParams.get('id');
+  const queryStampId = searchParams.get('id') || searchParams.get('q');
+  const mode = searchParams.get('mode'); // scan, upload, or id
   const stampId = routeStampId || queryStampId;
   
   const fileInputRef = useRef(null);
@@ -38,6 +39,27 @@ const VerifyPage = () => {
   const [scannerReady, setScannerReady] = useState(false);
   const [scanningInterval, setScanningInterval] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [autoStartCamera, setAutoStartCamera] = useState(false);
+
+  // Handle mode from URL query parameter
+  useEffect(() => {
+    if (mode === 'scan') {
+      setActiveTab('camera');
+      setAutoStartCamera(true);
+    } else if (mode === 'upload') {
+      setActiveTab('upload');
+    } else if (mode === 'id') {
+      setActiveTab('id');
+    }
+  }, [mode]);
+
+  // Auto-start camera when scan mode is selected
+  useEffect(() => {
+    if (autoStartCamera && activeTab === 'camera' && !cameraActive && !searched) {
+      startCamera();
+      setAutoStartCamera(false);
+    }
+  }, [autoStartCamera, activeTab, cameraActive, searched]);
 
   useEffect(() => {
     if (stampId) {
