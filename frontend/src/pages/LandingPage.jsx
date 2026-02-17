@@ -233,7 +233,7 @@ const LandingPage = () => {
               {/* Verify Stamp Card */}
               <Card className="glass-card rounded-3xl overflow-hidden" data-testid="verification-card">
                 <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-5">
                     <div className="w-10 h-10 rounded-xl bg-tls-blue-electric/20 flex items-center justify-center">
                       <ShieldCheck className="w-5 h-5 text-tls-blue-electric" />
                     </div>
@@ -243,10 +243,39 @@ const LandingPage = () => {
                     </div>
                   </div>
                   
+                  {/* Three verification methods */}
+                  <div className="grid grid-cols-3 gap-3 mb-5">
+                    <Link to="/verify?mode=scan" className="group">
+                      <div className="flex flex-col items-center p-4 rounded-xl bg-white/5 border border-white/10 hover:border-tls-blue-electric/40 hover:bg-tls-blue-electric/5 transition-all">
+                        <div className="w-10 h-10 rounded-lg bg-tls-blue-electric/20 flex items-center justify-center mb-2 group-hover:shadow-glow-sm transition-all">
+                          <QrCode className="w-5 h-5 text-tls-blue-electric" />
+                        </div>
+                        <span className="text-xs font-medium text-white/80 group-hover:text-white">Scan QR</span>
+                      </div>
+                    </Link>
+                    <Link to="/verify?mode=upload" className="group">
+                      <div className="flex flex-col items-center p-4 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-2 group-hover:shadow-glow-sm transition-all">
+                          <FileCheck className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <span className="text-xs font-medium text-white/80 group-hover:text-white">Upload</span>
+                      </div>
+                    </Link>
+                    <Link to="/verify?mode=id" className="group">
+                      <div className="flex flex-col items-center p-4 rounded-xl bg-white/5 border border-white/10 hover:border-tls-gold/40 hover:bg-tls-gold/5 transition-all">
+                        <div className="w-10 h-10 rounded-lg bg-tls-gold/20 flex items-center justify-center mb-2 group-hover:shadow-glow-gold transition-all">
+                          <Fingerprint className="w-5 h-5 text-tls-gold" />
+                        </div>
+                        <span className="text-xs font-medium text-white/80 group-hover:text-white">Stamp ID</span>
+                      </div>
+                    </Link>
+                  </div>
+                  
+                  {/* Quick search input */}
                   <form onSubmit={handleVerify} className="flex gap-2">
                     <Input
                       type="text"
-                      placeholder="Enter Stamp ID"
+                      placeholder="Enter Stamp ID (e.g., TLS-20260216-ABC123)"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40 rounded-xl font-mono text-sm focus:border-tls-blue-electric"
