@@ -442,11 +442,22 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 
 ## Backlog
 
+### Completed (2026-02-19)
+- [x] Document Template Generation (10 legal templates with PDF generation)
+- [x] Practice Management Suite (Clients, Cases, Documents, Calendar, Tasks, Invoices)
+- [x] KwikPay Payment Integration (MOCKED)
+- [x] Email Verification for new registrations
+- [x] Login Attempt Logging
+
 ### In Progress
+- [ ] Flesh out Practice Management with full CRUD
+- [ ] Connect Document Generator to Document Vault
+
+### Future Features
+- [ ] JWT to HttpOnly Cookies migration
+- [ ] CSRF Protection implementation
 - [ ] Batch document stamping
 - [ ] Full offline verification
 - [ ] Quick stamp mode
-
-### Future Features
 - [ ] Stamp template sharing
 - [ ] Email digest preferences
