@@ -1881,6 +1881,10 @@ const PracticeManagementPage = () => {
           <CasesTab token={token} />
         </TabsContent>
 
+        <TabsContent value="doc-generator">
+          <DocumentGeneratorTab token={token} />
+        </TabsContent>
+
         <TabsContent value="documents">
           <DocumentsTab token={token} />
         </TabsContent>
