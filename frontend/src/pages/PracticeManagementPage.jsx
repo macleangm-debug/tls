@@ -15,7 +15,8 @@ import {
   TrendingUp, FolderOpen, Mail, FileArchive, PieChart,
   Target, Scale, Gavel, Building, UserCheck, Download,
   Copy, Eye, Edit, Trash2, Send, CreditCard, Phone,
-  FileSignature, ChevronRight, ArrowUpRight, ArrowDownRight
+  FileSignature, ChevronRight, ArrowUpRight, ArrowDownRight,
+  FileCheck, Stamp, Pen, Type, QrCode, RefreshCw, History
 } from "lucide-react";
 import axios from "axios";
 
