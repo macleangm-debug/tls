@@ -2,6 +2,58 @@
 
 ## Last Updated: 2026-02-19
 
+## Document Template Generation Feature (2026-02-19)
+
+### Major Feature Addition - Legal Document Generator
+Implemented a comprehensive document generation system allowing advocates to create professional legal documents with digital signatures and QR verification stamps.
+
+### 10 Legal Document Templates Implemented
+1. **Power of Attorney (Wakala)** - Authorization for legal representation (10 fields)
+2. **Affidavit (Kiapo)** - Sworn statement template (9 fields)
+3. **Legal Notice** - Formal notice to opposing party (12 fields)
+4. **Legal Service Agreement** - Client engagement letter (11 fields)
+5. **Court Filing Cover Sheet** - Standard court submission form (11 fields)
+6. **Demand Letter** - Payment/action demand notice (12 fields)
+7. **Witness Statement** - Witness deposition template (10 fields)
+8. **Sale Agreement** - Property/asset sale contract (13 fields)
+9. **Lease Agreement** - Rental contract template (14 fields)
+10. **Last Will and Testament** - Estate planning document (13 fields)
+
+### Features
+- **Placeholder Fields**: Each template has specific fields that advocates fill in
+- **Live Preview**: Real-time HTML preview of document as fields are filled
+- **QR Verification Stamp**: Optional scannable QR code for document authenticity
+- **Digital Signature**: Use saved signature, or type/draw a new one
+- **PDF Generation**: Professional PDF output using ReportLab library
+- **Document History**: Track all generated documents per advocate
+
+### New Files
+- `/app/backend/document_templates.py` - Template definitions, PDF generation, API routes
+
+### API Endpoints Added (all under /api/templates/)
+- `GET /list` - Get all 10 available document templates
+- `GET /history` - Get advocate's document generation history
+- `GET /{template_id}` - Get specific template details
+- `POST /preview` - Generate HTML preview with filled placeholders
+- `POST /generate` - Generate and download PDF document
+
+### Frontend Components
+- `DocumentGeneratorTab` in `/app/frontend/src/pages/PracticeManagementPage.jsx`
+- New "Doc Generator" tab in Practice Management (highlighted in green)
+
+### MongoDB Collections
+- `generated_documents` - Stores document generation history (advocate_id, template_info, filled_data, timestamps)
+
+### Template Categories
+- `authorization` - Power of Attorney
+- `sworn_statement` - Affidavit
+- `notice` - Legal Notice, Demand Letter
+- `contract` - Service Agreement, Sale Agreement, Lease Agreement
+- `court` - Court Filing, Witness Statement
+- `estate` - Last Will and Testament
+
+---
+
 ## KwikPay Payment Integration (2026-02-19)
 
 ### Major Feature Addition - Mocked Payment System
