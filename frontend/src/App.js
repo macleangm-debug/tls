@@ -32,6 +32,7 @@ import IDCOrdersPage from "./pages/IDCOrdersPage";
 import BusinessRegistrationPage from "./pages/BusinessRegistrationPage";
 import AdvocateProfilePage from "./pages/AdvocateProfilePage";
 import AdvocateDirectoryPage from "./pages/AdvocateDirectoryPage";
+import PracticeManagementPage from "./pages/PracticeManagementPage";
 import "./App.css";
 
 const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
