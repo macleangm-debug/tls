@@ -6417,6 +6417,11 @@ from practice_management import practice_router, create_practice_routes
 practice_routes = create_practice_routes(db, get_current_user)
 app.include_router(practice_routes)
 
+# Include payment integration router
+from payment_integration import payment_router, create_payment_routes
+payment_routes = create_payment_routes(db, get_current_user)
+app.include_router(payment_routes)
+
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
