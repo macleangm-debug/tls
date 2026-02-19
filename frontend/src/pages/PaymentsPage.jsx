@@ -174,12 +174,12 @@ const CollectPaymentModal = ({ isOpen, onClose, token, onSuccess }) => {
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-[#0a0d14] border-white/10 max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+        <DialogHeader className="text-center">
+          <DialogTitle className="text-white flex items-center justify-center gap-2">
             <DollarSign className="w-5 h-5 text-emerald-500" />
             Collect Payment
           </DialogTitle>
-          <DialogDescription className="text-white/50">
+          <DialogDescription className="text-white/50 text-center">
             {step === 1 && "Select payment method"}
             {step === 2 && "Enter payment details"}
             {step === 3 && "Payment initiated"}
@@ -188,18 +188,19 @@ const CollectPaymentModal = ({ isOpen, onClose, token, onSuccess }) => {
 
         {/* Step 1: Select Payment Method */}
         {step === 1 && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 px-2">
             {paymentMethods.map((method) => (
               <button
                 key={method.id}
                 onClick={() => { setPaymentMethod(method.id); setStep(2); }}
-                className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/30 transition-all text-left group"
+                className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all text-center group"
+                data-testid={`payment-method-${method.id}`}
               >
-                <div className={`w-10 h-10 rounded-lg ${method.color}/20 flex items-center justify-center mb-3`}>
-                  <method.icon className={`w-5 h-5 ${method.color.replace('bg-', 'text-')}`} />
+                <div className={`w-12 h-12 rounded-lg ${method.color}/20 flex items-center justify-center mb-3 mx-auto`}>
+                  <method.icon className={`w-6 h-6 ${method.color.replace('bg-', 'text-')}`} />
                 </div>
                 <p className="font-medium text-white">{method.name}</p>
-                <p className="text-xs text-white/50">{method.desc}</p>
+                <p className="text-xs text-white/50 mt-1">{method.desc}</p>
               </button>
             ))}
           </div>
