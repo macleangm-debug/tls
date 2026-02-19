@@ -667,6 +667,19 @@ def create_templates_routes(db, get_current_user):
             })
         return {"templates": templates}
     
+    @templates_router.get("/history")
+    async def get_document_history(
+        limit: int = Query(default=50, le=200),
+        user: dict = Depends(get_current_user)
+    ):
+        """Get generated document history"""
+        documents = await db.generated_documents.find(
+            {"advocate_id": user["id"]},
+            {"_id": 0}
+        ).sort("generated_at", -1).to_list(limit)
+        
+        return {"documents": documents, "total": len(documents)}
+    
     @templates_router.get("/{template_id}")
     async def get_template(template_id: str):
         """Get a specific template with its content"""
