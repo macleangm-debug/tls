@@ -6422,6 +6422,11 @@ from payment_integration import payment_router, create_payment_routes
 payment_routes = create_payment_routes(db, get_current_user)
 app.include_router(payment_routes)
 
+# Include document templates router
+from document_templates import templates_router, create_templates_routes
+doc_templates_routes = create_templates_routes(db, get_current_user)
+app.include_router(doc_templates_routes)
+
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
