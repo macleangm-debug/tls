@@ -15,7 +15,7 @@ import {
   Stamp, CreditCard, Truck, Award, Lock, Fingerprint,
   Sparkles, ArrowRight, Globe, TrendingUp, Share2, BookOpen,
   Play, ChevronRight, ExternalLink, Zap, Target, BarChart3,
-  Info, HelpCircle, MousePointer, Upload, Scan, LinkIcon
+  Info, HelpCircle, MousePointer, Upload, Scan, LinkIcon, DollarSign
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
