@@ -1846,6 +1846,9 @@ const PracticeManagementPage = () => {
           <TabsTrigger value="cases" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
             <Briefcase className="w-4 h-4 mr-1" /> Cases
           </TabsTrigger>
+          <TabsTrigger value="doc-generator" className="data-[state=active]:bg-emerald-600 rounded-lg text-xs px-3" data-testid="doc-generator-tab">
+            <FileCheck className="w-4 h-4 mr-1" /> Doc Generator
+          </TabsTrigger>
           <TabsTrigger value="documents" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
             <FolderOpen className="w-4 h-4 mr-1" /> Documents
           </TabsTrigger>
