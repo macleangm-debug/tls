@@ -6412,6 +6412,11 @@ async def get_user_notification_preferences(user_id: str) -> dict:
 # Include router
 app.include_router(api_router)
 
+# Include practice management router
+from practice_management import practice_router, create_practice_routes
+practice_routes = create_practice_routes(db, get_current_user)
+app.include_router(practice_routes)
+
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
