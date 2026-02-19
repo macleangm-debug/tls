@@ -270,6 +270,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
     { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
   ] : [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+    { icon: BarChart3, label: "Practice Management", path: "/practice" },
     { icon: FileText, label: "Stamp Document", path: "/documents" },
     { icon: QrCode, label: "Stamp Verification", path: "/stamp-verification" },
     { icon: Stamp, label: "Physical Stamps", path: "/order-stamp" },
