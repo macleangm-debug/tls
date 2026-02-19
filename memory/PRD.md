@@ -1,6 +1,114 @@
 # TLS PDF Stamping Tool - Product Requirements Document
 
-## Last Updated: 2026-02-16
+## Last Updated: 2026-02-19
+
+## Practice Management Feature (2026-02-19)
+
+### Major Feature Addition
+Implemented a comprehensive Practice Management system for advocates to manage their entire legal practice within the platform.
+
+### Features Implemented
+1. **Client Management**
+   - Create, read, update, delete clients
+   - Client types: individual, corporate, government
+   - Search and filter clients
+   - View client's related cases, documents, invoices
+
+2. **Case/Matter Management**
+   - Create cases linked to clients
+   - Case types: litigation, corporate, family, property, criminal, other
+   - Status tracking: active, pending, closed, on_hold
+   - Priority levels: low, medium, high, urgent
+   - Track opposing party, counsel, court, judge
+   - Billing types: hourly, fixed, contingency, pro_bono
+
+3. **Document Vault**
+   - Secure cloud storage for legal documents
+   - Organize by folders (General, Contracts, Court Filings, etc.)
+   - Link documents to clients and cases
+   - Upload up to 50MB files
+   - Search and filter documents
+
+4. **Calendar & Events**
+   - Create events: court_hearing, meeting, deadline, reminder, appointment
+   - Set start/end times, location, description
+   - Link events to clients and cases
+   - Reminders configuration
+
+5. **Task Management**
+   - Create tasks with due dates
+   - Priority levels and status tracking
+   - Link to clients and cases
+   - Filter by status (pending, in_progress, completed)
+
+6. **Invoicing**
+   - Create invoices with line items
+   - Auto-calculate subtotals, taxes, discounts
+   - Track invoice status: draft, sent, paid, overdue
+   - Link to clients and cases
+   - Payment tracking
+
+7. **Expense Tracking**
+   - Log case-related expenses
+   - Categories: filing_fees, travel, printing, communication, other
+   - Mark as billable/non-billable
+   - Track reimbursements
+
+8. **Templates** (Backend ready)
+   - Document templates with placeholders
+   - Categories: contract, affidavit, power_of_attorney, letter, court_filing
+
+9. **Messages** (Backend ready)
+   - Internal messaging system
+   - Inbox, sent, archived folders
+
+10. **Analytics Dashboard**
+    - Active cases count
+    - Total clients
+    - Pending/overdue tasks
+    - Upcoming events
+    - Monthly revenue
+    - Stamps this month
+
+### New Files
+- `/app/backend/practice_management.py` - All practice management API routes
+- `/app/frontend/src/pages/PracticeManagementPage.jsx` - Comprehensive frontend page
+
+### New MongoDB Collections
+- `clients` - Client records
+- `cases` - Case/matter records
+- `vault_documents` - Document storage
+- `vault_folders` - Folder organization
+- `events` - Calendar events
+- `tasks` - Task records
+- `invoices` - Invoice records
+- `expenses` - Expense records
+- `templates` - Document templates
+- `messages` - Internal messages
+
+### API Endpoints Added (all under /api/practice/)
+- `/clients` - CRUD for clients
+- `/cases` - CRUD for cases
+- `/documents` - Document vault operations
+- `/folders` - Folder management
+- `/events` - Calendar events
+- `/tasks` - Task management
+- `/invoices` - Invoice operations
+- `/expenses` - Expense tracking
+- `/templates` - Document templates
+- `/messages` - Internal messaging
+- `/analytics/dashboard` - Dashboard stats
+- `/analytics/cases` - Case analytics
+- `/analytics/revenue` - Revenue analytics
+
+### Frontend Routes Added
+- `/practice` - Practice Management page
+- `/practice-management` - Alias route
+
+### Navigation
+- Added "Practice Management" link to advocate sidebar in AdvocateDashboard.jsx
+
+---
 
 ## Email Verification & Login Logging Session (2026-02-16)
 
