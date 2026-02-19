@@ -120,6 +120,8 @@ function App() {
           {/* Advocate Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><AdvocateDashboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/practice" element={<ProtectedRoute><PracticeManagementPage /></ProtectedRoute>} />
+          <Route path="/practice-management" element={<ProtectedRoute><PracticeManagementPage /></ProtectedRoute>} />
           <Route path="/order-stamp" element={<ProtectedRoute><StampOrderPage /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
           <Route path="/digital-stamps" element={<ProtectedRoute><DigitalStampsPage /></ProtectedRoute>} />
