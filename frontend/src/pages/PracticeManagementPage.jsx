@@ -1,105 +1,344 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { DashboardLayout } from "./AdvocateDashboard";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import {
   Users, Briefcase, FileText, Calendar, CheckSquare,
-  Receipt, DollarSign, BarChart3, Plus, Search,
-  Clock, AlertTriangle, TrendingUp, FolderOpen,
-  Mail, FileArchive, LayoutDashboard
+  Receipt, DollarSign, Plus, Search, Clock, AlertTriangle,
+  TrendingUp, FolderOpen, Mail, FileArchive, PieChart,
+  Target, Scale, Gavel, Building, UserCheck, Download,
+  Copy, Eye, Edit, Trash2, Send, CreditCard, Phone,
+  FileSignature, ChevronRight, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Dashboard Overview Component
-const DashboardOverview = ({ analytics, onNavigate }) => {
-  const statCards = [
-    { label: "Active Cases", value: analytics?.summary?.active_cases || 0, icon: Briefcase, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Total Clients", value: analytics?.summary?.total_clients || 0, icon: Users, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Pending Tasks", value: analytics?.summary?.pending_tasks || 0, icon: CheckSquare, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { label: "Upcoming Events", value: analytics?.summary?.upcoming_events || 0, icon: Calendar, color: "text-purple-500", bg: "bg-purple-500/10" },
-    { label: "Documents", value: analytics?.summary?.total_documents || 0, icon: FileText, color: "text-teal-500", bg: "bg-teal-500/10" },
-    { label: "Stamps This Month", value: analytics?.summary?.stamps_this_month || 0, icon: FileArchive, color: "text-rose-500", bg: "bg-rose-500/10" },
-  ];
+// Simple Chart Components (no external library needed)
+const DonutChart = ({ data, colors, size = 120 }) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  let currentAngle = 0;
+  
+  const segments = data.map((item, idx) => {
+    const angle = total > 0 ? (item.value / total) * 360 : 0;
+    const startAngle = currentAngle;
+    currentAngle += angle;
+    
+    const x1 = 50 + 40 * Math.cos((startAngle - 90) * Math.PI / 180);
+    const y1 = 50 + 40 * Math.sin((startAngle - 90) * Math.PI / 180);
+    const x2 = 50 + 40 * Math.cos((startAngle + angle - 90) * Math.PI / 180);
+    const y2 = 50 + 40 * Math.sin((startAngle + angle - 90) * Math.PI / 180);
+    const largeArc = angle > 180 ? 1 : 0;
+    
+    return (
+      <path
+        key={idx}
+        d={`M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArc} 1 ${x2} ${y2} Z`}
+        fill={colors[idx % colors.length]}
+        className="transition-all duration-300 hover:opacity-80"
+      />
+    );
+  });
+
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size}>
+      {segments}
+      <circle cx="50" cy="50" r="25" fill="#0a0d14" />
+      <text x="50" y="50" textAnchor="middle" dy="0.3em" fill="white" fontSize="12" fontWeight="bold">
+        {total}
+      </text>
+    </svg>
+  );
+};
+
+const BarChart = ({ data, color = "#3B82F6", height = 150 }) => {
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+  
+  return (
+    <div className="flex items-end gap-1 h-[150px]">
+      {data.map((item, idx) => (
+        <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+          <div 
+            className="w-full rounded-t-sm transition-all duration-300 hover:opacity-80"
+            style={{ 
+              height: `${(item.value / maxValue) * 100}%`,
+              backgroundColor: color,
+              minHeight: item.value > 0 ? '4px' : '0'
+            }}
+          />
+          <span className="text-[10px] text-white/40 truncate w-full text-center">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Enhanced Dashboard with Charts and Insights
+const EnhancedDashboard = ({ analytics, caseAnalytics, revenueData, recentActivity, onNavigate }) => {
+  const caseStatusData = caseAnalytics?.by_status ? Object.entries(caseAnalytics.by_status).map(([key, value]) => ({ label: key, value })) : [];
+  const caseTypeData = caseAnalytics?.by_type ? Object.entries(caseAnalytics.by_type).map(([key, value]) => ({ label: key, value })) : [];
+  const revenueChartData = revenueData ? Object.entries(revenueData).map(([key, value]) => ({ label: key.slice(-2), value })).slice(-6) : [];
+
+  const statusColors = ["#10B981", "#F59E0B", "#6B7280", "#8B5CF6"];
+  const typeColors = ["#3B82F6", "#EC4899", "#14B8A6", "#F97316", "#8B5CF6", "#6B7280"];
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {statCards.map((stat, idx) => (
-          <Card key={idx} className="glass-card border-white/10 hover:border-white/20 transition-all cursor-pointer" onClick={() => onNavigate(stat.label.toLowerCase().replace(' ', '-'))}>
-            <CardContent className="p-4">
-              <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+      {/* Key Metrics Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="glass-card border-white/10" data-testid="metric-active-cases">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-white">{analytics?.summary?.active_cases || 0}</p>
+                <p className="text-xs text-white/50">Active Cases</p>
               </div>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-              <p className="text-xs text-white/50">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Financial Summary */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="glass-card border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-white flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-emerald-500" />
-              Monthly Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-emerald-500">
-              TZS {(analytics?.financials?.monthly_revenue || 0).toLocaleString()}
-            </p>
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-white/50">Pending Invoices</span>
-                <span className="text-amber-400">TZS {(analytics?.financials?.pending_invoices || 0).toLocaleString()}</span>
+              <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <Briefcase className="w-6 h-6 text-blue-500" />
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-white/50">Total Paid</span>
-                <span className="text-emerald-400">TZS {(analytics?.financials?.paid_total || 0).toLocaleString()}</span>
-              </div>
+            </div>
+            <div className="mt-2 flex items-center text-xs">
+              <ArrowUpRight className="w-3 h-3 text-emerald-500 mr-1" />
+              <span className="text-emerald-500">+2 this month</span>
             </div>
           </CardContent>
         </Card>
 
+        <Card className="glass-card border-white/10" data-testid="metric-total-clients">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-white">{analytics?.summary?.total_clients || 0}</p>
+                <p className="text-xs text-white/50">Total Clients</p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Users className="w-6 h-6 text-emerald-500" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-center text-xs">
+              <UserCheck className="w-3 h-3 text-emerald-500 mr-1" />
+              <span className="text-white/50">Active relationships</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-white/10" data-testid="metric-pending-tasks">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-white">{analytics?.summary?.pending_tasks || 0}</p>
+                <p className="text-xs text-white/50">Pending Tasks</p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                <CheckSquare className="w-6 h-6 text-amber-500" />
+              </div>
+            </div>
+            {analytics?.summary?.overdue_tasks > 0 && (
+              <div className="mt-2 flex items-center text-xs">
+                <AlertTriangle className="w-3 h-3 text-red-500 mr-1" />
+                <span className="text-red-400">{analytics.summary.overdue_tasks} overdue</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-white/10" data-testid="metric-revenue">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xl font-bold text-white">TZS {((analytics?.financials?.monthly_revenue || 0) / 1000).toFixed(0)}K</p>
+                <p className="text-xs text-white/50">Monthly Revenue</p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-teal-500" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-center text-xs">
+              <Receipt className="w-3 h-3 text-amber-500 mr-1" />
+              <span className="text-amber-400">{analytics?.financials?.pending_count || 0} pending</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Case Status Distribution */}
         <Card className="glass-card border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-white flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <CardTitle className="text-sm text-white flex items-center gap-2">
+              <PieChart className="w-4 h-4 text-blue-500" />
+              Cases by Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center gap-4">
+              {caseStatusData.length > 0 ? (
+                <>
+                  <DonutChart data={caseStatusData} colors={statusColors} size={100} />
+                  <div className="space-y-1">
+                    {caseStatusData.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[idx % statusColors.length] }} />
+                        <span className="text-white/60 capitalize">{item.label}</span>
+                        <span className="text-white font-medium">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-white/40 text-sm py-8">No cases yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Case Types */}
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white flex items-center gap-2">
+              <Gavel className="w-4 h-4 text-purple-500" />
+              Cases by Type
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {caseTypeData.length > 0 ? (
+              <div className="space-y-2">
+                {caseTypeData.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-white/60 capitalize">{item.label}</span>
+                        <span className="text-white">{item.value}</span>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all"
+                          style={{ 
+                            width: `${(item.value / Math.max(...caseTypeData.map(d => d.value))) * 100}%`,
+                            backgroundColor: typeColors[idx % typeColors.length]
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-white/40 text-sm py-8 text-center">No cases yet</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue Trend */}
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              Revenue Trend
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {revenueChartData.length > 0 ? (
+              <BarChart data={revenueChartData} color="#10B981" />
+            ) : (
+              <div className="h-[150px] flex items-center justify-center">
+                <p className="text-white/40 text-sm">No revenue data yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottom Row - Alerts & Upcoming */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Attention Required */}
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
               Attention Required
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {analytics?.summary?.overdue_tasks > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-red-500/10 rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-red-500/10 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => onNavigate('tasks')}>
                   <Clock className="w-5 h-5 text-red-500" />
-                  <div>
-                    <p className="text-white font-medium">{analytics.summary.overdue_tasks} Overdue Tasks</p>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">{analytics.summary.overdue_tasks} Overdue Tasks</p>
                     <p className="text-xs text-white/50">Requires immediate attention</p>
                   </div>
+                  <ChevronRight className="w-4 h-4 text-white/30" />
                 </div>
               )}
               {analytics?.financials?.pending_count > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-amber-500/10 rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-amber-500/10 rounded-lg cursor-pointer hover:bg-amber-500/20 transition-all" onClick={() => onNavigate('invoices')}>
                   <Receipt className="w-5 h-5 text-amber-500" />
-                  <div>
-                    <p className="text-white font-medium">{analytics.financials.pending_count} Unpaid Invoices</p>
-                    <p className="text-xs text-white/50">Follow up with clients</p>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">{analytics.financials.pending_count} Unpaid Invoices</p>
+                    <p className="text-xs text-white/50">TZS {(analytics.financials.pending_invoices || 0).toLocaleString()} pending</p>
                   </div>
+                  <ChevronRight className="w-4 h-4 text-white/30" />
                 </div>
               )}
-              {(!analytics?.summary?.overdue_tasks && !analytics?.financials?.pending_count) && (
-                <p className="text-white/50 text-center py-4">All caught up!</p>
+              {analytics?.summary?.upcoming_events > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-purple-500/10 rounded-lg cursor-pointer hover:bg-purple-500/20 transition-all" onClick={() => onNavigate('calendar')}>
+                  <Calendar className="w-5 h-5 text-purple-500" />
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">{analytics.summary.upcoming_events} Upcoming Events</p>
+                    <p className="text-xs text-white/50">In the next 7 days</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/30" />
+                </div>
               )}
+              {!analytics?.summary?.overdue_tasks && !analytics?.financials?.pending_count && !analytics?.summary?.upcoming_events && (
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+                    <CheckSquare className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <p className="text-white/60 text-sm">All caught up!</p>
+                  <p className="text-white/40 text-xs">No urgent items</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions & Stats */}
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white flex items-center gap-2">
+              <Target className="w-4 h-4 text-blue-500" />
+              Quick Stats & Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-white/5 rounded-lg">
+                <p className="text-2xl font-bold text-white">{analytics?.summary?.total_documents || 0}</p>
+                <p className="text-xs text-white/50">Documents Stored</p>
+              </div>
+              <div className="p-3 bg-white/5 rounded-lg">
+                <p className="text-2xl font-bold text-white">{analytics?.summary?.stamps_this_month || 0}</p>
+                <p className="text-xs text-white/50">Stamps This Month</p>
+              </div>
+              <Button className="col-span-2 bg-tls-blue-electric hover:bg-tls-blue-electric/90" onClick={() => onNavigate('new-case')}>
+                <Plus className="w-4 h-4 mr-2" /> New Case
+              </Button>
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" onClick={() => onNavigate('new-client')}>
+                <Users className="w-4 h-4 mr-2" /> Add Client
+              </Button>
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" onClick={() => onNavigate('new-invoice')}>
+                <Receipt className="w-4 h-4 mr-2" /> New Invoice
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -108,175 +347,62 @@ const DashboardOverview = ({ analytics, onNavigate }) => {
   );
 };
 
-// Quick Actions Bar
-const QuickActions = ({ onAction }) => (
-  <div className="flex flex-wrap gap-2">
-    <Button size="sm" className="bg-blue-500 hover:bg-blue-600" onClick={() => onAction('new-client')}>
-      <Plus className="w-4 h-4 mr-1" /> Client
-    </Button>
-    <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600" onClick={() => onAction('new-case')}>
-      <Plus className="w-4 h-4 mr-1" /> Case
-    </Button>
-    <Button size="sm" className="bg-purple-500 hover:bg-purple-600" onClick={() => onAction('new-task')}>
-      <Plus className="w-4 h-4 mr-1" /> Task
-    </Button>
-    <Button size="sm" className="bg-amber-500 hover:bg-amber-600" onClick={() => onAction('new-event')}>
-      <Plus className="w-4 h-4 mr-1" /> Event
-    </Button>
-    <Button size="sm" className="bg-teal-500 hover:bg-teal-600" onClick={() => onAction('new-invoice')}>
-      <Plus className="w-4 h-4 mr-1" /> Invoice
-    </Button>
-  </div>
-);
-
-// Main Practice Management Page
-const PracticeManagementPage = () => {
-  const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const headers = { Authorization: `Bearer ${token}` };
-
-  const fetchAnalytics = useCallback(async () => {
-    try {
-      const response = await axios.get(`${API}/api/practice/analytics/dashboard`, { headers });
-      setAnalytics(response.data);
-    } catch (error) {
-      console.error("Failed to fetch analytics:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+// Client Form Modal
+const ClientFormModal = ({ isOpen, onClose, onSave, editData = null }) => {
+  const [formData, setFormData] = useState({
+    name: "", email: "", phone: "", company: "", client_type: "individual", address: "", notes: ""
+  });
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
-
-  const handleQuickAction = (action) => {
-    switch (action) {
-      case 'new-client':
-        setActiveTab('clients');
-        break;
-      case 'new-case':
-        setActiveTab('cases');
-        break;
-      case 'new-task':
-        setActiveTab('tasks');
-        break;
-      case 'new-event':
-        setActiveTab('calendar');
-        break;
-      case 'new-invoice':
-        setActiveTab('invoices');
-        break;
-      default:
-        break;
+    if (editData) {
+      setFormData(editData);
+    } else {
+      setFormData({ name: "", email: "", phone: "", company: "", client_type: "individual", address: "", notes: "" });
     }
-  };
+  }, [editData, isOpen]);
 
-  const handleNavigate = (tab) => {
-    const tabMap = {
-      'active-cases': 'cases',
-      'total-clients': 'clients',
-      'pending-tasks': 'tasks',
-      'upcoming-events': 'calendar',
-      'documents': 'documents',
-      'stamps-this-month': 'dashboard'
-    };
-    setActiveTab(tabMap[tab] || 'dashboard');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
   };
 
   return (
-    <div className="min-h-screen bg-[#02040A] text-white p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <LayoutDashboard className="w-7 h-7 text-tls-blue-electric" />
-              Practice Management
-            </h1>
-            <p className="text-white/50 text-sm mt-1">Manage your clients, cases, tasks, and billing</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0a0d14] border-white/10 max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-white">{editData ? 'Edit Client' : 'Add New Client'}</DialogTitle>
+          <DialogDescription className="text-white/50">Enter client information below</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input placeholder="Full Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
+          <div className="grid grid-cols-2 gap-3">
+            <Input placeholder="Email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="bg-white/5 border-white/10 text-white" />
+            <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="bg-white/5 border-white/10 text-white" />
           </div>
-          <QuickActions onAction={handleQuickAction} />
-        </div>
-
-        {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white/5 border border-white/10 p-1 rounded-xl flex-wrap h-auto">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <BarChart3 className="w-4 h-4 mr-2" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="clients" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <Users className="w-4 h-4 mr-2" /> Clients
-            </TabsTrigger>
-            <TabsTrigger value="cases" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <Briefcase className="w-4 h-4 mr-2" /> Cases
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <FolderOpen className="w-4 h-4 mr-2" /> Documents
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <Calendar className="w-4 h-4 mr-2" /> Calendar
-            </TabsTrigger>
-            <TabsTrigger value="tasks" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <CheckSquare className="w-4 h-4 mr-2" /> Tasks
-            </TabsTrigger>
-            <TabsTrigger value="invoices" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <Receipt className="w-4 h-4 mr-2" /> Invoices
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-tls-blue-electric rounded-lg">
-              <Mail className="w-4 h-4 mr-2" /> Messages
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard">
-            <DashboardOverview analytics={analytics} onNavigate={handleNavigate} />
-          </TabsContent>
-
-          <TabsContent value="clients">
-            <ClientsTab token={token} />
-          </TabsContent>
-
-          <TabsContent value="cases">
-            <CasesTab token={token} />
-          </TabsContent>
-
-          <TabsContent value="documents">
-            <DocumentsTab token={token} />
-          </TabsContent>
-
-          <TabsContent value="calendar">
-            <CalendarTab token={token} />
-          </TabsContent>
-
-          <TabsContent value="tasks">
-            <TasksTab token={token} />
-          </TabsContent>
-
-          <TabsContent value="invoices">
-            <InvoicesTab token={token} />
-          </TabsContent>
-
-          <TabsContent value="messages">
-            <MessagesTab token={token} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+          <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} className="bg-white/5 border-white/10 text-white" />
+          <select value={formData.client_type} onChange={(e) => setFormData({...formData, client_type: e.target.value})} className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
+            <option value="individual">Individual</option>
+            <option value="corporate">Corporate</option>
+            <option value="government">Government</option>
+          </select>
+          <Textarea placeholder="Address" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="bg-white/5 border-white/10 text-white" rows={2} />
+          <div className="flex gap-2">
+            <Button type="submit" className="flex-1 bg-emerald-500 hover:bg-emerald-600">{editData ? 'Update' : 'Add'} Client</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="border-white/20 text-white">Cancel</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 // Clients Tab Component
-const ClientsTab = ({ token }) => {
+const ClientsTab = ({ token, onShowForm }) => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "", email: "", phone: "", company: "", client_type: "individual", address: "", notes: ""
-  });
+  const [editClient, setEditClient] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -293,16 +419,39 @@ const ClientsTab = ({ token }) => {
 
   useEffect(() => { fetchClients(); }, [search]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSaveClient = async (formData) => {
     try {
-      await axios.post(`${API}/api/practice/clients`, formData, { headers });
-      toast.success("Client created successfully");
+      if (editClient) {
+        await axios.put(`${API}/api/practice/clients/${editClient.id}`, formData, { headers });
+        toast.success("Client updated");
+      } else {
+        await axios.post(`${API}/api/practice/clients`, formData, { headers });
+        toast.success("Client created");
+      }
       setShowForm(false);
-      setFormData({ name: "", email: "", phone: "", company: "", client_type: "individual", address: "", notes: "" });
+      setEditClient(null);
       fetchClients();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to create client");
+      toast.error(error.response?.data?.detail || "Failed to save client");
+    }
+  };
+
+  const handleDeleteClient = async (clientId) => {
+    if (!window.confirm("Are you sure you want to delete this client?")) return;
+    try {
+      await axios.delete(`${API}/api/practice/clients/${clientId}`, { headers });
+      toast.success("Client deleted");
+      fetchClients();
+    } catch (error) {
+      toast.error("Failed to delete client");
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    switch(type) {
+      case 'corporate': return <Building className="w-4 h-4" />;
+      case 'government': return <Scale className="w-4 h-4" />;
+      default: return <Users className="w-4 h-4" />;
     }
   };
 
@@ -316,52 +465,48 @@ const ClientsTab = ({ token }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-white/5 border-white/10 text-white"
+            data-testid="search-clients-input"
           />
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-tls-blue-electric">
+        <Button onClick={() => { setEditClient(null); setShowForm(true); }} className="bg-tls-blue-electric" data-testid="add-client-btn">
           <Plus className="w-4 h-4 mr-2" /> Add Client
         </Button>
       </div>
 
-      {showForm && (
-        <Card className="glass-card border-white/10">
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-4">
-              <Input placeholder="Full Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
-              <Input placeholder="Email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <select value={formData.client_type} onChange={(e) => setFormData({...formData, client_type: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
-                <option value="individual">Individual</option>
-                <option value="corporate">Corporate</option>
-                <option value="government">Government</option>
-              </select>
-              <Input placeholder="Address" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <div className="md:col-span-2 flex gap-2">
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">Save Client</Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="border-white/20 text-white">Cancel</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      <ClientFormModal isOpen={showForm} onClose={() => { setShowForm(false); setEditClient(null); }} onSave={handleSaveClient} editData={editClient} />
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {clients.map((client) => (
-          <Card key={client.id} className="glass-card border-white/10 hover:border-white/20 transition-all cursor-pointer">
+          <Card key={client.id} className="glass-card border-white/10 hover:border-white/20 transition-all group" data-testid={`client-card-${client.id}`}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold text-white">{client.name}</h3>
-                  <p className="text-sm text-white/50">{client.company || client.email}</p>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-tls-blue-electric/20 flex items-center justify-center">
+                    {getTypeIcon(client.client_type)}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">{client.name}</h3>
+                    <p className="text-sm text-white/50">{client.company || client.email || 'No contact info'}</p>
+                  </div>
                 </div>
-                <Badge variant="outline" className="text-xs border-white/20 text-white/70">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setEditClient(client); setShowForm(true); }}>
+                    <Edit className="w-3 h-3 text-white/60" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDeleteClient(client.id)}>
+                    <Trash2 className="w-3 h-3 text-red-400" />
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant="outline" className="text-xs border-white/20 text-white/60 capitalize">
                   {client.client_type}
                 </Badge>
-              </div>
-              <div className="mt-3 text-sm text-white/60">
-                {client.phone && <p>{client.phone}</p>}
-                {client.address && <p className="truncate">{client.address}</p>}
+                {client.phone && (
+                  <span className="text-xs text-white/40 flex items-center gap-1">
+                    <Phone className="w-3 h-3" /> {client.phone}
+                  </span>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -369,9 +514,12 @@ const ClientsTab = ({ token }) => {
       </div>
 
       {clients.length === 0 && !loading && (
-        <div className="text-center py-12 text-white/50">
-          <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No clients yet. Add your first client to get started!</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-white/30" />
+          </div>
+          <p className="text-white/50">No clients yet</p>
+          <p className="text-white/30 text-sm mt-1">Add your first client to get started</p>
         </div>
       )}
     </div>
@@ -417,6 +565,7 @@ const CasesTab = ({ token }) => {
       await axios.post(`${API}/api/practice/cases`, formData, { headers });
       toast.success("Case created successfully");
       setShowForm(false);
+      setFormData({ title: "", client_id: "", case_type: "litigation", status: "active", priority: "medium", description: "", court: "", opposing_party: "" });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to create case");
@@ -429,7 +578,7 @@ const CasesTab = ({ token }) => {
   };
 
   const getStatusColor = (status) => {
-    const colors = { active: "text-emerald-400", pending: "text-amber-400", closed: "text-gray-400", on_hold: "text-purple-400" };
+    const colors = { active: "text-emerald-400 bg-emerald-500/10", pending: "text-amber-400 bg-amber-500/10", closed: "text-gray-400 bg-gray-500/10", on_hold: "text-purple-400 bg-purple-500/10" };
     return colors[status] || colors.active;
   };
 
@@ -437,7 +586,7 @@ const CasesTab = ({ token }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">Cases & Matters</h2>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-tls-blue-electric">
+        <Button onClick={() => setShowForm(!showForm)} className="bg-tls-blue-electric" disabled={clients.length === 0} data-testid="new-case-btn">
           <Plus className="w-4 h-4 mr-2" /> New Case
         </Button>
       </div>
@@ -480,14 +629,14 @@ const CasesTab = ({ token }) => {
         <Card className="glass-card border-white/10">
           <CardContent className="p-8 text-center">
             <Users className="w-12 h-12 mx-auto mb-4 text-white/30" />
-            <p className="text-white/50">You need to add clients before creating cases.</p>
-            <p className="text-sm text-white/30 mt-2">Go to the Clients tab to add your first client.</p>
+            <p className="text-white/50">Add clients first before creating cases</p>
+            <p className="text-sm text-white/30 mt-2">Go to the Clients tab to add your first client</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
           {cases.map((caseItem) => (
-            <Card key={caseItem.id} className="glass-card border-white/10 hover:border-white/20 transition-all cursor-pointer">
+            <Card key={caseItem.id} className="glass-card border-white/10 hover:border-white/20 transition-all" data-testid={`case-card-${caseItem.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -497,8 +646,8 @@ const CasesTab = ({ token }) => {
                     </div>
                     <p className="text-sm text-white/50 mt-1">{caseItem.client_name} • {caseItem.reference}</p>
                     <div className="flex items-center gap-3 mt-2">
-                      <Badge variant="outline" className="text-xs border-white/20 text-white/70">{caseItem.case_type}</Badge>
-                      <span className={`text-xs ${getStatusColor(caseItem.status)}`}>{caseItem.status}</span>
+                      <Badge variant="outline" className="text-xs border-white/20 text-white/70 capitalize">{caseItem.case_type}</Badge>
+                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${getStatusColor(caseItem.status)}`}>{caseItem.status}</span>
                       {caseItem.court && <span className="text-xs text-white/40">{caseItem.court}</span>}
                     </div>
                   </div>
@@ -510,9 +659,10 @@ const CasesTab = ({ token }) => {
       )}
 
       {cases.length === 0 && clients.length > 0 && !loading && (
-        <div className="text-center py-12 text-white/50">
-          <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No cases yet. Create your first case!</p>
+        <div className="text-center py-12">
+          <Briefcase className="w-12 h-12 mx-auto mb-4 text-white/30" />
+          <p className="text-white/50">No cases yet</p>
+          <p className="text-white/30 text-sm mt-1">Create your first case to start tracking</p>
         </div>
       )}
     </div>
@@ -560,10 +710,10 @@ const DocumentsTab = ({ token }) => {
       await axios.post(`${API}/api/practice/documents`, formData, {
         headers: { ...headers, 'Content-Type': 'multipart/form-data' }
       });
-      toast.success("Document uploaded successfully");
+      toast.success("Document uploaded");
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to upload document");
+      toast.error(error.response?.data?.detail || "Failed to upload");
     } finally {
       setUploading(false);
     }
@@ -581,8 +731,8 @@ const DocumentsTab = ({ token }) => {
         <h2 className="text-lg font-semibold text-white">Document Vault</h2>
         <label className="cursor-pointer">
           <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
-          <Button className="bg-tls-blue-electric" disabled={uploading}>
-            <Plus className="w-4 h-4 mr-2" /> {uploading ? 'Uploading...' : 'Upload Document'}
+          <Button className="bg-tls-blue-electric" disabled={uploading} asChild>
+            <span><Plus className="w-4 h-4 mr-2" /> {uploading ? 'Uploading...' : 'Upload Document'}</span>
           </Button>
         </label>
       </div>
@@ -612,7 +762,7 @@ const DocumentsTab = ({ token }) => {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {documents.map((doc) => (
-          <Card key={doc.id} className="glass-card border-white/10 hover:border-white/20 transition-all cursor-pointer">
+          <Card key={doc.id} className="glass-card border-white/10 hover:border-white/20 transition-all">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center flex-shrink-0">
@@ -621,9 +771,7 @@ const DocumentsTab = ({ token }) => {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-white truncate">{doc.name}</h3>
                   <p className="text-xs text-white/50">{formatFileSize(doc.file_size)}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline" className="text-xs border-white/20 text-white/60">{doc.folder}</Badge>
-                  </div>
+                  <Badge variant="outline" className="text-xs border-white/20 text-white/60 mt-2">{doc.folder}</Badge>
                 </div>
               </div>
             </CardContent>
@@ -632,16 +780,17 @@ const DocumentsTab = ({ token }) => {
       </div>
 
       {documents.length === 0 && !loading && (
-        <div className="text-center py-12 text-white/50">
-          <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No documents yet. Upload your first document!</p>
+        <div className="text-center py-12">
+          <FolderOpen className="w-12 h-12 mx-auto mb-4 text-white/30" />
+          <p className="text-white/50">No documents yet</p>
+          <p className="text-white/30 text-sm mt-1">Upload your first document</p>
         </div>
       )}
     </div>
   );
 };
 
-// Calendar Tab Component
+// Calendar Tab
 const CalendarTab = ({ token }) => {
   const [events, setEvents] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -666,8 +815,9 @@ const CalendarTab = ({ token }) => {
     e.preventDefault();
     try {
       await axios.post(`${API}/api/practice/events`, formData, { headers });
-      toast.success("Event created successfully");
+      toast.success("Event created");
       setShowForm(false);
+      setFormData({ title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "" });
       fetchEvents();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to create event");
@@ -675,10 +825,7 @@ const CalendarTab = ({ token }) => {
   };
 
   const getEventTypeColor = (type) => {
-    const colors = {
-      court_hearing: "bg-red-500", meeting: "bg-blue-500", deadline: "bg-amber-500",
-      reminder: "bg-purple-500", appointment: "bg-emerald-500"
-    };
+    const colors = { court_hearing: "bg-red-500", meeting: "bg-blue-500", deadline: "bg-amber-500", reminder: "bg-purple-500", appointment: "bg-emerald-500" };
     return colors[type] || colors.meeting;
   };
 
@@ -705,8 +852,7 @@ const CalendarTab = ({ token }) => {
               </select>
               <Input type="datetime-local" value={formData.start_datetime} onChange={(e) => setFormData({...formData, start_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
               <Input type="datetime-local" value={formData.end_datetime} onChange={(e) => setFormData({...formData, end_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <Input placeholder="Location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <Input placeholder="Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="bg-white/5 border-white/10 text-white" />
+              <Input placeholder="Location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="bg-white/5 border-white/10 text-white md:col-span-2" />
               <div className="md:col-span-2 flex gap-2">
                 <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">Create Event</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="border-white/20 text-white">Cancel</Button>
@@ -729,7 +875,7 @@ const CalendarTab = ({ token }) => {
                     {event.location && ` • ${event.location}`}
                   </p>
                 </div>
-                <Badge variant="outline" className="border-white/20 text-white/70">{event.event_type.replace('_', ' ')}</Badge>
+                <Badge variant="outline" className="border-white/20 text-white/70 capitalize">{event.event_type.replace('_', ' ')}</Badge>
               </div>
             </CardContent>
           </Card>
@@ -737,23 +883,21 @@ const CalendarTab = ({ token }) => {
       </div>
 
       {events.length === 0 && (
-        <div className="text-center py-12 text-white/50">
-          <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No events scheduled. Add your first event!</p>
+        <div className="text-center py-12">
+          <Calendar className="w-12 h-12 mx-auto mb-4 text-white/30" />
+          <p className="text-white/50">No events scheduled</p>
         </div>
       )}
     </div>
   );
 };
 
-// Tasks Tab Component
+// Tasks Tab
 const TasksTab = ({ token }) => {
   const [tasks, setTasks] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("all");
-  const [formData, setFormData] = useState({
-    title: "", description: "", due_date: "", priority: "medium", status: "pending"
-  });
+  const [formData, setFormData] = useState({ title: "", description: "", due_date: "", priority: "medium", status: "pending" });
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -773,8 +917,9 @@ const TasksTab = ({ token }) => {
     e.preventDefault();
     try {
       await axios.post(`${API}/api/practice/tasks`, formData, { headers });
-      toast.success("Task created successfully");
+      toast.success("Task created");
       setShowForm(false);
+      setFormData({ title: "", description: "", due_date: "", priority: "medium", status: "pending" });
       fetchTasks();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to create task");
@@ -801,13 +946,7 @@ const TasksTab = ({ token }) => {
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           {["all", "pending", "in_progress", "completed"].map((f) => (
-            <Button
-              key={f}
-              variant={filter === f ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(f)}
-              className={filter === f ? "bg-tls-blue-electric" : "border-white/20 text-white"}
-            >
+            <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" onClick={() => setFilter(f)} className={filter === f ? "bg-tls-blue-electric" : "border-white/20 text-white"}>
               {f.replace('_', ' ')}
             </Button>
           ))}
@@ -844,10 +983,7 @@ const TasksTab = ({ token }) => {
           <Card key={task.id} className={`glass-card border-white/10 transition-all ${task.status === 'completed' ? 'opacity-60' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
-                <button
-                  onClick={() => toggleTaskStatus(task.id, task.status)}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${task.status === 'completed' ? 'bg-emerald-500 border-emerald-500' : 'border-white/30 hover:border-white/50'}`}
-                >
+                <button onClick={() => toggleTaskStatus(task.id, task.status)} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${task.status === 'completed' ? 'bg-emerald-500 border-emerald-500' : 'border-white/30 hover:border-white/50'}`}>
                   {task.status === 'completed' && <CheckSquare className="w-3 h-3 text-white" />}
                 </button>
                 <div className="flex-1">
@@ -867,16 +1003,16 @@ const TasksTab = ({ token }) => {
       </div>
 
       {tasks.length === 0 && (
-        <div className="text-center py-12 text-white/50">
-          <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No tasks yet. Add your first task!</p>
+        <div className="text-center py-12">
+          <CheckSquare className="w-12 h-12 mx-auto mb-4 text-white/30" />
+          <p className="text-white/50">No tasks yet</p>
         </div>
       )}
     </div>
   );
 };
 
-// Invoices Tab Component
+// Invoices Tab
 const InvoicesTab = ({ token }) => {
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
@@ -910,7 +1046,7 @@ const InvoicesTab = ({ token }) => {
     }
     try {
       await axios.post(`${API}/api/practice/invoices`, formData, { headers });
-      toast.success("Invoice created successfully");
+      toast.success("Invoice created");
       setShowForm(false);
       fetchData();
     } catch (error) {
@@ -993,7 +1129,7 @@ const InvoicesTab = ({ token }) => {
                   <p className="text-lg font-bold text-white">TZS {invoice.total?.toLocaleString()}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <div className={`w-2 h-2 rounded-full ${getStatusColor(invoice.status)}`} />
-                    <span className="text-xs text-white/50">{invoice.status}</span>
+                    <span className="text-xs text-white/50 capitalize">{invoice.status}</span>
                   </div>
                 </div>
               </div>
@@ -1003,23 +1139,23 @@ const InvoicesTab = ({ token }) => {
       </div>
 
       {invoices.length === 0 && clients.length > 0 && (
-        <div className="text-center py-12 text-white/50">
-          <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No invoices yet. Create your first invoice!</p>
+        <div className="text-center py-12">
+          <Receipt className="w-12 h-12 mx-auto mb-4 text-white/30" />
+          <p className="text-white/50">No invoices yet</p>
         </div>
       )}
 
       {clients.length === 0 && (
-        <div className="text-center py-12 text-white/50">
-          <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Add clients first before creating invoices.</p>
+        <div className="text-center py-12">
+          <Users className="w-12 h-12 mx-auto mb-4 text-white/30" />
+          <p className="text-white/50">Add clients first before creating invoices</p>
         </div>
       )}
     </div>
   );
 };
 
-// Messages Tab Component
+// Messages Tab
 const MessagesTab = ({ token }) => {
   const [messages, setMessages] = useState([]);
   const [folder, setFolder] = useState("inbox");
@@ -1040,19 +1176,11 @@ const MessagesTab = ({ token }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <div className="flex gap-2">
-          {["inbox", "sent", "archived"].map((f) => (
-            <Button
-              key={f}
-              variant={folder === f ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFolder(f)}
-              className={folder === f ? "bg-tls-blue-electric" : "border-white/20 text-white"}
-            >
-              {f}
-            </Button>
-          ))}
-        </div>
+        {["inbox", "sent", "archived"].map((f) => (
+          <Button key={f} variant={folder === f ? "default" : "outline"} size="sm" onClick={() => setFolder(f)} className={folder === f ? "bg-tls-blue-electric" : "border-white/20 text-white capitalize"}>
+            {f}
+          </Button>
+        ))}
       </div>
 
       <div className="space-y-2">
@@ -1072,12 +1200,221 @@ const MessagesTab = ({ token }) => {
       </div>
 
       {messages.length === 0 && (
-        <div className="text-center py-12 text-white/50">
-          <Mail className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No messages in {folder}.</p>
+        <div className="text-center py-12">
+          <Mail className="w-12 h-12 mx-auto mb-4 text-white/30" />
+          <p className="text-white/50">No messages in {folder}</p>
         </div>
       )}
     </div>
+  );
+};
+
+// Document Templates Tab
+const TemplatesTab = ({ token }) => {
+  const [templates, setTemplates] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "", category: "contract", content: "", description: ""
+  });
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await axios.get(`${API}/api/practice/templates`, { headers });
+      setTemplates(response.data.templates);
+    } catch (error) {
+      toast.error("Failed to fetch templates");
+    }
+  };
+
+  useEffect(() => { fetchTemplates(); }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API}/api/practice/templates`, formData, { headers });
+      toast.success("Template created");
+      setShowForm(false);
+      setFormData({ name: "", category: "contract", content: "", description: "" });
+      fetchTemplates();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to create template");
+    }
+  };
+
+  const defaultTemplates = [
+    { name: "Power of Attorney", category: "power_of_attorney", icon: FileSignature },
+    { name: "Service Agreement", category: "contract", icon: FileText },
+    { name: "Affidavit Template", category: "affidavit", icon: Scale },
+    { name: "Legal Notice", category: "letter", icon: Mail },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-white">Document Templates</h2>
+        <Button onClick={() => setShowForm(!showForm)} className="bg-tls-blue-electric">
+          <Plus className="w-4 h-4 mr-2" /> Create Template
+        </Button>
+      </div>
+
+      {showForm && (
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input placeholder="Template Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
+              <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
+                <option value="contract">Contract</option>
+                <option value="affidavit">Affidavit</option>
+                <option value="power_of_attorney">Power of Attorney</option>
+                <option value="letter">Letter</option>
+                <option value="court_filing">Court Filing</option>
+                <option value="other">Other</option>
+              </select>
+              <Textarea placeholder="Template content with {{placeholders}}" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} className="bg-white/5 border-white/10 text-white min-h-[200px] font-mono text-sm" />
+              <Textarea placeholder="Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="bg-white/5 border-white/10 text-white" rows={2} />
+              <div className="flex gap-2">
+                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">Save Template</Button>
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="border-white/20 text-white">Cancel</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {templates.length === 0 && defaultTemplates.map((template, idx) => (
+          <Card key={idx} className="glass-card border-white/10 border-dashed opacity-60 hover:opacity-100 transition-all cursor-pointer" onClick={() => setShowForm(true)}>
+            <CardContent className="p-4 text-center">
+              <template.icon className="w-8 h-8 mx-auto mb-2 text-white/40" />
+              <p className="text-white/60 text-sm">{template.name}</p>
+              <p className="text-xs text-white/30 mt-1">Click to create</p>
+            </CardContent>
+          </Card>
+        ))}
+        {templates.map((template) => (
+          <Card key={template.id} className="glass-card border-white/10 hover:border-white/20 transition-all cursor-pointer">
+            <CardContent className="p-4">
+              <FileSignature className="w-8 h-8 mb-2 text-tls-blue-electric" />
+              <h3 className="font-medium text-white">{template.name}</h3>
+              <p className="text-xs text-white/50 capitalize mt-1">{template.category}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Main Practice Management Page
+const PracticeManagementPage = () => {
+  const { token } = useAuth();
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [analytics, setAnalytics] = useState(null);
+  const [caseAnalytics, setCaseAnalytics] = useState(null);
+  const [revenueData, setRevenueData] = useState(null);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const [dashRes, caseRes, revenueRes] = await Promise.all([
+        axios.get(`${API}/api/practice/analytics/dashboard`, { headers }),
+        axios.get(`${API}/api/practice/analytics/cases`, { headers }),
+        axios.get(`${API}/api/practice/analytics/revenue`, { headers })
+      ]);
+      setAnalytics(dashRes.data);
+      setCaseAnalytics(caseRes.data);
+      setRevenueData(revenueRes.data.revenue_by_period);
+    } catch (error) {
+      console.error("Failed to fetch analytics:", error);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  const handleNavigate = (tab) => {
+    if (tab.startsWith('new-')) {
+      const section = tab.replace('new-', '') + 's';
+      setActiveTab(section);
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
+  return (
+    <DashboardLayout title="Practice Management" subtitle="Manage your clients, cases, tasks, and billing">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-white/5 border border-white/10 p-1 rounded-xl flex-wrap h-auto gap-1">
+          <TabsTrigger value="dashboard" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <PieChart className="w-4 h-4 mr-1" /> Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="clients" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <Users className="w-4 h-4 mr-1" /> Clients
+          </TabsTrigger>
+          <TabsTrigger value="cases" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <Briefcase className="w-4 h-4 mr-1" /> Cases
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <FolderOpen className="w-4 h-4 mr-1" /> Documents
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <Calendar className="w-4 h-4 mr-1" /> Calendar
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <CheckSquare className="w-4 h-4 mr-1" /> Tasks
+          </TabsTrigger>
+          <TabsTrigger value="invoices" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <Receipt className="w-4 h-4 mr-1" /> Invoices
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <FileSignature className="w-4 h-4 mr-1" /> Templates
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="data-[state=active]:bg-tls-blue-electric rounded-lg text-xs px-3">
+            <Mail className="w-4 h-4 mr-1" /> Messages
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard">
+          <EnhancedDashboard analytics={analytics} caseAnalytics={caseAnalytics} revenueData={revenueData} onNavigate={handleNavigate} />
+        </TabsContent>
+
+        <TabsContent value="clients">
+          <ClientsTab token={token} />
+        </TabsContent>
+
+        <TabsContent value="cases">
+          <CasesTab token={token} />
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <DocumentsTab token={token} />
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <CalendarTab token={token} />
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <TasksTab token={token} />
+        </TabsContent>
+
+        <TabsContent value="invoices">
+          <InvoicesTab token={token} />
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <TemplatesTab token={token} />
+        </TabsContent>
+
+        <TabsContent value="messages">
+          <MessagesTab token={token} />
+        </TabsContent>
+      </Tabs>
+    </DashboardLayout>
   );
 };
 
