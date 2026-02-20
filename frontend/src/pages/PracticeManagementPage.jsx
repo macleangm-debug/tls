@@ -1382,7 +1382,29 @@ const DocumentGeneratorTab = ({ token }) => {
     fetchTemplates();
     fetchSignature();
     fetchHistory();
+    fetchClients();
+    fetchCases();
   }, []);
+
+  // Fetch clients for linking
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get(`${API}/api/practice/clients`, { headers });
+      setClients(response.data.clients || []);
+    } catch (error) {
+      console.error("Failed to fetch clients:", error);
+    }
+  };
+
+  // Fetch cases for linking
+  const fetchCases = async () => {
+    try {
+      const response = await axios.get(`${API}/api/practice/cases`, { headers });
+      setCases(response.data.cases || []);
+    } catch (error) {
+      console.error("Failed to fetch cases:", error);
+    }
+  };
 
   // Handle template selection
   const handleSelectTemplate = (template) => {
