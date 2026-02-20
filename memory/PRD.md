@@ -475,16 +475,19 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 
 ## Backlog
 
-### Completed (2026-02-19)
+### Completed (2026-02-20)
 - [x] Document Template Generation (10 legal templates with PDF generation)
-- [x] Practice Management Suite (Clients, Cases, Documents, Calendar, Tasks, Invoices)
+- [x] Document Generator connected to Document Vault (auto-save)
+- [x] Client/Case linking for generated documents
+- [x] Document sharing workflow (generate share links)
+- [x] Practice Management Full CRUD (Clients, Cases, Documents)
+- [x] Enhanced Documents tab with search, download, share, delete
+
+### Completed (2026-02-19)
+- [x] Practice Management Suite initial (Clients, Cases, Documents, Calendar, Tasks, Invoices)
 - [x] KwikPay Payment Integration (MOCKED)
 - [x] Email Verification for new registrations
 - [x] Login Attempt Logging
-
-### In Progress
-- [ ] Flesh out Practice Management with full CRUD
-- [ ] Connect Document Generator to Document Vault
 
 ### Future Features
 - [ ] JWT to HttpOnly Cookies migration
