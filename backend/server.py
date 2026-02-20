@@ -6590,18 +6590,31 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             if path.startswith(exempt_path):
                 return await call_next(request)
         
-        # Get session ID from JWT token (if present)
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            # No auth, let the endpoint handle it
-            return await call_next(request)
+        # Get session ID from JWT token (from header or cookie)
+        session_id = None
         
-        try:
-            token = auth_header.split(" ")[1]
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            session_id = payload.get("jti") or payload.get("sub")  # Use JWT ID or subject as session
-        except (JWTError, IndexError):
-            # Invalid token, let the endpoint handle it
+        # Try Authorization header first
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            try:
+                token = auth_header.split(" ")[1]
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                session_id = payload.get("jti") or payload.get("sub")
+            except (JWTError, IndexError):
+                pass
+        
+        # Fall back to cookie if no header
+        if not session_id:
+            cookie_token = request.cookies.get(COOKIE_NAME)
+            if cookie_token:
+                try:
+                    payload = jwt.decode(cookie_token, SECRET_KEY, algorithms=[ALGORITHM])
+                    session_id = payload.get("jti") or payload.get("sub")
+                except JWTError:
+                    pass
+        
+        # If no session ID found, let the endpoint handle auth
+        if not session_id:
             return await call_next(request)
         
         # Validate CSRF token
