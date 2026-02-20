@@ -613,6 +613,10 @@ class GenerateDocumentRequest(BaseModel):
     include_signature: bool = False
     include_qr_stamp: bool = False
     language: str = "en"  # en or sw
+    save_to_vault: bool = True  # Auto-save to vault
+    client_id: Optional[str] = None  # Link to client
+    case_id: Optional[str] = None  # Link to case
+    folder: str = "Generated Documents"  # Vault folder
 
 class SavedDocument(BaseModel):
     name: str
@@ -622,6 +626,13 @@ class SavedDocument(BaseModel):
     include_qr_stamp: bool = False
     client_id: Optional[str] = None
     case_id: Optional[str] = None
+
+class ShareDocumentRequest(BaseModel):
+    document_id: str
+    share_via: str = "email"  # email, link, whatsapp
+    recipient_email: Optional[str] = None
+    recipient_phone: Optional[str] = None
+    message: Optional[str] = None
 
 
 # =============== HELPER FUNCTIONS ===============
