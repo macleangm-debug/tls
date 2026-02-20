@@ -1514,6 +1514,35 @@ async def get_me(user: dict = Depends(get_current_user)):
     # Return user data without password hash
     return {k: v for k, v in user.items() if k not in ["_id", "password_hash", "verification_token", "verification_token_expires"]}
 
+@api_router.post("/auth/logout")
+async def logout(request: Request):
+    """
+    Logout user by clearing the HttpOnly cookie.
+    Also clears CSRF token from server-side storage.
+    """
+    # Try to get JWT to find session ID for CSRF cleanup
+    cookie_token = request.cookies.get(COOKIE_NAME)
+    if cookie_token:
+        try:
+            payload = jwt.decode(cookie_token, SECRET_KEY, algorithms=[ALGORITHM])
+            jti = payload.get("jti")
+            if jti and jti in csrf_tokens:
+                del csrf_tokens[jti]
+        except JWTError:
+            pass  # Token invalid, just clear cookie
+    
+    # Create response that clears the cookie
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        httponly=COOKIE_HTTPONLY,
+        samesite=COOKIE_SAMESITE
+    )
+    
+    return response
+
 # =============== EMAIL VERIFICATION ENDPOINTS ===============
 
 @api_router.get("/auth/verify-email/{token}")
