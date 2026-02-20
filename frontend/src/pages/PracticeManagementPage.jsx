@@ -1845,6 +1845,27 @@ const DocumentGeneratorTab = ({ token }) => {
                     </div>
                   )}
                 </div>
+
+                {/* Save to Vault Option */}
+                <div className="flex items-center justify-between p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
+                  <div className="flex items-center gap-3">
+                    <FolderOpen className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <p className="text-white font-medium">Auto-Save to Document Vault</p>
+                      <p className="text-xs text-white/50">Save generated document to your vault for easy access</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={saveToVault} 
+                      onChange={(e) => setSaveToVault(e.target.checked)}
+                      className="sr-only peer"
+                      data-testid="save-vault-toggle"
+                    />
+                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
               </CardContent>
             </Card>
 
@@ -1867,7 +1888,7 @@ const DocumentGeneratorTab = ({ token }) => {
                 {generating ? (
                   <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
                 ) : (
-                  <><Download className="w-4 h-4 mr-2" /> Generate PDF</>
+                  <><Download className="w-4 h-4 mr-2" /> Generate & Save</>
                 )}
               </Button>
             </div>
