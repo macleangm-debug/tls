@@ -900,6 +900,196 @@ def create_templates_routes(db, get_current_user):
             "filled_data": data
         }
     
+    # =============== CUSTOM TEMPLATE GENERATION ===============
+    
+    class CustomTemplateGenerateRequest(BaseModel):
+        template_id: str  # Custom template ID from practice/templates
+        data: Dict[str, str]
+        include_signature: bool = False
+        include_qr_stamp: bool = False
+        save_to_vault: bool = True
+        client_id: Optional[str] = None
+        case_id: Optional[str] = None
+        folder: str = "Generated Documents"
+    
+    @templates_router.post("/custom/preview")
+    async def preview_custom_template(request: CustomTemplateGenerateRequest, user: dict = Depends(get_current_user)):
+        """Preview a custom template with filled data"""
+        # Fetch the custom template
+        template = await db.templates.find_one(
+            {"id": request.template_id},
+            {"_id": 0}
+        )
+        if not template:
+            raise HTTPException(status_code=404, detail="Custom template not found")
+        
+        # Check ownership or public access
+        if template.get("advocate_id") != user["id"] and not template.get("is_public"):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Fill placeholders in content
+        content = template.get("content", "")
+        data = {**request.data}
+        
+        # Add default values
+        if "advocate_name" not in data:
+            data["advocate_name"] = user.get("full_name", "")
+        if "date" not in data:
+            data["date"] = datetime.now().strftime("%d %B %Y")
+        
+        for key, value in data.items():
+            content = content.replace(f"{{{{{key}}}}}", str(value))
+        
+        return {
+            "template_name": template["name"],
+            "content": content,
+            "filled_data": data
+        }
+    
+    @templates_router.post("/custom/generate")
+    async def generate_custom_template(request: CustomTemplateGenerateRequest, user: dict = Depends(get_current_user)):
+        """Generate PDF from a custom template"""
+        # Fetch the custom template
+        template = await db.templates.find_one(
+            {"id": request.template_id},
+            {"_id": 0}
+        )
+        if not template:
+            raise HTTPException(status_code=404, detail="Custom template not found")
+        
+        # Check ownership or public access
+        if template.get("advocate_id") != user["id"] and not template.get("is_public"):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Fill placeholders
+        content = template.get("content", "")
+        data = {**request.data}
+        
+        # Add default values
+        if "advocate_name" not in data:
+            data["advocate_name"] = user.get("full_name", "")
+        if "date" not in data:
+            data["date"] = datetime.now().strftime("%d %B %Y")
+        
+        for key, value in data.items():
+            content = content.replace(f"{{{{{key}}}}}", str(value))
+        
+        # Generate PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            topMargin=1*inch,
+            bottomMargin=1*inch,
+            leftMargin=0.75*inch,
+            rightMargin=0.75*inch
+        )
+        
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Title'],
+            fontSize=16,
+            spaceAfter=20,
+            alignment=1
+        )
+        story.append(Paragraph(template["name"], title_style))
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Content - parse HTML-like content
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['Normal'],
+            fontSize=11,
+            leading=16,
+            alignment=4
+        )
+        
+        # Split content by paragraphs and process
+        paragraphs = content.split('\n\n')
+        for para in paragraphs:
+            if para.strip():
+                # Clean up and format
+                para = para.replace('\n', '<br/>')
+                story.append(Paragraph(para, body_style))
+                story.append(Spacer(1, 0.2*inch))
+        
+        # Add signature if requested
+        if request.include_signature:
+            story.append(Spacer(1, 0.5*inch))
+            sig_style = ParagraphStyle('Signature', parent=styles['Normal'], fontSize=10)
+            story.append(Paragraph("_" * 40, sig_style))
+            story.append(Paragraph(f"<b>{user.get('full_name', 'Advocate')}</b>", sig_style))
+            if user.get('roll_number'):
+                story.append(Paragraph(f"Roll No: {user.get('roll_number')}", sig_style))
+        
+        # Build PDF
+        doc.build(story)
+        
+        # Add QR stamp if requested
+        if request.include_qr_stamp:
+            buffer.seek(0)
+            verification_id = f"TLS-CUSTOM-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+            buffer = add_qr_stamp_to_pdf(buffer, verification_id, user)
+        else:
+            verification_id = None
+        
+        buffer.seek(0)
+        pdf_content = buffer.read()
+        
+        # Save document record
+        doc_id = str(uuid.uuid4())
+        doc_record = {
+            "id": doc_id,
+            "advocate_id": user["id"],
+            "template_id": f"custom:{request.template_id}",
+            "template_name": template["name"],
+            "data": data,
+            "include_signature": request.include_signature,
+            "include_qr_stamp": request.include_qr_stamp,
+            "verification_id": verification_id,
+            "client_id": request.client_id,
+            "case_id": request.case_id,
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.generated_documents.insert_one(doc_record)
+        
+        # Auto-save to vault
+        if request.save_to_vault:
+            vault_doc = {
+                "id": str(uuid.uuid4()),
+                "advocate_id": user["id"],
+                "name": f"{template['name']} - {datetime.now().strftime('%Y-%m-%d')}",
+                "original_filename": f"custom_{request.template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                "description": f"Generated from custom template: {template['name']}",
+                "folder": request.folder,
+                "tags": ["generated", "custom", template.get("category", "other")],
+                "client_id": request.client_id,
+                "case_id": request.case_id,
+                "file_type": "application/pdf",
+                "file_size": len(pdf_content),
+                "file_hash": hashlib.sha256(pdf_content).hexdigest(),
+                "file_data": base64.b64encode(pdf_content).decode('utf-8'),
+                "generated_doc_id": doc_id,
+                "verification_id": verification_id,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.vault_documents.insert_one(vault_doc)
+        
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=custom_{request.template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                "X-Document-Id": doc_id,
+                "X-Verification-Id": verification_id or ""
+            }
+        )
+    
     @templates_router.post("/share")
     async def share_document(request: ShareDocumentRequest, user: dict = Depends(get_current_user)):
         """Share a generated document"""
