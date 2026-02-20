@@ -900,4 +900,102 @@ def create_templates_routes(db, get_current_user):
             "filled_data": data
         }
     
+    @templates_router.post("/share")
+    async def share_document(request: ShareDocumentRequest, user: dict = Depends(get_current_user)):
+        """Share a generated document"""
+        # Find the document
+        doc = await db.generated_documents.find_one(
+            {"id": request.document_id, "advocate_id": user["id"]},
+            {"_id": 0}
+        )
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Get vault document for the PDF
+        vault_doc = await db.vault_documents.find_one(
+            {"generated_doc_id": request.document_id, "advocate_id": user["id"]}
+        )
+        
+        share_record = {
+            "id": str(uuid.uuid4()),
+            "document_id": request.document_id,
+            "advocate_id": user["id"],
+            "share_via": request.share_via,
+            "recipient_email": request.recipient_email,
+            "recipient_phone": request.recipient_phone,
+            "message": request.message,
+            "verification_id": doc.get("verification_id"),
+            "shared_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Generate a secure share link
+        share_token = str(uuid.uuid4())
+        share_record["share_token"] = share_token
+        share_record["share_link"] = f"https://tls.or.tz/shared/{share_token}"
+        
+        await db.document_shares.insert_one(share_record)
+        
+        # TODO: If email sharing is requested, send via Resend
+        # For now, return the share link
+        
+        return {
+            "success": True,
+            "share_link": share_record["share_link"],
+            "share_token": share_token,
+            "verification_id": doc.get("verification_id"),
+            "message": f"Document ready to share via {request.share_via}"
+        }
+    
+    @templates_router.get("/shared/{share_token}")
+    async def get_shared_document(share_token: str):
+        """Public endpoint to view/download a shared document"""
+        share_record = await db.document_shares.find_one(
+            {"share_token": share_token},
+            {"_id": 0}
+        )
+        if not share_record:
+            raise HTTPException(status_code=404, detail="Shared document not found or link expired")
+        
+        # Get the vault document
+        vault_doc = await db.vault_documents.find_one(
+            {"generated_doc_id": share_record["document_id"]}
+        )
+        if not vault_doc:
+            raise HTTPException(status_code=404, detail="Document file not found")
+        
+        # Return document info (not the file itself for security - user must click download)
+        return {
+            "document_name": vault_doc.get("name"),
+            "verification_id": share_record.get("verification_id"),
+            "shared_by": share_record.get("advocate_id"),
+            "shared_at": share_record.get("shared_at"),
+            "download_available": True
+        }
+    
+    @templates_router.get("/shared/{share_token}/download")
+    async def download_shared_document(share_token: str):
+        """Download a shared document"""
+        share_record = await db.document_shares.find_one(
+            {"share_token": share_token},
+            {"_id": 0}
+        )
+        if not share_record:
+            raise HTTPException(status_code=404, detail="Shared document not found or link expired")
+        
+        # Get the vault document
+        vault_doc = await db.vault_documents.find_one(
+            {"generated_doc_id": share_record["document_id"]}
+        )
+        if not vault_doc:
+            raise HTTPException(status_code=404, detail="Document file not found")
+        
+        file_data = base64.b64decode(vault_doc["file_data"])
+        return Response(
+            content=file_data,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={vault_doc['original_filename']}"
+            }
+        )
+    
     return templates_router
