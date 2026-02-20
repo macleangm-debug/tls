@@ -928,45 +928,6 @@ const DocumentsTab = ({ token }) => {
           <p className="text-white/30 text-sm mt-1">Upload documents or generate from templates</p>
         </div>
       )}
-
-      {/* Share Modal */}
-      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-        <DialogContent className="bg-[#0a0d14] border-white/10 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-white">Share Document</DialogTitle>
-            <DialogDescription className="text-white/60">
-              {selectedDoc?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {shareLink ? (
-              <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
-                <p className="text-xs text-white/60 mb-2">Share Link:</p>
-                <div className="flex items-center gap-2">
-                  <Input value={shareLink} readOnly className="bg-white/5 border-white/10 text-white text-sm flex-1" />
-                  <Button size="sm" onClick={() => { navigator.clipboard.writeText(shareLink); toast.success("Copied!"); }} className="bg-emerald-600">
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="border-white/20 text-white" onClick={() => handleDownload(selectedDoc)}>
-                  <Download className="w-4 h-4 mr-2" /> Download & Share
-                </Button>
-                <Button variant="outline" className="border-white/20 text-white" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Document: ${selectedDoc?.name}`)}`, '_blank')}>
-                  <Phone className="w-4 h-4 mr-2" /> WhatsApp
-                </Button>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowShareModal(false); setShareLink(""); setSelectedDoc(null); }} className="border-white/20 text-white">
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
