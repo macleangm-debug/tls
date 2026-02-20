@@ -6446,6 +6446,86 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
+# =============== CSRF PROTECTION MIDDLEWARE ===============
+
+# CSRF token store (in production, use Redis or database)
+csrf_tokens = {}
+
+def generate_csrf_token() -> str:
+    """Generate a secure CSRF token"""
+    return secrets.token_urlsafe(32)
+
+def validate_csrf_token(session_id: str, token: str) -> bool:
+    """Validate CSRF token for a session"""
+    stored_token = csrf_tokens.get(session_id)
+    if not stored_token:
+        return False
+    return secrets.compare_digest(stored_token, token)
+
+# Endpoints that don't require CSRF protection
+CSRF_EXEMPT_PATHS = [
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/refresh",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/verify-email",
+    "/api/verify",
+    "/api/public",
+    "/api/templates/shared",  # Public shared document access
+    "/api/institutional/login",
+    "/api/admin/login",
+    "/health",
+    "/docs",
+    "/openapi.json",
+]
+
+# Methods that require CSRF protection (state-changing)
+CSRF_PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"]
+
+class CSRFMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Skip CSRF for safe methods
+        if request.method not in CSRF_PROTECTED_METHODS:
+            return await call_next(request)
+        
+        # Skip CSRF for exempt paths
+        path = request.url.path
+        for exempt_path in CSRF_EXEMPT_PATHS:
+            if path.startswith(exempt_path):
+                return await call_next(request)
+        
+        # Get session ID from JWT token (if present)
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            # No auth, let the endpoint handle it
+            return await call_next(request)
+        
+        try:
+            token = auth_header.split(" ")[1]
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            session_id = payload.get("jti") or payload.get("sub")  # Use JWT ID or subject as session
+        except (JWTError, IndexError):
+            # Invalid token, let the endpoint handle it
+            return await call_next(request)
+        
+        # Validate CSRF token
+        csrf_token = request.headers.get("X-CSRF-Token", "")
+        
+        if not csrf_token:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "CSRF token missing", "error_code": "CSRF_MISSING"}
+            )
+        
+        if not validate_csrf_token(session_id, csrf_token):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Invalid CSRF token", "error_code": "CSRF_INVALID"}
+            )
+        
+        return await call_next(request)
+
 # Rate limit exceeded handler
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
