@@ -820,23 +820,57 @@ def create_templates_routes(db, get_current_user):
         buffer.seek(0)
         
         # Save document record
+        doc_id = str(uuid.uuid4())
+        verification_id = f"TLS-DOC-{datetime.now().strftime('%Y%m%d')}-{doc_id[:8].upper()}"
+        pdf_content = buffer.read()
+        buffer.seek(0)
+        
         doc_record = {
-            "id": str(uuid.uuid4()),
+            "id": doc_id,
             "advocate_id": user["id"],
             "template_id": request.template_id,
             "template_name": template["name"],
             "data": data,
             "include_signature": request.include_signature,
             "include_qr_stamp": request.include_qr_stamp,
+            "verification_id": verification_id,
+            "client_id": request.client_id,
+            "case_id": request.case_id,
             "generated_at": datetime.now(timezone.utc).isoformat()
         }
         await db.generated_documents.insert_one(doc_record)
         
+        # Auto-save to vault if requested
+        if request.save_to_vault:
+            import hashlib
+            vault_doc = {
+                "id": str(uuid.uuid4()),
+                "advocate_id": user["id"],
+                "name": f"{template['name']} - {datetime.now().strftime('%Y-%m-%d')}",
+                "original_filename": f"{request.template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                "description": f"Generated from {template['name']} template",
+                "folder": request.folder,
+                "tags": ["generated", template["category"], request.template_id],
+                "client_id": request.client_id,
+                "case_id": request.case_id,
+                "file_type": "application/pdf",
+                "file_size": len(pdf_content),
+                "file_hash": hashlib.sha256(pdf_content).hexdigest(),
+                "file_data": base64.b64encode(pdf_content).decode('utf-8'),
+                "generated_doc_id": doc_id,
+                "verification_id": verification_id,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.vault_documents.insert_one(vault_doc)
+        
         return Response(
-            content=buffer.read(),
+            content=pdf_content,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename={request.template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                "Content-Disposition": f"attachment; filename={request.template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                "X-Document-Id": doc_id,
+                "X-Verification-Id": verification_id
             }
         )
     
