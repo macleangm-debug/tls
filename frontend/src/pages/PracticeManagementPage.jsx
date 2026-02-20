@@ -749,19 +749,68 @@ const DocumentsTab = ({ token }) => {
 
   const handleShare = async (doc) => {
     setSelectedDoc(doc);
-    if (doc.generated_doc_id) {
-      // This is a generated document, get share link
-      try {
-        const response = await axios.post(`${API}/api/templates/share`, {
-          document_id: doc.generated_doc_id,
-          share_via: 'link'
-        }, { headers });
-        setShareLink(response.data.share_link);
-      } catch (error) {
-        toast.error("Failed to generate share link");
+    // Download the document to share
+    try {
+      const response = await axios.get(`${API}/api/practice/documents/${doc.id}/download`, {
+        headers,
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data], { type: doc.file_type || 'application/pdf' });
+      const file = new File([blob], doc.original_filename || doc.name, { type: doc.file_type || 'application/pdf' });
+      
+      // Check if Web Share API supports file sharing
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: doc.name,
+          text: 'Document from TLS Portal'
+        });
+        toast.success("Document shared!");
+      } else {
+        // Fallback: Download the file
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = doc.original_filename || doc.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.info("Document downloaded. Share it manually via WhatsApp or email.");
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        toast.error("Failed to share document");
       }
     }
-    setShowShareModal(true);
+  };
+
+  const handleShareWhatsApp = async (doc) => {
+    try {
+      const response = await axios.get(`${API}/api/practice/documents/${doc.id}/download`, {
+        headers,
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data], { type: doc.file_type || 'application/pdf' });
+      const file = new File([blob], doc.original_filename || doc.name, { type: doc.file_type || 'application/pdf' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: doc.name,
+          text: 'Document from TLS Portal'
+        });
+        toast.success("Document shared!");
+      } else {
+        handleDownload(doc);
+        toast.info("Document downloaded. Please attach in WhatsApp manually.");
+        window.open('https://wa.me/', '_blank');
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        toast.error("Failed to share");
+      }
+    }
   };
 
   const handleDelete = async (doc) => {
