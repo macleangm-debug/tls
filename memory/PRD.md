@@ -26,6 +26,9 @@ Implemented a comprehensive document generation system allowing advocates to cre
 - **Digital Signature**: Use saved signature, or type/draw a new one
 - **PDF Generation**: Professional PDF output using ReportLab library
 - **Document History**: Track all generated documents per advocate
+- **Auto-Save to Vault**: Generated documents automatically saved to Document Vault (2026-02-20)
+- **Client/Case Linking**: Link generated documents to specific clients and cases (2026-02-20)
+- **Document Sharing**: Generate shareable links for documents (2026-02-20)
 
 ### New Files
 - `/app/backend/document_templates.py` - Template definitions, PDF generation, API routes
@@ -35,22 +38,52 @@ Implemented a comprehensive document generation system allowing advocates to cre
 - `GET /history` - Get advocate's document generation history
 - `GET /{template_id}` - Get specific template details
 - `POST /preview` - Generate HTML preview with filled placeholders
-- `POST /generate` - Generate and download PDF document
+- `POST /generate` - Generate and download PDF document (with save_to_vault, client_id, case_id)
+- `POST /share` - Generate shareable link for a document
+- `GET /shared/{token}` - Access shared document info (public)
+- `GET /shared/{token}/download` - Download shared document (public)
 
 ### Frontend Components
 - `DocumentGeneratorTab` in `/app/frontend/src/pages/PracticeManagementPage.jsx`
 - New "Doc Generator" tab in Practice Management (highlighted in green)
+- Client/Case linking dropdowns
+- Auto-save to vault toggle (enabled by default)
+- Share modal after document generation
 
 ### MongoDB Collections
 - `generated_documents` - Stores document generation history (advocate_id, template_info, filled_data, timestamps)
+- `document_shares` - Stores document share records (share_token, document_id, recipient info)
 
-### Template Categories
-- `authorization` - Power of Attorney
-- `sworn_statement` - Affidavit
-- `notice` - Legal Notice, Demand Letter
-- `contract` - Service Agreement, Sale Agreement, Lease Agreement
-- `court` - Court Filing, Witness Statement
-- `estate` - Last Will and Testament
+---
+
+## Practice Management Full CRUD (2026-02-20)
+
+### Enhanced Practice Management Modules
+Full CRUD operations now available for all Practice Management modules:
+
+### Clients CRUD
+- Create, read, update, delete clients
+- Search and filter by client type
+- View single client with related cases, documents, invoices
+
+### Cases/Matters CRUD
+- Create cases linked to clients (validates client exists)
+- Update case status, priority, billing info
+- View single case with all related data (documents, tasks, events, invoices, expenses)
+
+### Documents Vault (Enhanced)
+- Upload documents with folder organization
+- Search documents by name/description
+- Filter by folder
+- Download documents
+- Delete documents
+- **NEW**: Shows generated documents with "Generated" and "Verified" badges
+- **NEW**: Inline download, share, and delete actions
+
+### Document-to-Vault Integration
+- Generated documents automatically saved to vault
+- Documents can be linked to clients and cases
+- Verification ID stored with document for QR verification
 
 ---
 
