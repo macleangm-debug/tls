@@ -1921,6 +1921,80 @@ const DocumentGeneratorTab = ({ token }) => {
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="bg-[#0a0d14] border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Send className="w-5 h-5 text-emerald-500" />
+              Document Generated Successfully!
+            </DialogTitle>
+            <DialogDescription className="text-white/60">
+              Your document has been generated{saveToVault ? ' and saved to your vault' : ''}. Would you like to share it?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {shareLink ? (
+              <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
+                <p className="text-xs text-white/60 mb-2">Share Link:</p>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={shareLink} 
+                    readOnly 
+                    className="bg-white/5 border-white/10 text-white text-sm flex-1"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={() => { navigator.clipboard.writeText(shareLink); toast.success("Link copied!"); }}
+                    className="bg-emerald-600"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                <Button 
+                  variant="outline" 
+                  className="border-white/20 text-white flex-col h-auto py-4 hover:bg-white/10"
+                  onClick={() => handleShare('link')}
+                  disabled={sharing}
+                  data-testid="share-link-btn"
+                >
+                  <Copy className="w-6 h-6 mb-2" />
+                  <span className="text-xs">Copy Link</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-white/20 text-white flex-col h-auto py-4 hover:bg-emerald-500/20"
+                  onClick={() => handleShare('whatsapp')}
+                  disabled={sharing}
+                  data-testid="share-whatsapp-btn"
+                >
+                  <Phone className="w-6 h-6 mb-2 text-emerald-500" />
+                  <span className="text-xs">WhatsApp</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-white/20 text-white flex-col h-auto py-4 hover:bg-blue-500/20"
+                  onClick={() => handleShare('email')}
+                  disabled={sharing}
+                  data-testid="share-email-btn"
+                >
+                  <Mail className="w-6 h-6 mb-2 text-blue-500" />
+                  <span className="text-xs">Email</span>
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowShareModal(false); setShareLink(""); }} className="border-white/20 text-white">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
