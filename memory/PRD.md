@@ -56,6 +56,37 @@ Implemented a comprehensive document generation system allowing advocates to cre
 
 ---
 
+## Custom Template Creation (2026-02-20)
+
+### Feature: Create Your Own Document Templates
+Advocates can now create custom reusable document templates with placeholders.
+
+**Features:**
+- Create templates with `{{placeholder}}` syntax
+- 10 common placeholders available as buttons: client_name, client_address, client_phone, client_email, advocate_name, date, case_number, court_name, amount, witness_name
+- Preview templates before saving
+- Edit and delete existing templates
+- Generate PDFs from custom templates with:
+  - Optional digital signature
+  - Optional QR verification stamp
+  - Auto-save to document vault
+
+**API Endpoints:**
+- `GET /api/practice/templates` - List custom templates
+- `POST /api/practice/templates` - Create template
+- `PUT /api/practice/templates/{id}` - Update template
+- `DELETE /api/practice/templates/{id}` - Delete template
+- `POST /api/templates/custom/preview` - Preview with filled data
+- `POST /api/templates/custom/generate` - Generate PDF from custom template
+
+**Frontend:**
+- Templates tab in Practice Management
+- Create Template form with placeholder insertion buttons
+- Use Template modal for generating documents
+- Edit/Delete functionality per template
+
+---
+
 ## Document Sharing (Updated 2026-02-20)
 
 ### Direct Document Sharing
