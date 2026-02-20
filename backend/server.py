@@ -6535,6 +6535,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 # Add middlewares in correct order
+app.add_middleware(CSRFMiddleware)  # CSRF protection
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(SlowAPIMiddleware)
 
