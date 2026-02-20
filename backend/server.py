@@ -1437,12 +1437,30 @@ async def login(request: Request, data: AdvocateLogin):
     # Check if password reset is required (for default accounts)
     force_password_reset = user.get("force_password_reset", False)
     
-    token = create_access_token({"sub": user["id"], "role": user.get("role", "advocate")})
+    # Generate JWT with a unique ID for CSRF token binding
+    jti = str(uuid.uuid4())  # JWT ID for session identification
+    token = create_access_token({"sub": user["id"], "role": user.get("role", "advocate"), "jti": jti})
     
-    # Return user info with token
+    # Generate CSRF token and store it
+    csrf_token = generate_csrf_token()
+    csrf_tokens[jti] = csrf_token
+    
+    # Clean up old CSRF tokens (keep last 1000 per simple cleanup)
+    if len(csrf_tokens) > 1000:
+        # Remove oldest entries (simple cleanup - in production use Redis with TTL)
+        keys_to_remove = list(csrf_tokens.keys())[:-500]
+        for key in keys_to_remove:
+            csrf_tokens.pop(key, None)
+    
+    # Return user info with token and CSRF token
     user_data = {k: v for k, v in user.items() if k not in ["_id", "password_hash", "verification_token", "verification_token_expires"]}
     user_data["force_password_reset"] = force_password_reset
-    return {"access_token": token, "token_type": "bearer", "user": user_data}
+    return {
+        "access_token": token, 
+        "token_type": "bearer", 
+        "user": user_data,
+        "csrf_token": csrf_token  # Include CSRF token in response
+    }
 
 @api_router.get("/auth/me")
 async def get_me(user: dict = Depends(get_current_user)):
