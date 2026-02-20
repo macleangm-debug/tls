@@ -1691,6 +1691,41 @@ const DocumentGeneratorTab = ({ token }) => {
                     </div>
                   ))}
                 </div>
+
+                {/* Client & Case Linking Section */}
+                <div className="pt-4 border-t border-white/10 mt-4">
+                  <p className="text-sm text-white/60 font-medium mb-3">Link Document (Optional)</p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs text-white/60">Link to Client</label>
+                      <select
+                        value={selectedClientId}
+                        onChange={(e) => setSelectedClientId(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm"
+                        data-testid="client-select"
+                      >
+                        <option value="">-- No Client --</option>
+                        {clients.map(client => (
+                          <option key={client.id} value={client.id}>{client.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-white/60">Link to Case</label>
+                      <select
+                        value={selectedCaseId}
+                        onChange={(e) => setSelectedCaseId(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm"
+                        data-testid="case-select"
+                      >
+                        <option value="">-- No Case --</option>
+                        {cases.map(c => (
+                          <option key={c.id} value={c.id}>{c.title} ({c.reference})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
