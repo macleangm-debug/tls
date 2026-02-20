@@ -1600,12 +1600,17 @@ const DocumentGeneratorTab = ({ token }) => {
       const verificationId = response.headers['x-verification-id'];
       setLastGeneratedDocId(docId);
       
-      // Download the PDF
+      // Store the PDF blob for sharing
       const blob = new Blob([response.data], { type: 'application/pdf' });
+      const fileName = `${selectedTemplate.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      setLastGeneratedPdf(blob);
+      setLastGeneratedFileName(fileName);
+      
+      // Download the PDF
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${selectedTemplate.id}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1623,28 +1628,51 @@ const DocumentGeneratorTab = ({ token }) => {
     }
   };
 
-  // Share document
-  const handleShare = async (method) => {
-    if (!lastGeneratedDocId) return;
+  // Download the last generated PDF again
+  const handleDownloadAgain = () => {
+    if (!lastGeneratedPdf) return;
+    const url = window.URL.createObjectURL(lastGeneratedPdf);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = lastGeneratedFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    toast.success("Document downloaded!");
+  };
+
+  // Share via WhatsApp using Web Share API
+  const handleShareWhatsApp = async () => {
+    if (!lastGeneratedPdf) {
+      toast.error("No document to share");
+      return;
+    }
     
     setSharing(true);
     try {
-      const response = await axios.post(`${API}/api/templates/share`, {
-        document_id: lastGeneratedDocId,
-        share_via: method,
-        recipient_email: shareEmail || null
-      }, { headers });
+      // Create a File object from the blob
+      const file = new File([lastGeneratedPdf], lastGeneratedFileName, { type: 'application/pdf' });
       
-      setShareLink(response.data.share_link);
-      
-      if (method === 'link') {
-        navigator.clipboard.writeText(response.data.share_link);
-        toast.success("Share link copied to clipboard!");
-      } else if (method === 'whatsapp') {
-        window.open(`https://wa.me/?text=${encodeURIComponent(`Document: ${response.data.share_link}`)}`, '_blank');
+      // Check if Web Share API supports file sharing
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: lastGeneratedFileName,
+          text: 'Legal document from TLS Portal'
+        });
+        toast.success("Document shared!");
+      } else {
+        // Fallback: Download first, then open WhatsApp
+        handleDownloadAgain();
+        toast.info("Document downloaded. Please attach it manually in WhatsApp.");
+        window.open('https://wa.me/', '_blank');
       }
     } catch (error) {
-      toast.error("Failed to generate share link");
+      if (error.name !== 'AbortError') {
+        // User cancelled share is not an error
+        toast.error("Failed to share document");
+      }
     } finally {
       setSharing(false);
     }
