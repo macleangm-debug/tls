@@ -1485,12 +1485,29 @@ async def login(request: Request, data: AdvocateLogin):
     # Return user info with token and CSRF token
     user_data = {k: v for k, v in user.items() if k not in ["_id", "password_hash", "verification_token", "verification_token_expires"]}
     user_data["force_password_reset"] = force_password_reset
-    return {
-        "access_token": token, 
+    
+    # Create response with HttpOnly cookie
+    response_data = {
+        "access_token": token,  # Still return token for backward compatibility
         "token_type": "bearer", 
         "user": user_data,
-        "csrf_token": csrf_token  # Include CSRF token in response
+        "csrf_token": csrf_token
     }
+    
+    response = JSONResponse(content=response_data)
+    
+    # Set HttpOnly cookie with JWT
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=COOKIE_HTTPONLY,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/"
+    )
+    
+    return response
 
 @api_router.get("/auth/me")
 async def get_me(user: dict = Depends(get_current_user)):
