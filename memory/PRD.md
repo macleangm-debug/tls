@@ -528,10 +528,11 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 ## Backlog
 
 ### Completed (2026-02-20)
+- [x] Custom Template Creation (advocates create their own templates with placeholders)
 - [x] Document Template Generation (10 legal templates with PDF generation)
 - [x] Document Generator connected to Document Vault (auto-save)
 - [x] Client/Case linking for generated documents
-- [x] Document sharing workflow (generate share links)
+- [x] Document sharing workflow (download + WhatsApp direct share)
 - [x] Practice Management Full CRUD (Clients, Cases, Documents)
 - [x] Enhanced Documents tab with search, download, share, delete
 
