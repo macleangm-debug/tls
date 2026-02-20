@@ -560,6 +560,7 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 ## Backlog
 
 ### Completed (2026-02-20)
+- [x] CSRF Protection (middleware + frontend integration)
 - [x] Custom Template Creation (advocates create their own templates with placeholders)
 - [x] Document Template Generation (10 legal templates with PDF generation)
 - [x] Document Generator connected to Document Vault (auto-save)
@@ -575,8 +576,7 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 - [x] Login Attempt Logging
 
 ### Future Features
-- [ ] JWT to HttpOnly Cookies migration
-- [ ] CSRF Protection implementation
+- [ ] JWT to HttpOnly Cookies migration (more secure against XSS)
 - [ ] Batch document stamping
 - [ ] Full offline verification
 - [ ] Quick stamp mode
