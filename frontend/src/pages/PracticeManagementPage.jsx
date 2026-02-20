@@ -1452,11 +1452,19 @@ const DocumentGeneratorTab = ({ token }) => {
         template_id: selectedTemplate.id,
         data: formData,
         include_signature: includeSignature,
-        include_qr_stamp: includeQrStamp
+        include_qr_stamp: includeQrStamp,
+        save_to_vault: saveToVault,
+        client_id: selectedClientId || null,
+        case_id: selectedCaseId || null
       }, { 
         headers,
         responseType: 'blob'
       });
+      
+      // Get document ID from response headers
+      const docId = response.headers['x-document-id'];
+      const verificationId = response.headers['x-verification-id'];
+      setLastGeneratedDocId(docId);
       
       // Download the PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -1469,12 +1477,42 @@ const DocumentGeneratorTab = ({ token }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success("Document generated and downloaded!");
+      toast.success(saveToVault ? "Document generated, saved to vault, and downloaded!" : "Document generated and downloaded!");
       fetchHistory();
+      
+      // Show share modal option
+      setShowShareModal(true);
     } catch (error) {
       toast.error("Failed to generate document");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // Share document
+  const handleShare = async (method) => {
+    if (!lastGeneratedDocId) return;
+    
+    setSharing(true);
+    try {
+      const response = await axios.post(`${API}/api/templates/share`, {
+        document_id: lastGeneratedDocId,
+        share_via: method,
+        recipient_email: shareEmail || null
+      }, { headers });
+      
+      setShareLink(response.data.share_link);
+      
+      if (method === 'link') {
+        navigator.clipboard.writeText(response.data.share_link);
+        toast.success("Share link copied to clipboard!");
+      } else if (method === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(`Document: ${response.data.share_link}`)}`, '_blank');
+      }
+    } catch (error) {
+      toast.error("Failed to generate share link");
+    } finally {
+      setSharing(false);
     }
   };
 
