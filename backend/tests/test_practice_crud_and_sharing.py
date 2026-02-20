@@ -16,41 +16,28 @@ TEST_EMAIL = "test@tls.or.tz"
 TEST_PASSWORD = "Test@12345678!"
 
 
-class TestAuthentication:
-    """Login to get auth token"""
-    
-    @pytest.fixture(scope="class")
-    def auth_token(self):
-        """Get authentication token for all tests"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        assert response.status_code == 200, f"Login failed: {response.text}"
-        data = response.json()
-        assert "access_token" in data
-        return data["access_token"]
-    
-    def test_login_success(self, auth_token):
-        """Test that we can login successfully"""
-        assert auth_token is not None
-        print(f"✅ Login successful, token obtained")
+# Use session-scoped token to avoid rate limiting
+@pytest.fixture(scope="session")
+def session_token():
+    """Get authentication token once for all tests"""
+    time.sleep(2)  # Wait to avoid rate limit
+    response = requests.post(f"{BASE_URL}/api/auth/login", json={
+        "email": TEST_EMAIL,
+        "password": TEST_PASSWORD
+    })
+    assert response.status_code == 200, f"Login failed: {response.text}"
+    data = response.json()
+    assert "access_token" in data
+    return data["access_token"]
+
+
+@pytest.fixture(scope="session")
+def headers(session_token):
+    return {"Authorization": f"Bearer {session_token}"}
 
 
 class TestClientsCRUD:
     """Test Clients CRUD operations"""
-    
-    @pytest.fixture(scope="class")
-    def auth_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        return response.json()["access_token"]
-    
-    @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        return {"Authorization": f"Bearer {auth_token}"}
     
     def test_get_clients_list(self, headers):
         """GET /api/practice/clients - List all clients"""
@@ -79,7 +66,9 @@ class TestClientsCRUD:
         assert data["name"] == client_data["name"]
         assert data["client_type"] == "corporate"
         print(f"✅ POST /api/practice/clients - Created client ID: {data['id']}")
-        return data["id"]
+        
+        # Cleanup
+        requests.delete(f"{BASE_URL}/api/practice/clients/{data['id']}", headers=headers)
     
     def test_get_single_client_with_related_data(self, headers):
         """GET /api/practice/clients/{id} - Get single client with related data"""
@@ -142,18 +131,6 @@ class TestClientsCRUD:
 
 class TestCasesCRUD:
     """Test Cases CRUD operations"""
-    
-    @pytest.fixture(scope="class")
-    def auth_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        return response.json()["access_token"]
-    
-    @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        return {"Authorization": f"Bearer {auth_token}"}
     
     @pytest.fixture(scope="class")
     def test_client(self, headers):
@@ -236,18 +213,6 @@ class TestCasesCRUD:
 
 class TestDocumentsVault:
     """Test Documents Vault CRUD operations"""
-    
-    @pytest.fixture(scope="class")
-    def auth_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        return response.json()["access_token"]
-    
-    @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        return {"Authorization": f"Bearer {auth_token}"}
     
     def test_get_documents_list(self, headers):
         """GET /api/practice/documents - List all documents"""
@@ -337,18 +302,6 @@ class TestDocumentGeneratorVaultIntegration:
     """Test Document Generator with save_to_vault and client/case linking"""
     
     @pytest.fixture(scope="class")
-    def auth_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        return response.json()["access_token"]
-    
-    @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        return {"Authorization": f"Bearer {auth_token}"}
-    
-    @pytest.fixture(scope="class")
     def test_client_and_case(self, headers):
         """Create test client and case"""
         # Create client
@@ -402,14 +355,7 @@ class TestDocumentGeneratorVaultIntegration:
             "search": "Legal Notice"
         })
         assert vault_response.status_code == 200
-        vault_docs = vault_response.json()["documents"]
-        
-        # Find our generated document
-        generated_docs = [d for d in vault_docs if d.get("generated_doc_id") == doc_id]
-        assert len(generated_docs) >= 0  # May be 0 if search doesn't match exactly
         print(f"✅ Document saved to vault - client_id/case_id linking verified")
-        
-        return doc_id
     
     def test_generate_document_with_client_case_linking(self, headers, test_client_and_case):
         """Verify client_id and case_id are stored with generated document"""
@@ -431,18 +377,6 @@ class TestDocumentGeneratorVaultIntegration:
 
 class TestDocumentSharing:
     """Test document sharing workflow"""
-    
-    @pytest.fixture(scope="class")
-    def auth_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        return response.json()["access_token"]
-    
-    @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        return {"Authorization": f"Bearer {auth_token}"}
     
     @pytest.fixture(scope="class")
     def generated_document(self, headers):
@@ -472,7 +406,6 @@ class TestDocumentSharing:
         assert "share_token" in data
         assert "tls.or.tz/shared" in data["share_link"]
         print(f"✅ POST /api/templates/share - Share link generated: {data['share_link']}")
-        return data["share_token"]
     
     def test_access_shared_document(self, headers, generated_document):
         """GET /api/templates/shared/{token} - Access shared document info"""
@@ -514,18 +447,6 @@ class TestDocumentSharing:
 
 class TestCleanup:
     """Cleanup test data"""
-    
-    @pytest.fixture(scope="class")
-    def auth_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
-        return response.json()["access_token"]
-    
-    @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        return {"Authorization": f"Bearer {auth_token}"}
     
     def test_cleanup_test_clients(self, headers):
         """Delete all TEST_ prefixed clients"""
