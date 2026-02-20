@@ -975,7 +975,7 @@ def create_templates_routes(db, get_current_user):
             content = content.replace(f"{{{{{key}}}}}", str(value))
         
         # Generate PDF
-        buffer = BytesIO()
+        buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
             pagesize=A4,
