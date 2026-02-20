@@ -56,6 +56,38 @@ Implemented a comprehensive document generation system allowing advocates to cre
 
 ---
 
+## CSRF Protection (2026-02-20)
+
+### Security Feature: Cross-Site Request Forgery Protection
+Implemented comprehensive CSRF protection to prevent malicious cross-site requests.
+
+**How it works:**
+1. Login generates a unique CSRF token tied to the JWT session
+2. Token returned in login response and stored in frontend localStorage
+3. Axios interceptor automatically adds `X-CSRF-Token` header to all requests
+4. Backend middleware validates token on all state-changing requests (POST, PUT, DELETE, PATCH)
+
+**Protected:**
+- All document generation/deletion
+- All client/case management
+- All profile updates
+- All payment actions
+
+**Exempt Paths (no CSRF required):**
+- `/api/auth/login`, `/api/auth/register`, `/api/auth/forgot-password`
+- `/api/public/*`, `/api/templates/shared/*`
+- `/health`, `/docs`
+
+**Error Responses:**
+- Missing token: `{"detail": "CSRF token missing", "error_code": "CSRF_MISSING"}`
+- Invalid token: `{"detail": "Invalid CSRF token", "error_code": "CSRF_INVALID"}`
+
+**Files Modified:**
+- `backend/server.py` - CSRFMiddleware class, login endpoint updated
+- `frontend/src/context/AuthContext.js` - Token storage and axios interceptor
+
+---
+
 ## Custom Template Creation (2026-02-20)
 
 ### Feature: Create Your Own Document Templates
