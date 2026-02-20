@@ -71,9 +71,9 @@ class TestCSRFProtection:
         """Test that POST request WITHOUT X-CSRF-Token header returns 403"""
         access_token = auth_session["access_token"]
         
-        # Make POST request to a protected endpoint WITHOUT CSRF token
+        # Make PUT request to a protected endpoint WITHOUT CSRF token
         response = requests.put(
-            f"{BASE_URL}/api/advocates/me",
+            f"{BASE_URL}/api/profile",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 # No X-CSRF-Token header
@@ -97,9 +97,9 @@ class TestCSRFProtection:
         """Test that POST request WITH invalid X-CSRF-Token returns 403"""
         access_token = auth_session["access_token"]
         
-        # Make POST request with an invalid/fake CSRF token
+        # Make PUT request with an invalid/fake CSRF token
         response = requests.put(
-            f"{BASE_URL}/api/advocates/me",
+            f"{BASE_URL}/api/profile",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "X-CSRF-Token": "fake_invalid_csrf_token_12345"
@@ -124,9 +124,9 @@ class TestCSRFProtection:
         access_token = auth_session["access_token"]
         csrf_token = auth_session["csrf_token"]
         
-        # Make POST request with valid CSRF token
+        # Make PUT request with valid CSRF token to update profile
         response = requests.put(
-            f"{BASE_URL}/api/advocates/me",
+            f"{BASE_URL}/api/profile",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "X-CSRF-Token": csrf_token
@@ -235,7 +235,7 @@ class TestCSRFProtection:
         access_token = auth_session["access_token"]
         
         response = requests.put(
-            f"{BASE_URL}/api/advocates/me",
+            f"{BASE_URL}/api/profile",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 # No X-CSRF-Token
