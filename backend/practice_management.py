@@ -322,8 +322,9 @@ def create_practice_routes(db, get_current_user):
         
         await db.vault_documents.insert_one(document)
         
-        # Return without file_data for response
+        # Return without file_data and _id for response
         document.pop("file_data")
+        document.pop("_id", None)
         return document
     
     @practice_router.get("/documents/{doc_id}")
