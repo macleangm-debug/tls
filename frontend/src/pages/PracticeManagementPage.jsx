@@ -1470,8 +1470,8 @@ const DocumentGeneratorTab = ({ token }) => {
   // Share modal
   const [showShareModal, setShowShareModal] = useState(false);
   const [lastGeneratedDocId, setLastGeneratedDocId] = useState(null);
-  const [shareLink, setShareLink] = useState("");
-  const [shareEmail, setShareEmail] = useState("");
+  const [lastGeneratedPdf, setLastGeneratedPdf] = useState(null); // Store the PDF blob
+  const [lastGeneratedFileName, setLastGeneratedFileName] = useState("");
   const [sharing, setSharing] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
