@@ -6561,6 +6561,7 @@ CSRF_EXEMPT_PATHS = [
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/refresh",
+    "/api/auth/logout",  # Logout doesn't need CSRF (just clears cookie)
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
     "/api/auth/verify-email",
