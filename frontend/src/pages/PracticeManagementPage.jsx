@@ -678,9 +678,6 @@ const DocumentsTab = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState(null);
-  const [shareLink, setShareLink] = useState("");
 
   const headers = { Authorization: `Bearer ${token}` };
 
