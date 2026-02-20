@@ -547,9 +547,12 @@ COOKIE_SECURE = True  # Only send over HTTPS
 COOKIE_HTTPONLY = True  # Not accessible via JavaScript
 COOKIE_SAMESITE = "lax"  # Protect against CSRF while allowing normal navigation
 
+# Make HTTPBearer optional to allow cookie-based auth
+security_optional = HTTPBearer(auto_error=False)
+
 async def get_current_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security_optional)
 ):
     """
     Get current user from JWT token.
