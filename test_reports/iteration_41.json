@@ -1,0 +1,95 @@
+{
+  "summary": "Custom Templates feature fully tested. All 14 backend API tests pass (100%). Frontend UI verified - Templates tab shows custom templates with Use/Edit/Delete buttons, Create Template form has placeholder insertion buttons, Use Template modal shows all placeholder fields dynamically with Include Signature and Include QR Stamp toggles.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "✅ GET /api/practice/templates - List custom templates",
+    "✅ POST /api/practice/templates - Create new template with name, category, content, placeholders",
+    "✅ GET /api/practice/templates/{id} - Get single template with content",
+    "✅ PUT /api/practice/templates/{id} - Update template",
+    "✅ DELETE /api/practice/templates/{id} - Delete template",
+    "✅ POST /api/templates/custom/preview - Preview template with filled placeholders",
+    "✅ POST /api/templates/custom/generate - Generate PDF from custom template",
+    "✅ POST /api/templates/custom/generate with include_signature=true - Includes signature",
+    "✅ POST /api/templates/custom/generate with include_qr_stamp=true - Includes QR stamp with verification ID",
+    "✅ POST /api/templates/custom/generate with both options - Includes both signature and QR",
+    "✅ POST /api/templates/custom/generate with save_to_vault=true - Saves to document vault",
+    "✅ POST /api/templates/custom/generate with invalid template_id - Returns 404",
+    "✅ POST /api/templates/custom/preview with invalid template_id - Returns 404",
+    "✅ Frontend: Templates tab shows custom templates list",
+    "✅ Frontend: Template card shows Use/Edit/Delete buttons",
+    "✅ Frontend: Create Template form appears with name, category, description fields",
+    "✅ Frontend: Insert Placeholder buttons present ({{client_name}}, {{client_address}}, {{advocate_name}}, {{date}}, etc.)",
+    "✅ Frontend: Template Content textarea with placeholder example",
+    "✅ Frontend: Preview button available in create form",
+    "✅ Frontend: Use Template modal shows dynamic placeholder fields",
+    "✅ Frontend: Include Signature toggle present and functional",
+    "✅ Frontend: Include QR Stamp toggle present and functional",
+    "✅ Frontend: Generate PDF button triggers document generation"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_custom_templates.py",
+    "/app/test_reports/pytest/custom_templates_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_custom_templates.py (new test file)"
+  ],
+
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+
+  "seed_data_creation": "Test template 'TEST_Client Engagement Letter' created and deleted during testing. Existing 'Client Engagement Letter' template available with 5 fields.",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Custom templates feature fully implemented. Backend endpoints: GET/POST /api/practice/templates (CRUD), POST /api/templates/custom/preview, POST /api/templates/custom/generate. Frontend component: TemplatesTab in PracticeManagementPage.jsx (lines 1354-1777). Template stores content with {{placeholder}} syntax. Generate endpoint supports include_signature, include_qr_stamp, and save_to_vault options. Existing test template 'Client Engagement Letter' has 5 placeholders.",
+
+  "feature_verification_summary": {
+    "templates_crud": {
+      "list_templates": "PASS",
+      "create_template": "PASS",
+      "get_single_template": "PASS",
+      "update_template": "PASS",
+      "delete_template": "PASS"
+    },
+    "custom_template_generation": {
+      "preview_with_data": "PASS",
+      "generate_pdf": "PASS",
+      "generate_with_signature": "PASS",
+      "generate_with_qr_stamp": "PASS",
+      "generate_with_both_options": "PASS",
+      "save_to_vault": "PASS",
+      "invalid_template_404": "PASS"
+    },
+    "frontend_ui": {
+      "templates_tab": "PASS - Shows custom templates list with Use/Edit/Delete buttons",
+      "create_template_form": "PASS - Name, category, description, placeholder buttons, content textarea, preview button",
+      "use_template_modal": "PASS - Dynamic placeholder fields, Include Signature toggle, Include QR Stamp toggle, Generate PDF button"
+    }
+  },
+
+  "test_credentials": {
+    "email": "test@tls.or.tz",
+    "password": "Test@12345678!",
+    "existing_template_id": "bf06a287-7c4a-42e1-944a-2b397d2f0c78"
+  }
+}
