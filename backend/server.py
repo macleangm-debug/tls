@@ -540,9 +540,39 @@ def create_access_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+# Cookie configuration for HttpOnly JWT
+COOKIE_NAME = "tls_access_token"
+COOKIE_MAX_AGE = ACCESS_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
+COOKIE_SECURE = True  # Only send over HTTPS
+COOKIE_HTTPONLY = True  # Not accessible via JavaScript
+COOKIE_SAMESITE = "lax"  # Protect against CSRF while allowing normal navigation
+
+async def get_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get current user from JWT token.
+    Supports both:
+    1. HttpOnly cookie (preferred, more secure)
+    2. Authorization header (backward compatibility)
+    """
+    token = None
+    
+    # First, try to get token from HttpOnly cookie
+    cookie_token = request.cookies.get(COOKIE_NAME)
+    if cookie_token:
+        token = cookie_token
+    
+    # Fall back to Authorization header if no cookie
+    if not token and credentials and credentials.credentials:
+        token = credentials.credentials
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
