@@ -1325,6 +1325,20 @@ const DocumentGeneratorTab = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const canvasRef = useState(null);
+  
+  // Client/Case linking
+  const [clients, setClients] = useState([]);
+  const [cases, setCases] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedCaseId, setSelectedCaseId] = useState("");
+  const [saveToVault, setSaveToVault] = useState(true);
+  
+  // Share modal
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [lastGeneratedDocId, setLastGeneratedDocId] = useState(null);
+  const [shareLink, setShareLink] = useState("");
+  const [shareEmail, setShareEmail] = useState("");
+  const [sharing, setSharing] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
