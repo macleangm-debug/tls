@@ -677,13 +677,20 @@ const DocumentsTab = ({ token }) => {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [shareLink, setShareLink] = useState("");
 
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchData = async () => {
     try {
+      const params = { folder: selectedFolder };
+      if (searchQuery) params.search = searchQuery;
+      
       const [docsRes, foldersRes] = await Promise.all([
-        axios.get(`${API}/api/practice/documents`, { headers, params: { folder: selectedFolder } }),
+        axios.get(`${API}/api/practice/documents`, { headers, params }),
         axios.get(`${API}/api/practice/folders`, { headers })
       ]);
       setDocuments(docsRes.data.documents);
@@ -695,7 +702,7 @@ const DocumentsTab = ({ token }) => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [selectedFolder]);
+  useEffect(() => { fetchData(); }, [selectedFolder, searchQuery]);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -720,22 +727,88 @@ const DocumentsTab = ({ token }) => {
     }
   };
 
+  const handleDownload = async (doc) => {
+    try {
+      const response = await axios.get(`${API}/api/practice/documents/${doc.id}/download`, {
+        headers,
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data], { type: doc.file_type });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.original_filename || doc.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error("Failed to download document");
+    }
+  };
+
+  const handleShare = async (doc) => {
+    setSelectedDoc(doc);
+    if (doc.generated_doc_id) {
+      // This is a generated document, get share link
+      try {
+        const response = await axios.post(`${API}/api/templates/share`, {
+          document_id: doc.generated_doc_id,
+          share_via: 'link'
+        }, { headers });
+        setShareLink(response.data.share_link);
+      } catch (error) {
+        toast.error("Failed to generate share link");
+      }
+    }
+    setShowShareModal(true);
+  };
+
+  const handleDelete = async (doc) => {
+    if (!window.confirm("Are you sure you want to delete this document?")) return;
+    try {
+      await axios.delete(`${API}/api/practice/documents/${doc.id}`, { headers });
+      toast.success("Document deleted");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to delete document");
+    }
+  };
+
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const getDocIcon = (doc) => {
+    if (doc.generated_doc_id) return <FileCheck className="w-5 h-5 text-emerald-500" />;
+    if (doc.file_type?.includes('pdf')) return <FileText className="w-5 h-5 text-red-500" />;
+    if (doc.file_type?.includes('image')) return <FileArchive className="w-5 h-5 text-blue-500" />;
+    return <FileText className="w-5 h-5 text-teal-500" />;
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-lg font-semibold text-white">Document Vault</h2>
-        <label className="cursor-pointer">
-          <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
-          <Button className="bg-tls-blue-electric" disabled={uploading} asChild>
-            <span><Plus className="w-4 h-4 mr-2" /> {uploading ? 'Uploading...' : 'Upload Document'}</span>
-          </Button>
-        </label>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <Input 
+              placeholder="Search documents..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-white/5 border-white/10 text-white pl-9 w-48"
+            />
+          </div>
+          <label className="cursor-pointer">
+            <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
+            <Button className="bg-tls-blue-electric" disabled={uploading} asChild>
+              <span><Plus className="w-4 h-4 mr-2" /> {uploading ? 'Uploading...' : 'Upload'}</span>
+            </Button>
+          </label>
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -745,7 +818,7 @@ const DocumentsTab = ({ token }) => {
           onClick={() => setSelectedFolder(null)}
           className={!selectedFolder ? "bg-tls-blue-electric" : "border-white/20 text-white"}
         >
-          All Documents
+          All Documents ({documents.length})
         </Button>
         {folders.map((folder) => (
           <Button
@@ -763,17 +836,39 @@ const DocumentsTab = ({ token }) => {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {documents.map((doc) => (
-          <Card key={doc.id} className="glass-card border-white/10 hover:border-white/20 transition-all">
+          <Card key={doc.id} className="glass-card border-white/10 hover:border-white/20 transition-all group">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-teal-500" />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.generated_doc_id ? 'bg-emerald-500/20' : 'bg-teal-500/20'}`}>
+                  {getDocIcon(doc)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-white truncate">{doc.name}</h3>
-                  <p className="text-xs text-white/50">{formatFileSize(doc.file_size)}</p>
-                  <Badge variant="outline" className="text-xs border-white/20 text-white/60 mt-2">{doc.folder}</Badge>
+                  <p className="text-xs text-white/50">{formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}</p>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <Badge variant="outline" className="text-xs border-white/20 text-white/60">{doc.folder}</Badge>
+                    {doc.generated_doc_id && (
+                      <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Generated</Badge>
+                    )}
+                    {doc.verification_id && (
+                      <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                        <QrCode className="w-3 h-3 mr-1" /> Verified
+                      </Badge>
+                    )}
+                  </div>
                 </div>
+              </div>
+              {/* Action buttons - show on hover */}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button size="sm" variant="ghost" className="flex-1 h-8 text-white/70 hover:text-white hover:bg-white/10" onClick={() => handleDownload(doc)}>
+                  <Download className="w-3 h-3 mr-1" /> Download
+                </Button>
+                <Button size="sm" variant="ghost" className="flex-1 h-8 text-white/70 hover:text-white hover:bg-white/10" onClick={() => handleShare(doc)}>
+                  <Send className="w-3 h-3 mr-1" /> Share
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleDelete(doc)}>
+                  <Trash2 className="w-3 h-3" />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -784,9 +879,48 @@ const DocumentsTab = ({ token }) => {
         <div className="text-center py-12">
           <FolderOpen className="w-12 h-12 mx-auto mb-4 text-white/30" />
           <p className="text-white/50">No documents yet</p>
-          <p className="text-white/30 text-sm mt-1">Upload your first document</p>
+          <p className="text-white/30 text-sm mt-1">Upload documents or generate from templates</p>
         </div>
       )}
+
+      {/* Share Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="bg-[#0a0d14] border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Share Document</DialogTitle>
+            <DialogDescription className="text-white/60">
+              {selectedDoc?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {shareLink ? (
+              <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
+                <p className="text-xs text-white/60 mb-2">Share Link:</p>
+                <div className="flex items-center gap-2">
+                  <Input value={shareLink} readOnly className="bg-white/5 border-white/10 text-white text-sm flex-1" />
+                  <Button size="sm" onClick={() => { navigator.clipboard.writeText(shareLink); toast.success("Copied!"); }} className="bg-emerald-600">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" className="border-white/20 text-white" onClick={() => handleDownload(selectedDoc)}>
+                  <Download className="w-4 h-4 mr-2" /> Download & Share
+                </Button>
+                <Button variant="outline" className="border-white/20 text-white" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Document: ${selectedDoc?.name}`)}`, '_blank')}>
+                  <Phone className="w-4 h-4 mr-2" /> WhatsApp
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowShareModal(false); setShareLink(""); setSelectedDoc(null); }} className="border-white/20 text-white">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
