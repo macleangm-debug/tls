@@ -56,6 +56,27 @@ Implemented a comprehensive document generation system allowing advocates to cre
 
 ---
 
+## Document Sharing (Updated 2026-02-20)
+
+### Direct Document Sharing
+Updated the share functionality to share the actual PDF document instead of generating links:
+
+**Share Options:**
+1. **Download** - Download PDF to device for manual sharing
+2. **WhatsApp** - Uses Web Share API to share PDF directly via WhatsApp (falls back to download if not supported)
+
+**Removed:**
+- Link-based sharing (was generating URLs like `https://tls.or.tz/shared/{token}`)
+- Email sharing option
+
+**How it works:**
+- After document generation, PDF blob is stored in memory
+- "Download" button re-downloads the same PDF
+- "WhatsApp" button uses `navigator.share()` API to open device share sheet with PDF file
+- If Web Share API not supported, downloads PDF and opens WhatsApp for manual attachment
+
+---
+
 ## Practice Management Full CRUD (2026-02-20)
 
 ### Enhanced Practice Management Modules
