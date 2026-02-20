@@ -56,6 +56,41 @@ Implemented a comprehensive document generation system allowing advocates to cre
 
 ---
 
+## HttpOnly Cookie JWT Storage (2026-02-20)
+
+### Security Feature: Enterprise-Grade Token Security
+Implemented HttpOnly cookie storage for JWT tokens, preventing XSS attacks from stealing authentication tokens.
+
+**How it works:**
+1. On login, server sets `tls_access_token` HttpOnly cookie with JWT
+2. Browser automatically sends cookie with all requests (via `withCredentials: true`)
+3. Backend checks cookie first, falls back to Authorization header for backward compatibility
+4. Logout clears the cookie and invalidates CSRF token
+
+**Cookie Attributes:**
+- `HttpOnly: true` - JavaScript cannot access the cookie
+- `Secure: true` - Only sent over HTTPS
+- `SameSite: lax` - Protects against CSRF while allowing normal navigation
+- `Max-Age: 86400` - 24 hour expiry
+
+**Security Benefits:**
+- **XSS Protection**: Even if an attacker injects malicious JavaScript, they cannot steal the JWT
+- **Combined with CSRF Protection**: Double-layer security prevents both XSS and CSRF attacks
+
+**Backward Compatibility:**
+- Authorization header still supported for API clients/mobile apps
+- access_token still returned in login response body
+- Cookie takes priority when both auth methods present
+
+**New Endpoint:**
+- `POST /api/auth/logout` - Clears HttpOnly cookie and CSRF token
+
+**Files Modified:**
+- `backend/server.py` - Cookie config, get_current_user updated, logout endpoint
+- `frontend/src/context/AuthContext.js` - withCredentials, logout calls backend
+
+---
+
 ## CSRF Protection (2026-02-20)
 
 ### Security Feature: Cross-Site Request Forgery Protection
