@@ -16,7 +16,27 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("tls_token"));
+  const [csrfToken, setCsrfToken] = useState(localStorage.getItem("tls_csrf_token"));
   const [loading, setLoading] = useState(true);
+
+  // Configure axios defaults for CSRF
+  useEffect(() => {
+    // Set up axios interceptor to add CSRF token to all requests
+    const interceptor = axios.interceptors.request.use(
+      (config) => {
+        const storedCsrf = localStorage.getItem("tls_csrf_token");
+        if (storedCsrf) {
+          config.headers["X-CSRF-Token"] = storedCsrf;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    return () => {
+      axios.interceptors.request.eject(interceptor);
+    };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -42,9 +62,18 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, { email, password });
-    const { access_token, user: userData } = response.data;
+    const { access_token, user: userData, csrf_token } = response.data;
+    
+    // Store JWT token
     localStorage.setItem("tls_token", access_token);
     setToken(access_token);
+    
+    // Store CSRF token
+    if (csrf_token) {
+      localStorage.setItem("tls_csrf_token", csrf_token);
+      setCsrfToken(csrf_token);
+    }
+    
     setUser(userData);
     
     // Return user data including force_password_reset flag
@@ -82,16 +111,21 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("tls_token");
+    localStorage.removeItem("tls_csrf_token");
     setToken(null);
+    setCsrfToken(null);
     setUser(null);
   };
 
   const getAuthHeaders = () => ({
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { 
+      Authorization: `Bearer ${token}`,
+      "X-CSRF-Token": csrfToken || localStorage.getItem("tls_csrf_token") || ""
+    }
   });
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, getAuthHeaders, fetchUser, changePassword }}>
+    <AuthContext.Provider value={{ user, token, csrfToken, loading, login, register, logout, getAuthHeaders, fetchUser, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
