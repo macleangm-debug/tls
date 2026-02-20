@@ -19,6 +19,7 @@ import base64
 import uuid
 import io
 import re
+import hashlib
 
 # Create router
 templates_router = APIRouter(prefix="/api/templates", tags=["Document Templates"])
