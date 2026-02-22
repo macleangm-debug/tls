@@ -1166,21 +1166,19 @@ const DocumentsTab = ({ token }) => {
   };
 
   const handleShare = async (doc) => {
+    // Check if this is demo/seed data
+    if (doc.is_seed_data) {
+      toast.info("This is a demo document. Upload a real document to share.");
+      return;
+    }
+    
     setSelectedDoc(doc);
     try {
-      // Use fetch instead of axios for blob downloads
-      const response = await fetch(`${API}/api/practice/documents/${doc.id}/download`, {
-        headers: headers,
-        credentials: 'include'
+      const response = await axios.get(`${API}/api/practice/documents/${doc.id}/download`, {
+        headers,
+        responseType: 'blob'
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.detail || "Failed to share document");
-        return;
-      }
-      
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: doc.file_type || 'application/pdf' });
       const file = new File([blob], doc.original_filename || doc.name, { type: doc.file_type || 'application/pdf' });
       
       // Check if Web Share API supports file sharing
@@ -1205,7 +1203,7 @@ const DocumentsTab = ({ token }) => {
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
-        toast.error("Failed to share document. Please try again.");
+        toast.error("Failed to share document");
       }
     }
   };
