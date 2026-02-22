@@ -1198,7 +1198,18 @@ const DocumentsTab = ({ token }) => {
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
-        toast.error("Failed to share document");
+        // Handle blob response errors
+        if (error.response?.data instanceof Blob) {
+          try {
+            const errorText = await error.response.data.text();
+            const errorJson = JSON.parse(errorText);
+            toast.error(errorJson.detail || "Failed to share document");
+          } catch {
+            toast.error("Failed to share document");
+          }
+        } else {
+          toast.error(error.response?.data?.detail || "Failed to share document");
+        }
       }
     }
   };
