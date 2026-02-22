@@ -273,9 +273,14 @@ def create_seed_routes(db, get_current_user):
         
         for i in range(10):
             client = random.choice(clients_to_create)
-            case = random.choice([c for c in cases_to_create if c["client_id"] == client["id"]]) if random.random() > 0.3 else None
-            if not case:
-                case = random.choice(cases_to_create) if cases_to_create else None
+            # Try to find cases for this client, otherwise pick any case
+            client_cases = [c for c in cases_to_create if c["client_id"] == client["id"]]
+            if client_cases and random.random() > 0.3:
+                case = random.choice(client_cases)
+            elif cases_to_create:
+                case = random.choice(cases_to_create)
+            else:
+                case = None
             
             items = random.sample(invoice_items_pool, k=random.randint(1, 4))
             subtotal = sum(item["quantity"] * item["unit_price"] for item in items)
