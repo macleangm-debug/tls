@@ -349,6 +349,13 @@ def create_practice_routes(db, get_current_user):
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
         
+        # Check if this is seed data without actual file content
+        if not document.get("file_data"):
+            raise HTTPException(
+                status_code=422, 
+                detail="This is demo document. Actual file content is not available for seed data documents. Upload a real document to test downloads."
+            )
+        
         file_data = base64.b64decode(document["file_data"])
         return Response(
             content=file_data,
