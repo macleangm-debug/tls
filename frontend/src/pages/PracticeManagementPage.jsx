@@ -1138,8 +1138,23 @@ const DocumentsTab = ({ token }) => {
     try {
       const response = await axios.get(`${API}/api/practice/documents/${doc.id}/download`, {
         headers,
-        responseType: 'blob'
+        responseType: 'blob',
+        validateStatus: (status) => status < 500 // Don't throw for 4xx errors
       });
+      
+      // Check if the response is an error (4xx status)
+      if (response.status >= 400) {
+        // Read the error blob as text
+        const errorText = await response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          toast.error(errorJson.detail || "Failed to download document");
+        } catch {
+          toast.error("Failed to download document");
+        }
+        return;
+      }
+      
       const blob = new Blob([response.data], { type: doc.file_type });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -1150,18 +1165,8 @@ const DocumentsTab = ({ token }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      // Handle blob response errors - need to read the blob as text to get the error message
-      if (error.response?.data instanceof Blob) {
-        try {
-          const errorText = await error.response.data.text();
-          const errorJson = JSON.parse(errorText);
-          toast.error(errorJson.detail || "Failed to download document");
-        } catch {
-          toast.error("Failed to download document");
-        }
-      } else {
-        toast.error(error.response?.data?.detail || "Failed to download document");
-      }
+      // Handle network errors or other unexpected errors
+      toast.error("Failed to download document. Please try again.");
     }
   };
 
