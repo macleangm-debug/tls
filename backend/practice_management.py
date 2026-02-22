@@ -815,7 +815,7 @@ def create_practice_routes(db, get_current_user):
         }
         
         await db.events.insert_one(new_event)
-        del new_event["_id"] if "_id" in new_event else None
+        new_event.pop("_id", None)
         
         return {"message": "Event duplicated", "event": new_event}
     
