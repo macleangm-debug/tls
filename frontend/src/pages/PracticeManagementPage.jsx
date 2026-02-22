@@ -1344,8 +1344,10 @@ const CalendarTab = ({ token }) => {
   const [cases, setCases] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editEvent, setEditEvent] = useState(null);
+  const [viewEvent, setViewEvent] = useState(null);
+  const [deleteEvent, setDeleteEvent] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState("list"); // list or calendar
+  const [viewMode, setViewMode] = useState("list");
   const [formData, setFormData] = useState({
     title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "", client_id: "", case_id: ""
   });
@@ -1374,18 +1376,22 @@ const CalendarTab = ({ token }) => {
     try {
       if (editEvent) {
         await axios.put(`${API}/api/practice/events/${editEvent.id}`, formData, { headers });
-        toast.success("Event updated");
+        toast.success("Event updated successfully");
       } else {
         await axios.post(`${API}/api/practice/events`, formData, { headers });
-        toast.success("Event created");
+        toast.success("Event created successfully");
       }
       setShowForm(false);
       setEditEvent(null);
-      setFormData({ title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "", client_id: "", case_id: "" });
+      resetForm();
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to save event");
     }
+  };
+
+  const resetForm = () => {
+    setFormData({ title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "", client_id: "", case_id: "" });
   };
 
   const handleEditEvent = (event) => {
@@ -1403,14 +1409,35 @@ const CalendarTab = ({ token }) => {
     setShowForm(true);
   };
 
-  const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm("Are you sure you want to delete this event?")) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteEvent) return;
     try {
-      await axios.delete(`${API}/api/practice/events/${eventId}`, { headers });
-      toast.success("Event deleted");
+      await axios.delete(`${API}/api/practice/events/${deleteEvent.id}`, { headers });
+      toast.success("Event deleted successfully");
+      setDeleteEvent(null);
       fetchData();
     } catch (error) {
       toast.error("Failed to delete event");
+    }
+  };
+
+  const handleDuplicateEvent = async (event) => {
+    const duplicateData = {
+      title: `${event.title} (Copy)`,
+      event_type: event.event_type,
+      start_datetime: event.start_datetime,
+      end_datetime: event.end_datetime,
+      location: event.location,
+      description: event.description,
+      client_id: event.client_id,
+      case_id: event.case_id
+    };
+    try {
+      await axios.post(`${API}/api/practice/events`, duplicateData, { headers });
+      toast.success("Event duplicated successfully");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to duplicate event");
     }
   };
 
