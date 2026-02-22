@@ -61,6 +61,16 @@
 - **Event Types**: Meeting, Court Hearing, Deadline, Reminder, Appointment
 - **Location Tracking**: Show event location on cards
 
+### Calendar Widget View (NEW)
+- **Month Grid**: Interactive calendar showing current month
+- **Event Highlighting**: Days with events are highlighted in blue
+- **Day Selection**: Click any day to see its events
+- **Event Type Badges**: Shows meeting/court/deadline counts for selected day
+- **Quick Add**: Add event button for days with no events
+- **Legend**: Color-coded legend for event types
+- **View Toggle**: Switch between List and Calendar views
+- Uses shadcn Calendar component (react-day-picker)
+
 ### Tasks Tab Enhancements
 - **Stats Row**: Total Tasks, Completed, Overdue, Urgent counters
 - **Overdue Alert Banner**: Red alert when overdue tasks exist
