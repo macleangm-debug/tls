@@ -672,6 +672,22 @@ def create_practice_routes(db, get_current_user):
             raise HTTPException(status_code=404, detail="Case not found")
         return {"message": "Case deleted"}
     
+    @practice_router.patch("/cases/{case_id}/status")
+    async def update_case_status(case_id: str, data: CaseStatusUpdate, user: dict = Depends(get_current_user)):
+        """Update case status (active, pending, closed, on_hold)"""
+        valid_statuses = ["active", "pending", "closed", "on_hold"]
+        if data.status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Status must be one of: {', '.join(valid_statuses)}")
+        
+        result = await db.cases.update_one(
+            {"id": case_id, "advocate_id": user["id"]},
+            {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        return {"message": f"Case status updated to {data.status}"}
+    
     # ===================== CALENDAR & EVENTS =====================
     
     @practice_router.get("/events")
