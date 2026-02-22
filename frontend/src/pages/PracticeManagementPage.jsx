@@ -1211,7 +1211,7 @@ const CalendarTab = ({ token }) => {
   const [cases, setCases] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editEvent, setEditEvent] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState("list"); // list or calendar
   const [formData, setFormData] = useState({
     title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "", client_id: "", case_id: ""
