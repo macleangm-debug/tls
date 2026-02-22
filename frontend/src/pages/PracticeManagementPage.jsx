@@ -45,6 +45,126 @@ import { format } from "date-fns";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// Reusable Confirmation Dialog Component
+const ConfirmDialog = ({ open, onOpenChange, title, description, confirmText = "Confirm", cancelText = "Cancel", variant = "default", onConfirm }) => {
+  const variantStyles = {
+    default: "bg-tls-blue-electric hover:bg-tls-blue-electric/90",
+    danger: "bg-red-500 hover:bg-red-600 text-white",
+    success: "bg-emerald-500 hover:bg-emerald-600 text-white"
+  };
+  
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="bg-[#0a0d14] border-white/10">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-white">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-white/60">
+            {description}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white">
+            {cancelText}
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} className={variantStyles[variant]}>
+            {confirmText}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+// Date Picker Component
+const DateTimePicker = ({ value, onChange, label, includeTime = true }) => {
+  const [date, setDate] = useState(value ? new Date(value) : null);
+  const [time, setTime] = useState(value ? value.slice(11, 16) : "09:00");
+  const [open, setOpen] = useState(false);
+  
+  const handleDateSelect = (newDate) => {
+    setDate(newDate);
+    if (newDate) {
+      const dateStr = format(newDate, "yyyy-MM-dd");
+      onChange(includeTime ? `${dateStr}T${time}` : dateStr);
+    }
+    if (!includeTime) setOpen(false);
+  };
+  
+  const handleTimeChange = (e) => {
+    const newTime = e.target.value;
+    setTime(newTime);
+    if (date) {
+      const dateStr = format(date, "yyyy-MM-dd");
+      onChange(`${dateStr}T${newTime}`);
+    }
+  };
+  
+  return (
+    <div className="space-y-1">
+      {label && <label className="text-xs text-white/50 block">{label}</label>}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={`w-full justify-start text-left font-normal bg-white/5 border-white/10 text-white hover:bg-white/10 ${!date && "text-white/50"}`}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4 text-white/50" />
+            {date ? (
+              <span>
+                {format(date, "PPP")}
+                {includeTime && ` at ${time}`}
+              </span>
+            ) : (
+              <span>Pick a date{includeTime ? " & time" : ""}</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 bg-[#1a1f2e] border-white/10" align="start">
+          <CalendarWidget
+            mode="single"
+            selected={date}
+            onSelect={handleDateSelect}
+            initialFocus
+            className="rounded-md"
+            classNames={{
+              months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+              month: "space-y-4",
+              caption: "flex justify-center pt-1 relative items-center text-white",
+              caption_label: "text-sm font-medium text-white",
+              nav: "space-x-1 flex items-center",
+              nav_button: "h-7 w-7 bg-white/10 hover:bg-white/20 text-white rounded-md p-0 flex items-center justify-center",
+              nav_button_previous: "absolute left-1",
+              nav_button_next: "absolute right-1",
+              table: "w-full border-collapse space-y-1",
+              head_row: "flex",
+              head_cell: "text-white/50 rounded-md w-9 font-normal text-[0.8rem]",
+              row: "flex w-full mt-2",
+              cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              day: "h-9 w-9 p-0 font-normal text-white/70 hover:bg-white/10 rounded-md flex items-center justify-center cursor-pointer",
+              day_selected: "bg-tls-blue-electric text-white hover:bg-tls-blue-electric",
+              day_today: "bg-white/20 text-white font-bold",
+              day_outside: "text-white/30",
+            }}
+          />
+          {includeTime && (
+            <div className="p-3 border-t border-white/10">
+              <div className="flex items-center gap-2">
+                <ClockIcon className="h-4 w-4 text-white/50" />
+                <input
+                  type="time"
+                  value={time}
+                  onChange={handleTimeChange}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white text-sm"
+                />
+              </div>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
 // Simple Chart Components (no external library needed)
 const DonutChart = ({ data, colors, size = 120 }) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
