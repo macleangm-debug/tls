@@ -1587,6 +1587,26 @@ const CalendarTab = ({ token }) => {
     }
   };
 
+  const handleMarkEventComplete = async (event) => {
+    try {
+      await axios.patch(`${API}/api/practice/events/${event.id}/status`, { status: "completed" }, { headers });
+      toast.success("Event marked as completed");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to update event status");
+    }
+  };
+
+  const handleSetEventReminder = async (event, reminderMinutes = [15, 30, 60, 1440]) => {
+    try {
+      await axios.patch(`${API}/api/practice/events/${event.id}/reminder`, { reminder_minutes: reminderMinutes }, { headers });
+      toast.success("Reminders set successfully");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to set reminders");
+    }
+  };
+
   const getEventTypeColor = (type) => {
     const colors = { 
       court_hearing: "bg-red-500 text-red-100", 
