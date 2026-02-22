@@ -8,6 +8,13 @@ import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "../components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   Users, Briefcase, FileText, Calendar, CheckSquare,
@@ -16,7 +23,8 @@ import {
   Target, Scale, Gavel, Building, UserCheck, Download,
   Copy, Eye, Edit, Trash2, Send, CreditCard, Phone,
   FileSignature, ChevronRight, ArrowUpRight, ArrowDownRight,
-  FileCheck, Stamp, Pen, Type, QrCode, RefreshCw, History
+  FileCheck, Stamp, Pen, Type, QrCode, RefreshCw, History,
+  MoreVertical, Archive, FileOutput
 } from "lucide-react";
 import axios from "axios";
 
