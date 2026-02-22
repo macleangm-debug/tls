@@ -1205,47 +1205,134 @@ const DocumentsTab = ({ token }) => {
 // Calendar Tab
 const CalendarTab = ({ token }) => {
   const [events, setEvents] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [cases, setCases] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [editEvent, setEditEvent] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [viewMode, setViewMode] = useState("list"); // list or calendar
   const [formData, setFormData] = useState({
-    title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: ""
+    title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "", client_id: "", case_id: ""
   });
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  const fetchEvents = async () => {
+  const fetchData = async () => {
     try {
-      const response = await axios.get(`${API}/api/practice/events`, { headers });
-      setEvents(response.data.events);
+      const [eventsRes, clientsRes, casesRes] = await Promise.all([
+        axios.get(`${API}/api/practice/events`, { headers }),
+        axios.get(`${API}/api/practice/clients`, { headers }),
+        axios.get(`${API}/api/practice/cases`, { headers })
+      ]);
+      setEvents(eventsRes.data.events);
+      setClients(clientsRes.data.clients);
+      setCases(casesRes.data.cases);
     } catch (error) {
-      toast.error("Failed to fetch events");
+      toast.error("Failed to fetch data");
     }
   };
 
-  useEffect(() => { fetchEvents(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/api/practice/events`, formData, { headers });
-      toast.success("Event created");
+      if (editEvent) {
+        await axios.put(`${API}/api/practice/events/${editEvent.id}`, formData, { headers });
+        toast.success("Event updated");
+      } else {
+        await axios.post(`${API}/api/practice/events`, formData, { headers });
+        toast.success("Event created");
+      }
       setShowForm(false);
-      setFormData({ title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "" });
-      fetchEvents();
+      setEditEvent(null);
+      setFormData({ title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "", client_id: "", case_id: "" });
+      fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to create event");
+      toast.error(error.response?.data?.detail || "Failed to save event");
+    }
+  };
+
+  const handleEditEvent = (event) => {
+    setEditEvent(event);
+    setFormData({
+      title: event.title,
+      event_type: event.event_type,
+      start_datetime: event.start_datetime ? new Date(event.start_datetime).toISOString().slice(0, 16) : "",
+      end_datetime: event.end_datetime ? new Date(event.end_datetime).toISOString().slice(0, 16) : "",
+      location: event.location || "",
+      description: event.description || "",
+      client_id: event.client_id || "",
+      case_id: event.case_id || ""
+    });
+    setShowForm(true);
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!window.confirm("Are you sure you want to delete this event?")) return;
+    try {
+      await axios.delete(`${API}/api/practice/events/${eventId}`, { headers });
+      toast.success("Event deleted");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to delete event");
     }
   };
 
   const getEventTypeColor = (type) => {
-    const colors = { court_hearing: "bg-red-500", meeting: "bg-blue-500", deadline: "bg-amber-500", reminder: "bg-purple-500", appointment: "bg-emerald-500" };
+    const colors = { 
+      court_hearing: "bg-red-500 text-red-100", 
+      meeting: "bg-blue-500 text-blue-100", 
+      deadline: "bg-amber-500 text-amber-100", 
+      reminder: "bg-purple-500 text-purple-100", 
+      appointment: "bg-emerald-500 text-emerald-100" 
+    };
     return colors[type] || colors.meeting;
   };
 
+  const getEventTypeIcon = (type) => {
+    switch(type) {
+      case 'court_hearing': return <Gavel className="w-4 h-4" />;
+      case 'deadline': return <AlertTriangle className="w-4 h-4" />;
+      case 'reminder': return <Clock className="w-4 h-4" />;
+      case 'appointment': return <UserCheck className="w-4 h-4" />;
+      default: return <Calendar className="w-4 h-4" />;
+    }
+  };
+
+  // Group events by date
+  const groupedEvents = events.reduce((acc, event) => {
+    const date = new Date(event.start_datetime).toDateString();
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(event);
+    return acc;
+  }, {});
+
+  // Get upcoming events (next 7 days)
+  const upcomingEvents = events
+    .filter(e => new Date(e.start_datetime) >= new Date())
+    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime))
+    .slice(0, 10);
+
+  // Get overdue events
+  const overdueEvents = events.filter(e => 
+    e.event_type === 'deadline' && 
+    new Date(e.start_datetime) < new Date() &&
+    !e.completed
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Calendar & Events</h2>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-tls-blue-electric">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-semibold text-white">Calendar & Events</h2>
+          {overdueEvents.length > 0 && (
+            <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+              {overdueEvents.length} overdue
+            </Badge>
+          )}
+        </div>
+        <Button onClick={() => { setEditEvent(null); setShowForm(!showForm); }} className="bg-tls-blue-electric" data-testid="add-event-btn">
           <Plus className="w-4 h-4 mr-2" /> Add Event
         </Button>
       </div>
@@ -1253,6 +1340,7 @@ const CalendarTab = ({ token }) => {
       {showForm && (
         <Card className="glass-card border-white/10">
           <CardContent className="p-6">
+            <h3 className="text-white font-medium mb-4">{editEvent ? "Edit Event" : "New Event"}</h3>
             <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-4">
               <Input placeholder="Event Title *" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
               <select value={formData.event_type} onChange={(e) => setFormData({...formData, event_type: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
@@ -1262,32 +1350,110 @@ const CalendarTab = ({ token }) => {
                 <option value="reminder">Reminder</option>
                 <option value="appointment">Appointment</option>
               </select>
-              <Input type="datetime-local" value={formData.start_datetime} onChange={(e) => setFormData({...formData, start_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
-              <Input type="datetime-local" value={formData.end_datetime} onChange={(e) => setFormData({...formData, end_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <Input placeholder="Location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="bg-white/5 border-white/10 text-white md:col-span-2" />
+              <div>
+                <label className="text-xs text-white/50 block mb-1">Start Date/Time *</label>
+                <Input type="datetime-local" value={formData.start_datetime} onChange={(e) => setFormData({...formData, start_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">End Date/Time</label>
+                <Input type="datetime-local" value={formData.end_datetime} onChange={(e) => setFormData({...formData, end_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" />
+              </div>
+              <Input placeholder="Location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="bg-white/5 border-white/10 text-white" />
+              <select value={formData.client_id} onChange={(e) => setFormData({...formData, client_id: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
+                <option value="">Link to Client (optional)</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select value={formData.case_id} onChange={(e) => setFormData({...formData, case_id: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 md:col-span-2">
+                <option value="">Link to Case (optional)</option>
+                {cases.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+              <Textarea placeholder="Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="bg-white/5 border-white/10 text-white md:col-span-2" rows={2} />
               <div className="md:col-span-2 flex gap-2">
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">Create Event</Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="border-white/20 text-white">Cancel</Button>
+                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">{editEvent ? "Update Event" : "Create Event"}</Button>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditEvent(null); }} className="border-white/20 text-white">Cancel</Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-white">{events.length}</p>
+            <p className="text-xs text-white/50">Total Events</p>
+          </CardContent>
+        </Card>
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{upcomingEvents.length}</p>
+            <p className="text-xs text-white/50">Upcoming</p>
+          </CardContent>
+        </Card>
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-amber-400">{events.filter(e => e.event_type === 'deadline').length}</p>
+            <p className="text-xs text-white/50">Deadlines</p>
+          </CardContent>
+        </Card>
+        <Card className="glass-card border-white/10">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-red-400">{events.filter(e => e.event_type === 'court_hearing').length}</p>
+            <p className="text-xs text-white/50">Court Hearings</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Events List */}
       <div className="space-y-3">
-        {events.map((event) => (
-          <Card key={event.id} className="glass-card border-white/10">
+        <h3 className="text-sm font-medium text-white/70">Upcoming Events</h3>
+        {upcomingEvents.map((event) => (
+          <Card key={event.id} className="glass-card border-white/10 hover:border-white/20 transition-all" data-testid={`event-card-${event.id}`}>
             <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className={`w-1 h-12 rounded-full ${getEventTypeColor(event.event_type)}`} />
-                <div className="flex-1">
-                  <h3 className="font-medium text-white">{event.title}</h3>
-                  <p className="text-sm text-white/50">
-                    {new Date(event.start_datetime).toLocaleString()}
-                    {event.location && ` • ${event.location}`}
-                  </p>
+              <div className="flex items-start gap-4">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getEventTypeColor(event.event_type)}`}>
+                  {getEventTypeIcon(event.event_type)}
                 </div>
-                <Badge variant="outline" className="border-white/20 text-white/70 capitalize">{event.event_type.replace('_', ' ')}</Badge>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-medium text-white">{event.title}</h3>
+                      <p className="text-sm text-white/50 mt-1">
+                        {new Date(event.start_datetime).toLocaleString('en-GB', { 
+                          weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                        })}
+                      </p>
+                      {event.location && (
+                        <p className="text-xs text-white/40 mt-1 flex items-center gap-1">
+                          <Building className="w-3 h-3" /> {event.location}
+                        </p>
+                      )}
+                      {(event.client_name || event.case_title) && (
+                        <div className="flex items-center gap-2 mt-2">
+                          {event.client_name && <Badge variant="outline" className="text-xs border-white/20 text-white/60">{event.client_name}</Badge>}
+                          {event.case_title && <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">{event.case_title}</Badge>}
+                        </div>
+                      )}
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[140px]">
+                        <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <DropdownMenuItem onClick={() => handleDeleteEvent(event.id)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1298,6 +1464,7 @@ const CalendarTab = ({ token }) => {
         <div className="text-center py-12">
           <Calendar className="w-12 h-12 mx-auto mb-4 text-white/30" />
           <p className="text-white/50">No events scheduled</p>
+          <p className="text-white/30 text-sm mt-1">Create your first event to get started</p>
         </div>
       )}
     </div>
