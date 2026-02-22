@@ -646,6 +646,7 @@ const CasesTab = ({ token }) => {
       {showForm && (
         <Card className="glass-card border-white/10">
           <CardContent className="p-6">
+            <h3 className="text-white font-medium mb-4">{editCase ? "Edit Case" : "New Case"}</h3>
             <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-4">
               <Input placeholder="Case Title *" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
               <select value={formData.client_id} onChange={(e) => setFormData({...formData, client_id: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2" required>
@@ -666,11 +667,17 @@ const CasesTab = ({ token }) => {
                 <option value="high">High Priority</option>
                 <option value="urgent">Urgent</option>
               </select>
+              <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="on_hold">On Hold</option>
+                <option value="closed">Closed</option>
+              </select>
               <Input placeholder="Court" value={formData.court} onChange={(e) => setFormData({...formData, court: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <Input placeholder="Opposing Party" value={formData.opposing_party} onChange={(e) => setFormData({...formData, opposing_party: e.target.value})} className="bg-white/5 border-white/10 text-white" />
+              <Input placeholder="Opposing Party" value={formData.opposing_party} onChange={(e) => setFormData({...formData, opposing_party: e.target.value})} className="bg-white/5 border-white/10 text-white md:col-span-2" />
               <div className="md:col-span-2 flex gap-2">
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">Create Case</Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="border-white/20 text-white">Cancel</Button>
+                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">{editCase ? "Update Case" : "Create Case"}</Button>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditCase(null); }} className="border-white/20 text-white">Cancel</Button>
               </div>
             </form>
           </CardContent>
