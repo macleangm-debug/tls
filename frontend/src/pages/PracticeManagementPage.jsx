@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
+import { Calendar as CalendarWidget } from "../components/ui/calendar";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -24,7 +25,8 @@ import {
   Copy, Eye, Edit, Trash2, Send, CreditCard, Phone,
   FileSignature, ChevronRight, ArrowUpRight, ArrowDownRight,
   FileCheck, Stamp, Pen, Type, QrCode, RefreshCw, History,
-  MoreVertical, Archive, FileOutput, Grid3X3, LayoutList
+  MoreVertical, Archive, FileOutput, Grid3X3, LayoutList,
+  CalendarDays, List, ChevronLeft
 } from "lucide-react";
 import axios from "axios";
 
