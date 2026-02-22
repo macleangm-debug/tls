@@ -354,7 +354,7 @@ const EnhancedDashboard = ({ analytics, caseAnalytics, revenueData, recentActivi
               Cases by Type
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="h-[180px] overflow-y-auto">
             {caseTypeData.length > 0 ? (
               <div className="space-y-2">
                 {caseTypeData.map((item, idx) => (
