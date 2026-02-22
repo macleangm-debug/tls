@@ -412,6 +412,9 @@ const ClientsTab = ({ token, onShowForm }) => {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editClient, setEditClient] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    return window.innerWidth >= 768 ? "table" : "card";
+  });
 
   const headers = { Authorization: `Bearer ${token}` };
 
