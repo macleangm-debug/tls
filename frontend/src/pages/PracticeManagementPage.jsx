@@ -1147,13 +1147,14 @@ const DocumentsTab = ({ token }) => {
       });
       
       if (!response.ok) {
-        // Handle error responses - try to get JSON error message
+        // Handle error responses - get response as text first, then try to parse
+        const errorText = await response.text();
         try {
-          const errorData = await response.json();
+          const errorData = JSON.parse(errorText);
           toast.error(errorData.detail || "Failed to download document");
         } catch (parseError) {
-          // If not JSON, show generic error
-          toast.error("Failed to download document");
+          // If not JSON, show the text or generic error
+          toast.error(errorText || "Failed to download document");
         }
         return;
       }
