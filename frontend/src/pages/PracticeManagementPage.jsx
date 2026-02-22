@@ -24,7 +24,7 @@ import {
   Copy, Eye, Edit, Trash2, Send, CreditCard, Phone,
   FileSignature, ChevronRight, ArrowUpRight, ArrowDownRight,
   FileCheck, Stamp, Pen, Type, QrCode, RefreshCw, History,
-  MoreVertical, Archive, FileOutput
+  MoreVertical, Archive, FileOutput, Grid3X3, LayoutList
 } from "lucide-react";
 import axios from "axios";
 
