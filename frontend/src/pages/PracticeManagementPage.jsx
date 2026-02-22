@@ -542,6 +542,10 @@ const CasesTab = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editCase, setEditCase] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    // Default to table on desktop, card on mobile
+    return window.innerWidth >= 768 ? "table" : "card";
+  });
   const [formData, setFormData] = useState({
     title: "", client_id: "", case_type: "litigation", status: "active", priority: "medium", description: "", court: "", opposing_party: ""
   });
