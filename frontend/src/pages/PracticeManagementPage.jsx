@@ -716,7 +716,80 @@ const CasesTab = ({ token }) => {
             <p className="text-sm text-white/30 mt-2">Go to the Clients tab to add your first client</p>
           </CardContent>
         </Card>
-      ) : (
+      ) : cases.length > 0 && viewMode === "table" ? (
+        /* Table View */
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Case</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Client</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Type</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Status</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Priority</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Court</th>
+                <th className="text-right p-3 text-white/50 text-sm font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cases.map((caseItem) => (
+                <tr key={caseItem.id} className="border-b border-white/5 hover:bg-white/5 transition-colors" data-testid={`case-row-${caseItem.id}`}>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${getPriorityColor(caseItem.priority)}`} />
+                      <div>
+                        <p className="text-white font-medium">{caseItem.title}</p>
+                        <p className="text-white/40 text-xs">{caseItem.reference}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-3 text-white/70">{caseItem.client_name}</td>
+                  <td className="p-3">
+                    <Badge variant="outline" className="text-xs border-white/20 text-white/70 capitalize">{caseItem.case_type}</Badge>
+                  </td>
+                  <td className="p-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${getStatusColor(caseItem.status)}`}>{caseItem.status}</span>
+                  </td>
+                  <td className="p-3 text-white/70 capitalize">{caseItem.priority}</td>
+                  <td className="p-3 text-white/50 text-sm">{caseItem.court || "-"}</td>
+                  <td className="p-3 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[160px]">
+                        <DropdownMenuItem onClick={() => handleEditCase(caseItem)} className="hover:bg-white/10 cursor-pointer">
+                          <Edit className="mr-2 h-4 w-4" /> Edit Case
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "active")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "active"}>
+                          <Target className="mr-2 h-4 w-4 text-emerald-400" /> Set Active
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "pending")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "pending"}>
+                          <Clock className="mr-2 h-4 w-4 text-amber-400" /> Set Pending
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "on_hold")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "on_hold"}>
+                          <Archive className="mr-2 h-4 w-4 text-purple-400" /> Put On Hold
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "closed")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "closed"}>
+                          <FileCheck className="mr-2 h-4 w-4 text-gray-400" /> Close Case
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <DropdownMenuItem onClick={() => handleDeleteCase(caseItem.id)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Case
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : cases.length > 0 ? (
+        /* Card View */
         <div className="space-y-3">
           {cases.map((caseItem) => (
             <Card key={caseItem.id} className="glass-card border-white/10 hover:border-white/20 transition-all" data-testid={`case-card-${caseItem.id}`}>
@@ -768,7 +841,7 @@ const CasesTab = ({ token }) => {
             </Card>
           ))}
         </div>
-      )}
+      ) : null}
 
       {cases.length === 0 && clients.length > 0 && !loading && (
         <div className="text-center py-12">
