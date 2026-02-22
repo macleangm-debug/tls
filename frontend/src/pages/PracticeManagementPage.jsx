@@ -710,6 +710,35 @@ const CasesTab = ({ token }) => {
                       {caseItem.court && <span className="text-xs text-white/40">{caseItem.court}</span>}
                     </div>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10" data-testid={`case-actions-${caseItem.id}`}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[160px]">
+                      <DropdownMenuItem onClick={() => handleEditCase(caseItem)} className="hover:bg-white/10 cursor-pointer">
+                        <Edit className="mr-2 h-4 w-4" /> Edit Case
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-white/10" />
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "active")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "active"}>
+                        <Target className="mr-2 h-4 w-4 text-emerald-400" /> Set Active
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "pending")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "pending"}>
+                        <Clock className="mr-2 h-4 w-4 text-amber-400" /> Set Pending
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "on_hold")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "on_hold"}>
+                        <Archive className="mr-2 h-4 w-4 text-purple-400" /> Put On Hold
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateStatus(caseItem.id, "closed")} className="hover:bg-white/10 cursor-pointer" disabled={caseItem.status === "closed"}>
+                        <FileCheck className="mr-2 h-4 w-4 text-gray-400" /> Close Case
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-white/10" />
+                      <DropdownMenuItem onClick={() => handleDeleteCase(caseItem.id)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete Case
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
