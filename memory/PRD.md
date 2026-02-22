@@ -1,5 +1,70 @@
 # TLS PDF Stamping Tool - Product Requirements Document
 
+## Overview
+A comprehensive Practice Management Suite for advocates built with React, FastAPI, and MongoDB.
+
+## Core Features Implemented
+
+### Security
+- Enterprise-grade JWT authentication with HttpOnly cookies
+- Full CSRF protection
+
+### Practice Management Dashboard
+- Analytics dashboard with charts (Cases by Status, Cases by Type, Revenue Trend)
+- Tab-based navigation: Dashboard, Clients, Cases, Documents, Calendar, Tasks, Invoices, Templates, Messages
+
+### Document Suite
+- **Document Generator**: Create PDFs from templates
+- **Document Vault**: Table/Card view toggle, upload, download, share, delete
+  - "Demo" badges for seed data documents
+  - Proper error handling for demo document downloads
+- Digital signatures and QR stamping
+
+### Calendar & Events
+- Dual view: List and Calendar widget
+- Event creation modal with date/time picker
+- Actions: View, Edit, Duplicate, Delete
+
+### Seed Data
+- `/api/dev/seed` endpoint populates database with demo data
+
+## Recent Changes (Feb 22, 2026)
+
+### Bug Fixes
+- Fixed Document Vault download/share buttons for demo documents
+- Added "Demo" badges to distinguish seed data from real documents
+- Fixed blob response error handling in axios
+- Fixed pie chart sizing to fit within card container
+
+### UI Improvements
+- Consistent card heights in dashboard charts row
+- Improved chart layout with proper spacing
+
+## Tech Stack
+- Frontend: React, Shadcn UI, TailwindCSS
+- Backend: FastAPI, MongoDB
+- Libraries: react-day-picker, faker, reportlab
+
+## API Endpoints
+- `POST /api/dev/seed` - Seed database with demo data
+- `GET/POST/DELETE /api/practice/*` - CRUD for all practice management entities
+
+## Test Credentials
+| Role | Email | Password |
+|---|---|---|
+| Test Advocate | test@tls.or.tz | Test@12345678! |
+| TLS Admin | admin@tls.or.tz | TLS@Admin2024 |
+
+## Known Limitations
+- Demo documents cannot be downloaded (intentional - no file data)
+- KwikPay payment integration is mocked
+
+## Backlog
+- P1: Implement backend logic for calendar event "Mark Complete", "Set Reminder"
+- P1: Implement case status change backend logic
+- P2: Refactor PracticeManagementPage.jsx (>3000 lines) into smaller components
+- P2: Modularize backend server.py with APIRouters
+
 ## Last Updated: 2026-02-22
 
 ## UI/UX Improvements (2026-02-22)
