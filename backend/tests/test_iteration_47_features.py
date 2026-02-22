@@ -16,21 +16,28 @@ TEST_PASSWORD = "Test@12345678!"
 
 
 @pytest.fixture(scope="module")
-def auth_token():
-    """Get authentication token"""
+def auth_data():
+    """Get authentication token and CSRF token"""
     response = requests.post(f"{BASE_URL}/api/auth/login", json={
         "email": TEST_EMAIL,
         "password": TEST_PASSWORD
     })
     if response.status_code == 200:
-        return response.json().get("access_token")
+        data = response.json()
+        return {
+            "access_token": data.get("access_token"),
+            "csrf_token": data.get("csrf_token")
+        }
     pytest.skip(f"Authentication failed - status {response.status_code}")
 
 
 @pytest.fixture(scope="module")
-def headers(auth_token):
-    """Get headers with auth token"""
-    return {"Authorization": f"Bearer {auth_token}"}
+def headers(auth_data):
+    """Get headers with auth token and CSRF token"""
+    return {
+        "Authorization": f"Bearer {auth_data['access_token']}",
+        "X-CSRF-Token": auth_data['csrf_token']
+    }
 
 
 # ========== CALENDAR EVENT STATUS TESTS ==========
