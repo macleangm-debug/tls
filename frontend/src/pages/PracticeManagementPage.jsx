@@ -1417,20 +1417,6 @@ const DocumentsTab = ({ token }) => {
           ))}
         </div>
       ) : null}
-                <Button size="sm" variant="ghost" className="flex-1 h-8 text-white/70 hover:text-white hover:bg-white/10" onClick={() => handleDownload(doc)}>
-                  <Download className="w-3 h-3 mr-1" /> Download
-                </Button>
-                <Button size="sm" variant="ghost" className="flex-1 h-8 text-white/70 hover:text-white hover:bg-white/10" onClick={() => handleShare(doc)}>
-                  <Send className="w-3 h-3 mr-1" /> Share
-                </Button>
-                <Button size="sm" variant="ghost" className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleDelete(doc)}>
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {documents.length === 0 && !loading && (
         <div className="text-center py-12">
