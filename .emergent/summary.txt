@@ -1,110 +1,145 @@
 <analysis>**original_problem_statement:**
 The user's initial request was to pull the repository  for a comprehensive review and to fix any identified issues.
 
-Over the session, the scope expanded significantly to include:
-1.  **Security Hardening:** Implementing rate limiting, CORS, security headers, and a forced password reset flow.
-2.  **Email & Password:** Integrating the Resend email service for a full password reset flow and implementing a strict password policy.
-3.  **Core Features:** Adding email verification for new registrations and logging all login attempts for security auditing.
-4.  **UI/UX Improvements:**
-    *   Moving links from the header to the footer.
-    *   Redesigning the landing page's Verify Document section to show three distinct methods (Scan QR, Upload, Stamp ID).
-    *   Fixing the QR scan link to automatically attempt to open the device camera.
-    *   Centering the UI elements in the payment collection modal.
-5.  **Practice Management Suite:** A major feature request to build a comprehensive suite for advocates to manage their entire practice within the platform. This includes:
-    *   An enhanced dashboard with charts and analytics.
-    *   Client, Case, and Document management.
-    *   A calendar and task manager.
-    *   A mocked payment integration (KwikPay) for invoicing, supporting QR codes and simulated mobile money push payments.
-6.  **Document Generation:** The current task is to implement a system for generating 10 different types of legal documents from templates, with support for placeholders, digital signatures, and QR code stamping.
+The scope evolved to build a comprehensive Practice Management Suite for advocates, including:
+1.  **Security Hardening:** Implementing rate limiting, CORS, security headers, CSRF protection, and moving JWTs to  cookies.
+2.  **Core Features:** Email verification, login attempt logging, and a robust document generation system.
+3.  **Document Generation:** The primary focus of the recent session was implementing a system for generating legal documents from both pre-built and custom-made templates, complete with placeholders, digital signatures, QR code stamping, and integration into a document vault.
+4.  **UI/UX Improvements:** The user has provided a new list of 6 specific UI/UX improvements and feature requests to be addressed next, including seeding data for a better preview, adding table/card view toggles, fixing UI bugs, and improving workflows.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack TLS PDF Stamping Tool using React, FastAPI, and MongoDB. It has evolved into a comprehensive practice management platform for advocates.
+The application is a full-stack TLS PDF Stamping Tool that has been transformed into a practice management platform for advocates, using React, FastAPI, and MongoDB.
 
-Key completed functionalities include:
--   User authentication with JWT, including registration with email verification, a full password reset flow, and login attempt logging.
--   A multi-faceted Practice Management dashboard for advocates, which acts as a central hub. It features analytics charts (e.g., cases by status), key metrics, and tabs for managing clients, cases, documents, calendar, tasks, and invoices.
--   A mocked KwikPay payment system integrated into the advocate's dashboard, allowing them to generate mock invoices and simulate payment collection via QR codes or mobile money.
--   A landing page with clear options for document verification.
--   Role-based access for Admins, Advocates, and Institutional users.
--   Persistent test accounts for manual testing.
+Key existing functionalities include:
+-   **Enterprise-Grade Security:** User authentication with JWTs stored in secure  cookies, complemented by full CSRF protection.
+-   **Practice Management Dashboard:** A central hub for advocates featuring analytics, and tabs for managing clients, cases, documents, calendar, tasks, and invoices.
+-   **Document Generation & Management:**
+    -   A Document Generator that can create PDFs from 10 pre-built legal templates or from advocate-created custom templates.
+    -   Features include placeholder filling, digital signature and QR stamp application, and live previews.
+    -   An integrated Document Vault where generated documents are automatically saved.
+    -   Enhanced sharing functionality via direct PDF download or the Web Share API (e.g., for WhatsApp).
+-   **Mocked Payments:** A KwikPay payment system is integrated for generating mock invoices and simulating payments.
+-   **Persistent Test Accounts:** Admin and Advocate accounts are available for testing.
 
 **Last working item**:
--   **Last item agent was working:** The agent was beginning the implementation of the **Document Template Generation** feature. It had just created a new, empty file  to house the backend logic for this new module.
--   **Status:** IN PROGRESS
+-   **Last item agent was working:** The agent acknowledged a list of six new UI/UX and data-related improvements requested by the user. The agent created a plan and was about to start implementing the first item: populating the application with more comprehensive seed data for a better preview experience.
+-   **Status:** NOT STARTED
 -   **Agent Testing Done:** N
 -   **Which testing method agent to use?** both
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0):** Complete Document Template Generation.
+-   **Issue 1 (P0):** Populate the app with more seed data for a better preview experience.
+-   **Issue 2 (P1):** Implement a toggle for list views (table vs. card), with table as default for web and card for mobile.
+-   **Issue 3 (P1):** Fix invisible dropdowns in forms.
+-   **Issue 4 (P1):** Discuss and implement actions for the case/matters card list.
+-   **Issue 5 (P1):** Unify the QR stamp design to be consistent across the document generator and the main stamping module.
+-   **Issue 6 (P1):** Fix the layout of the pop-up modal during document creation, as it doesn't fit well.
 
 **Issues Detail:**
--   **Issue 1: Complete Document Template Generation**
-    -   **Attempted fixes:** None. The agent has only created the file for the new module.
+-   **Issue 1: Populate with seed data**
+    -   **Attempted fixes:** None.
     -   **Next debug checklist:**
-        1.  In , define Pydantic models for the 10 requested document templates and their placeholders.
-        2.  Install a PDF generation library (like  or ).
-        3.  Create a FastAPI  in the same file.
-        4.  Implement an endpoint (e.g., ) that takes a template type and placeholder data, generates a PDF, and optionally adds a digital signature and a QR stamp.
-        5.  Integrate this new router into the main  application.
-        6.  Create a new frontend page/component under Practice Management to allow advocates to select a template, fill in the fields, and trigger the PDF generation.
-        7.  Display the generated PDF to the user or provide a download link.
-    -   **Why fix this issue and what will be achieved with the fix?** This will provide a core function for advocates, allowing them to create standardized legal documents efficiently directly within the platform, further centralizing their workflow.
-    -   **Status:** IN PROGRESS
+        1.  Create a script or a dedicated API endpoint () to populate the database.
+        2.  Generate realistic sample data for users (advocates), clients, cases, documents, tasks, and invoices.
+        3.  Ensure the data creates meaningful connections (e.g., link documents to cases, cases to clients).
+        4.  Run the seed script/endpoint.
+    -   **Why fix this issue and what will be achieved with the fix?** To provide a richer and more realistic preview of the application's capabilities, as requested by the user.
+    -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
-**In progress Task List**:
--   **Task 1: Implement Document Template Generation (P0)**
-    -   **Where to resume:** Populate the newly created  file with the necessary models, PDF generation logic, and API endpoints.
-    -   **What will be achieved with this?** Advocates will be able to generate 10 types of legal documents with placeholders, digital signatures, and QR stamps.
-    -   **Status:** IN PROGRESS
+-   **Issue 2: Chart/Table Toggle for Lists**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  In , for each list (Clients, Cases, etc.), add state to manage the view mode ( or ).
+        2.  Add a UI toggle component (e.g., segmented control or buttons) to switch the view.
+        3.  Implement a  hook or CSS to set the default view based on screen size (table for web, card for mobile).
+        4.  Create a generic  component (using a library like  or a custom one) to render the data.
+        5.  Conditionally render either the existing card grid or the new  based on the selected view mode.
+    -   **Why fix this issue and what will be achieved with the fix?** To offer users flexibility in how they view data, improving usability especially on larger screens where tables are more efficient.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+-   **Issue 3: Fix Invisible Dropdowns**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  Identify the specific forms where dropdowns are not visible (likely in the Document Generator).
+        2.  Inspect the CSS of the dropdown/select components. The issue is likely a z-index conflict or an  on a parent container.
+        3.  Adjust the z-index of the dropdown's portal/menu to be higher than other elements (e.g., modals, headers).
+        4.  Verify the fix on the affected forms.
+    -   **Why fix this issue and what will be achieved with the fix?** To fix a critical UI bug that prevents users from using forms correctly.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+-   **Issue 4: Actions on Case/Matters List**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  Propose a list of actions to the user via  (e.g., View Details, Edit, Add Document, Create Invoice, Archive Case).
+        2.  Based on user feedback, add a dropdown menu (e.g., Shadcn's ) to each case/matter card/row.
+        3.  Implement the backend logic and frontend components/modals for each approved action.
+    -   **Why fix this issue and what will be achieved with the fix?** To make the case management module more interactive and functional, allowing advocates to perform key actions directly from the list view.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None
+    -   **Blocked on other issue:** None
+
+-   **Issue 5: Unify Stamp Design**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  Locate the code for the actual stamp in the  component.
+        2.  Locate the code for the QR stamp generation in .
+        3.  Refactor the backend PDF generation logic to draw a stamp that visually matches the one from the frontend stamping module. This might involve using  drawing primitives to recreate the design.
+    -   **Why fix this issue and what will be achieved with the fix?** To ensure brand and UI consistency across the application, making the generated documents look official and uniform.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+
+-   **Issue 6: Fix Document Creation Modal Layout**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  In , locate the modal component used for generating documents from custom templates.
+        2.  Inspect its CSS. The issue is likely related to , , or flexbox/grid properties that are not responsive.
+        3.  Adjust the styling to ensure the modal is wider on larger screens and its content wraps properly, preventing overflow.
+    -   **Why fix this issue and what will be achieved with the fix?** To resolve a UI layout bug that makes the document creation feature difficult to use.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+**In progress Task List**:
+-   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Flesh out Practice Management Modules:** The current Practice Management suite has a great UI structure, but the backend functionality is mostly stubs. The next phase is to build out the full CRUD operations and business logic for:
-        -   Client Management
-        -   Case/Matter Management (linking clients, documents, tasks)
-        -   Document Vault (storing and organizing generated/uploaded files)
-        -   Calendar & Tasks (with reminders/notifications)
-        -   Billing & Invoicing (linking to cases, tracking status)
+    -   **(P1) Flesh out Practice Management Modules:** After the current UI fixes, build out full CRUD operations and business logic for the modules that are still stubs (e.g., Calendar, Tasks).
 -   **Future Tasks:**
-    -   **(P2) Refactor JWT to HttpOnly Cookies:** Move JWT from  to secure,  cookies to mitigate XSS attacks.
-    -   **(P2) Implement CSRF Protection:** Add CSRF tokens to protect against Cross-Site Request Forgery.
-    -   **(P3) Refactor :** Continue breaking down the monolithic  file into more modular  files to improve maintainability.
+    -   **(P2) Refactor :** Continue breaking down the monolithic  file into more modular  files (e.g., for admin, user profile) to improve maintainability.
 
 **Completed work in this session**
--   **Email Verification (P0):** Implemented a full email verification flow for new advocate registrations.
--   **Login Attempt Logging (P1):** Added backend logic and an admin endpoint to log and view all login attempts.
--   **Practice Management Suite (Initial Version):**
-    -   Built a new backend module  and .
-    -   Created a comprehensive frontend dashboard () with analytics charts, metric cards, and tabs for various practice management functions.
-    -   Integrated the new page seamlessly into the existing sidebar layout.
--   **Mock Payment Integration (KwikPay):**
-    -   Implemented backend APIs to simulate QR code generation and mobile money push payments.
-    -   Created a Payments page in the advocate dashboard for collecting payments and viewing revenue.
--   **UI/UX Fixes:**
-    -   Redesigned the landing page's document verification section.
-    -   Fixed QR scan links to auto-open the correct tab and attempt camera activation.
-    -   Improved the layout of the payment collection modal.
--   **Test Data:** Created a persistent, verified test account for easier manual testing.
+-   **Document Template Generation (P0):**
+    -   Implemented a Document Generator feature with 10 pre-built legal templates.
+    -   Implemented a Custom Templates feature allowing advocates to create, edit, and use their own templates with a rich text editor.
+-   **Document Vault & Workflow Integration (P0):**
+    -   Enhanced the generator to automatically save generated PDFs to a Document Vault.
+    -   Added the ability to link generated documents to clients and cases.
+    -   Improved the document sharing workflow to use direct PDF downloads and the Web Share API, removing the previous link-based sharing.
+-   **Security Hardening (P0):**
+    -   **CSRF Protection:** Implemented end-to-end CSRF protection using a custom middleware and token-based validation for all state-changing requests.
+    -   **HttpOnly Cookie JWT Storage:** Migrated JWT storage from  to secure,  cookies to protect against XSS token theft.
+-   **Bug Fixes:**
+    -   Resolved a critical routing bug where the  API endpoint was conflicting with a dynamic  route.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: JWT stored in localStorage**
-    -   **Debug checklist:** Refactor frontend auth logic () to handle JWTs from cookies. Update backend login endpoint to set an  cookie.
-    -   **Why to solve this issue and what will be achieved with this?** Prevents JWT theft via XSS, significantly improving application security.
-    -   **Should Test frontend/backend/both after fix:** both
-    -   **Is recurring issue?** N
--   **Issue 2: No CSRF Protection**
-    -   **Debug checklist:** Implement a CSRF middleware in FastAPI to generate and validate anti-CSRF tokens.
-    -   **Why to solve this issue and what will be achieved with this?** Protects authenticated users from being tricked into performing unwanted actions.
-    -   **Should Test frontend/backend/both after fix:** both
-    -   **Is recurring issue?** N
+-   None. The previously identified issues (JWT in localStorage, no CSRF) were resolved in this session.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -113,74 +148,76 @@ Key completed functionalities include:
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, MongoDB (), Pydantic, Passlib, JWT,  (rate limiting), ,  (for QR generation). The architecture is shifting towards modular s.
--   **Frontend:** React, Tailwind CSS, , React Router,  (for charts),  (for QR scanning).
--   **Architecture:** A monolithic backend being refactored into modules, serving a rich React Single-Page Application (SPA).
+-   **Backend:** FastAPI, MongoDB (), Pydantic, Passlib, JWT.
+-   **Frontend:** React, Tailwind CSS, , React Router, .
+-   **Security:** JWTs in  cookies, custom CSRF token middleware,  rate limiting.
+-   **PDF Generation:**  library for creating PDFs with text, QR codes, and digital signatures.
 
 **key DB schema**
--   **users:**  (Fields added).
--   **login_attempts:**  (New collection).
--   **clients, cases, tasks, invoices, events, messages:** New collections added to support the practice management features.
+-   **users:**  (No recent changes, but used for auth).
+-   **login_attempts:**  (Exists for security logging).
+-   **clients, cases, tasks, invoices:** Collections exist to support practice management.
+-   **custom_templates:**  (Collection for advocate-created templates).
+-   **generated_documents:**  (New collection for the document vault).
 
 **changes in tech stack**
--   Added  to  for QR code generation.
--   Added  to  for dashboard charts.
+-   : Added to  to support CSRF token generation.
+-   : Used for all PDF generation tasks.
 
 **All files of reference**
--   : New file containing APIs for clients, cases, tasks, invoices, etc.
--   : New file for the mocked KwikPay payment APIs.
--   : New (currently empty) file intended for the document generation feature.
--   : Heavily modified to add email verification, login logging, and to integrate the new routers.
--   : New, large component for the advocate's main dashboard and workspace.
--   : New component for the payment collection UI.
--   : New page for handling the email verification link.
--   : Updated to include navigation links for Practice Management and Payments.
+-   : Major changes to implement  cookie logic, CSRF middleware, and a new logout endpoint.
+-   : New file created and heavily populated with logic for pre-built and custom template generation, PDF creation, and vault integration.
+-   : Major refactoring to add the Document Generator tab, Custom Templates tab, and enhanced Document Vault tab.
+-   : Updated to handle the new authentication flow (removing JWT from , using , storing CSRF token).
 
 **Areas that need refactoring**:
--   **:** While progress has been made, this file is still very large and should be the target of continued refactoring, moving existing routes (e.g., admin, user profile) into their own modules.
--   **:** This is a very large component (>500 lines). It should be broken down into smaller, more manageable components, with each tab (Clients, Cases, Documents, etc.) becoming its own component.
+-   **:** Still contains a large number of routes and could be further modularized.
+-   **:** This component is extremely large and complex. It should be broken down into smaller components, with each tab's content (, , , etc.) extracted into its own file.
 
 **Critical Info for New Agent**
--   **User Vision:** The user has a clear and ambitious vision for this app to become an all-in-one practice management tool for advocates. All new features should align with this goal of centralizing an advocate's workflow.
--   **Mocked Integrations:** The KwikPay payment integration is a mock. Do not attempt to connect it to a live service. It is there to build out the UI and workflow, awaiting real API documentation from the user.
--   **Modular Refactoring:** The strategy of creating new backend modules (, ) for new features is working well and has been implicitly approved by the user's positive feedback on the progress. Continue this pattern for the document templates feature and future refactoring efforts.
+-   **Top Priority:** The user has provided a clear, 6-item list of UI/UX and data-related tasks. Address these items systematically, starting with populating the database with seed data.
+-   **Security Model:** The application now uses a robust security model with JWTs in  cookies and full CSRF protection. All new API endpoints must be compatible with this model. The  instance on the frontend is already configured to handle this automatically.
+-   **Modular Approach:** Continue the pattern of creating modular backend files () for new features and breaking down large frontend components. The  file is the next prime candidate for refactoring.
 
 **documents and test reports created in this job**
 -   
 -   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user:** Implement all of them [document templates]... Yes the PDF will have to include digital signature...and allow the advocate to also do the verified QR stams as well within the same place (PENDING)
-2.  **agent:** Asked which templates to implement.
-3.  **user:** Template Document Generation - Fill placeholders and generate PDFs - What template?
-4.  **agent:** Shared screenshot of the correctly centered payment modal.
-5.  **user:** Centralize everything in this modal (RESOLVED)
-6.  **agent:** Finished the payment feature and provided a summary.
-7.  **user:** Explained that payment is an internal advocate service.
-8.  **user:** Explained KwikPay should be mocked and described the desired workflow (QR, USSD Push).
-9.  **agent:** Asked clarifying questions about the payment integration.
-10. **user:** Gave feedback on the Practice Management UI: it looked like it was hanging, should be a tab within the side menu, and the dashboard needed more graphs. (RESOLVED)
+1.  **user:** Provided a screenshot and a 6-point list of required changes/fixes. (PENDING)
+2.  **agent:** Acknowledged the feedback and listed the 6 points to be addressed.
+3.  **user:** Asked for a logged-in advocate account. (RESOLVED)
+4.  **agent:** Provided credentials for the test advocate account.
+5.  **user:** Confirmed to proceed with implementing HttpOnly cookie storage. (RESOLVED)
+6.  **agent:** Proposed implementing HttpOnly cookie storage as a follow-up to CSRF protection.
+7.  **user:** Confirmed to proceed with implementing CSRF protection. (RESOLVED)
+8.  **agent:** Explained what CSRF is and recommended implementing it along with HttpOnly cookies.
+9.  **user:** Asked for more details about CSRF. (RESOLVED)
+10. **agent:** Finished the custom templates feature and proposed next steps.
 
 **Project Health Check:**
 -   **Broken:** None.
--   **Mocked:** The KwikPay payment integration is fully mocked on the backend. It simulates API responses for QR generation and MoMo push but does not perform real transactions.
+-   **Mocked:** The KwikPay payment integration is fully mocked on the backend.
 
 **3rd Party Integrations**
--   **Resend:** Used for sending transactional emails (password reset, email verification). The provided key is a test key.
+-   **Resend:** Used for sending transactional emails.
 -   **KwikPay (Mocked):** A placeholder for a future payment gateway integration.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (after email verification and after initial practice management implementation).
+-   **Testing agent used after significant changes:** YES, used multiple times to validate Document Generation, CSRF, and HttpOnly cookie features. All tests passed.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
-| Portal | Email | Password | Notes |
+| Role | Email | Password | Notes |
 |---|---|---|---|
 | Test Advocate |  |  | Verified, persistent account for testing advocate features. |
-| TLS Admin |  |  | May trigger forced password reset on first login. |
-| Super Admin |  |  | May trigger forced password reset on first login. |
+| TLS Admin |  |  | May trigger forced password reset. |
+| Super Admin |  |  | May trigger forced password reset. |
 
 **What agent forgot to execute**
-- The agent has not yet implemented the two medium-risk security improvements it identified in the previous session: moving the JWT from  to  cookies and adding CSRF protection. These remain in the Future Tasks backlog.</analysis>
+-   The agent has a new list of 6 tasks from the user. Work on these has not yet begun.</analysis>
