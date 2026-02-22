@@ -1139,35 +1139,48 @@ const DocumentsTab = ({ token }) => {
   };
 
   const handleDownload = async (doc) => {
-    try {
-      // Use fetch instead of axios to avoid responseText issues with blob
-      const response = await fetch(`${API}/api/practice/documents/${doc.id}/download`, {
-        headers: headers,
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        // For error responses, parse as JSON
-        const errorData = await response.json();
-        toast.error(errorData.detail || "Failed to download document");
-        return;
+    // Use XMLHttpRequest for better control over blob downloads
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `${API}/api/practice/documents/${doc.id}/download`, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+    xhr.responseType = 'blob';
+    
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        const blob = xhr.response;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = doc.original_filename || doc.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success("Document downloaded!");
+      } else {
+        // Parse error response
+        const reader = new FileReader();
+        reader.onload = function() {
+          try {
+            const errorData = JSON.parse(reader.result);
+            toast.error(errorData.detail || "Failed to download document");
+          } catch {
+            toast.error("Failed to download document");
+          }
+        };
+        reader.onerror = function() {
+          toast.error("Failed to download document");
+        };
+        reader.readAsText(xhr.response);
       }
-      
-      // For success, get as blob
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = doc.original_filename || doc.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success("Document downloaded!");
-    } catch (error) {
-      console.error("Download error:", error);
+    };
+    
+    xhr.onerror = function() {
       toast.error("Failed to download document. Please try again.");
-    }
+    };
+    
+    xhr.send();
   };
 
   const handleShare = async (doc) => {
