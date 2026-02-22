@@ -1146,9 +1146,12 @@ const DocumentsTab = ({ token }) => {
         credentials: 'include'
       });
       
+      // Clone the response before reading to allow error handling
+      const responseClone = response.clone();
+      
       if (!response.ok) {
         // Handle error responses - get response as text first, then try to parse
-        const errorText = await response.text();
+        const errorText = await responseClone.text();
         try {
           const errorData = JSON.parse(errorText);
           toast.error(errorData.detail || "Failed to download document");
