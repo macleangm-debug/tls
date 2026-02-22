@@ -541,6 +541,7 @@ const CasesTab = ({ token }) => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editCase, setEditCase] = useState(null);
   const [formData, setFormData] = useState({
     title: "", client_id: "", case_type: "litigation", status: "active", priority: "medium", description: "", court: "", opposing_party: ""
   });
@@ -571,13 +572,55 @@ const CasesTab = ({ token }) => {
       return;
     }
     try {
-      await axios.post(`${API}/api/practice/cases`, formData, { headers });
-      toast.success("Case created successfully");
+      if (editCase) {
+        await axios.put(`${API}/api/practice/cases/${editCase.id}`, formData, { headers });
+        toast.success("Case updated successfully");
+      } else {
+        await axios.post(`${API}/api/practice/cases`, formData, { headers });
+        toast.success("Case created successfully");
+      }
       setShowForm(false);
+      setEditCase(null);
       setFormData({ title: "", client_id: "", case_type: "litigation", status: "active", priority: "medium", description: "", court: "", opposing_party: "" });
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to create case");
+      toast.error(error.response?.data?.detail || "Failed to save case");
+    }
+  };
+
+  const handleEditCase = (caseItem) => {
+    setEditCase(caseItem);
+    setFormData({
+      title: caseItem.title,
+      client_id: caseItem.client_id,
+      case_type: caseItem.case_type,
+      status: caseItem.status,
+      priority: caseItem.priority,
+      description: caseItem.description || "",
+      court: caseItem.court || "",
+      opposing_party: caseItem.opposing_party || ""
+    });
+    setShowForm(true);
+  };
+
+  const handleDeleteCase = async (caseId) => {
+    if (!window.confirm("Are you sure you want to delete this case?")) return;
+    try {
+      await axios.delete(`${API}/api/practice/cases/${caseId}`, { headers });
+      toast.success("Case deleted successfully");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to delete case");
+    }
+  };
+
+  const handleUpdateStatus = async (caseId, newStatus) => {
+    try {
+      await axios.put(`${API}/api/practice/cases/${caseId}`, { status: newStatus }, { headers });
+      toast.success(`Case status updated to ${newStatus}`);
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to update status");
     }
   };
 
