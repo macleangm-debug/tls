@@ -9,6 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Calendar as CalendarWidget } from "../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -26,9 +37,11 @@ import {
   FileSignature, ChevronRight, ArrowUpRight, ArrowDownRight,
   FileCheck, Stamp, Pen, Type, QrCode, RefreshCw, History,
   MoreVertical, Archive, FileOutput, Grid3X3, LayoutList,
-  CalendarDays, List, ChevronLeft
+  CalendarDays, List, ChevronLeft, Share2, MapPin, Bell,
+  CalendarIcon, ClockIcon
 } from "lucide-react";
 import axios from "axios";
+import { format } from "date-fns";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
