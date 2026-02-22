@@ -853,49 +853,37 @@ def create_templates_routes(db, get_current_user):
                     # Skip problematic paragraphs
                     pass
         
-        # Add QR stamp if requested
+        # Add QR stamp if requested (using unified design)
         if request.include_qr_stamp:
-            story.append(Spacer(1, 1*cm))
-            story.append(HRFlowable(width="100%", thickness=1, color=colors.black))
-            story.append(Spacer(1, 0.5*cm))
+            story.append(Spacer(1, 0.8*cm))
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.Color(0.231, 0.510, 0.965)))
             
-            # Generate verification QR
             verification_id = f"TLS-DOC-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
             qr_data = f"https://tls.or.tz/verify?doc={verification_id}"
-            qr_buffer = generate_qr_code_image(qr_data, 80)
-            
-            qr_img = Image(qr_buffer, width=1.5*inch, height=1.5*inch)
-            
-            verification_text = f"""
-            <b>DOCUMENT VERIFICATION</b><br/>
-            ID: {verification_id}<br/>
-            Generated: {datetime.now().strftime('%d/%m/%Y %H:%M')}<br/>
-            Advocate: {user.get('full_name', 'N/A')}<br/>
-            Roll No: {user.get('roll_number', 'N/A')}
-            """
-            
-            stamp_table = Table([
-                [qr_img, Paragraph(verification_text, styles['DocumentBody'])]
-            ], colWidths=[2*inch, 4*inch])
-            stamp_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('BOX', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.95, 0.95, 0.95)),
-            ]))
-            story.append(stamp_table)
+            stamp_elements, verification_id = create_unified_stamp_section(qr_data, verification_id, user, styles)
+            story.extend(stamp_elements)
         
         # Add digital signature if requested
         if request.include_signature:
             story.append(Spacer(1, 0.5*cm))
+            tls_blue = colors.Color(0.231, 0.510, 0.965)
+            sig_style = ParagraphStyle(
+                name='Signature', 
+                fontSize=9, 
+                alignment=TA_RIGHT, 
+                borderColor=tls_blue, 
+                borderWidth=1, 
+                borderPadding=5,
+                textColor=colors.black
+            )
             sig_text = f"""
-            <b>DIGITALLY SIGNED</b><br/>
+            <font color="#3B82F6"><b>DIGITALLY SIGNED</b></font><br/>
             {user.get('full_name', 'ADVOCATE')}<br/>
             Roll No: {user.get('roll_number', 'N/A')}<br/>
             Date: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}<br/>
-            Tanganyika Law Society
+            <font color="#3B82F6">Tanganyika Law Society</font>
             """
-            story.append(Paragraph(sig_text, ParagraphStyle(name='Signature', fontSize=9, alignment=TA_RIGHT, borderColor=colors.black, borderWidth=1, borderPadding=5)))
+            story.append(Paragraph(sig_text, sig_style))
         
         # Build PDF
         doc.build(story)
