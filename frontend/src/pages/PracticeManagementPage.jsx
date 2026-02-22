@@ -2075,6 +2075,17 @@ const CalendarTab = ({ token }) => {
                               <Copy className="mr-2 h-4 w-4" /> Duplicate
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-white/10" />
+                            <DropdownMenuItem 
+                              onClick={() => handleMarkEventComplete(event)} 
+                              className="hover:bg-emerald-500/20 text-emerald-400 cursor-pointer"
+                              disabled={event.status === 'completed'}
+                            >
+                              <CheckSquare className="mr-2 h-4 w-4" /> Mark Complete
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSetEventReminder(event)} className="hover:bg-blue-500/20 text-blue-400 cursor-pointer">
+                              <Bell className="mr-2 h-4 w-4" /> Set Reminder
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-white/10" />
                             <DropdownMenuItem onClick={() => setDeleteEvent(event)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
                               <Trash2 className="mr-2 h-4 w-4" /> Delete
                             </DropdownMenuItem>
