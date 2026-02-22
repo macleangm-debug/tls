@@ -1363,7 +1363,7 @@ const DocumentsTab = ({ token }) => {
                 <tr key={doc.id} className="border-b border-white/5 hover:bg-white/5 transition-colors" data-testid={`doc-row-${doc.id}`}>
                   <td className="p-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${doc.generated_doc_id ? 'bg-emerald-500/20' : 'bg-teal-500/20'}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${doc.generated_doc_id ? 'bg-emerald-500/20' : doc.is_seed_data ? 'bg-amber-500/20' : 'bg-teal-500/20'}`}>
                         {getDocIcon(doc)}
                       </div>
                       <span className="text-white font-medium truncate max-w-[200px]">{doc.name}</span>
@@ -1375,15 +1375,28 @@ const DocumentsTab = ({ token }) => {
                   <td className="p-3 text-white/70 text-sm">{formatFileSize(doc.file_size)}</td>
                   <td className="p-3 text-white/50 text-sm">{new Date(doc.created_at).toLocaleDateString()}</td>
                   <td className="p-3">
+                    {doc.is_seed_data && <Badge className="text-xs bg-amber-500/20 text-amber-400 border-amber-500/30 mr-1">Demo</Badge>}
                     {doc.generated_doc_id && <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-emerald-500/30 mr-1">Generated</Badge>}
                     {doc.verification_id && <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Verified</Badge>}
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleDownload(doc)} className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10" title="Download">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDownload(doc)} 
+                        className={`h-8 w-8 p-0 ${doc.is_seed_data ? 'text-white/20 cursor-not-allowed' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
+                        title={doc.is_seed_data ? "Demo document - upload a real file to download" : "Download"}
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleShare(doc)} className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10" title="Share">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleShare(doc)} 
+                        className={`h-8 w-8 p-0 ${doc.is_seed_data ? 'text-white/20 cursor-not-allowed' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
+                        title={doc.is_seed_data ? "Demo document - upload a real file to share" : "Share"}
+                      >
                         <Share2 className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setDeleteDoc(doc)} className="h-8 w-8 p-0 text-red-400/70 hover:text-red-400 hover:bg-red-500/10" title="Delete">
