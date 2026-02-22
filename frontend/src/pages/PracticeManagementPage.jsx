@@ -1310,6 +1310,15 @@ const CalendarTab = ({ token }) => {
     return acc;
   }, {});
 
+  // Get dates with events for calendar highlighting
+  const eventDates = events.map(e => new Date(e.start_datetime));
+  
+  // Get events for selected date
+  const selectedDateEvents = events.filter(e => {
+    const eventDate = new Date(e.start_datetime).toDateString();
+    return eventDate === selectedDate.toDateString();
+  }).sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
+
   // Get upcoming events (next 7 days)
   const upcomingEvents = events
     .filter(e => new Date(e.start_datetime) >= new Date())
@@ -1323,6 +1332,11 @@ const CalendarTab = ({ token }) => {
     !e.completed
   );
 
+  // Get event count by type for selected date
+  const getEventTypeCount = (type) => {
+    return selectedDateEvents.filter(e => e.event_type === type).length;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1334,9 +1348,29 @@ const CalendarTab = ({ token }) => {
             </Badge>
           )}
         </div>
-        <Button onClick={() => { setEditEvent(null); setShowForm(!showForm); }} className="bg-tls-blue-electric" data-testid="add-event-btn">
-          <Plus className="w-4 h-4 mr-2" /> Add Event
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
+            <button 
+              onClick={() => setViewMode("list")} 
+              className={`p-1.5 rounded transition-colors ${viewMode === "list" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
+              title="List view"
+              data-testid="calendar-view-list-btn"
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setViewMode("calendar")} 
+              className={`p-1.5 rounded transition-colors ${viewMode === "calendar" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
+              title="Calendar view"
+              data-testid="calendar-view-grid-btn"
+            >
+              <CalendarDays className="w-4 h-4" />
+            </button>
+          </div>
+          <Button onClick={() => { setEditEvent(null); setShowForm(!showForm); }} className="bg-tls-blue-electric" data-testid="add-event-btn">
+            <Plus className="w-4 h-4 mr-2" /> Add Event
+          </Button>
+        </div>
       </div>
 
       {showForm && (
