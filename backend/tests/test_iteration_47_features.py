@@ -21,13 +21,13 @@ class TestAuth:
     @pytest.fixture(scope="class")
     def auth_token(self):
         """Get authentication token"""
-        response = requests.post(f"{BASE_URL}/api/token", data={
-            "username": TEST_EMAIL,
+        response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         })
         if response.status_code == 200:
             return response.json().get("access_token")
-        pytest.skip("Authentication failed - skipping authenticated tests")
+        pytest.skip(f"Authentication failed - status {response.status_code}")
     
     @pytest.fixture(scope="class")
     def headers(self, auth_token):
