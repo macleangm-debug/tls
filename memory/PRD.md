@@ -13,11 +13,13 @@
 - Data includes realistic Tanzanian names, addresses, phone numbers
 - File: `/app/backend/seed_data.py`
 
-#### 2. Table/Card View Toggle (Cases Tab)
+#### 2. Table/Card View Toggle (Cases & Clients Tabs)
 - Cases tab now supports both table and card view layouts
+- **Clients tab now also supports table/card toggle**
 - Toggle buttons in header (visible on desktop only)
 - Table view is default on desktop (>768px), card on mobile
 - Table includes columns: Case, Client, Type, Status, Priority, Court, Actions
+- Clients table columns: Client, Type, Email, Phone, Company, Actions
 - Both views maintain action menu functionality
 
 #### 3. Case Action Menu
@@ -45,6 +47,29 @@
 - QR code with verification ID, timestamp, advocate name, roll number
 - Light blue background with blue borders
 - Reusable function: `create_unified_stamp_section()` in document_templates.py
+
+---
+
+## Calendar & Tasks Modules (2026-02-22)
+
+### Calendar Tab Enhancements
+- **Stats Row**: Total Events, Upcoming, Deadlines, Court Hearings counters
+- **Overdue Badge**: Shows count of overdue deadline events
+- **Event Cards**: Color-coded icons based on event type
+- **Full CRUD**: Create, Edit, Delete events
+- **Client/Case Linking**: Link events to specific clients and cases
+- **Event Types**: Meeting, Court Hearing, Deadline, Reminder, Appointment
+- **Location Tracking**: Show event location on cards
+
+### Tasks Tab Enhancements
+- **Stats Row**: Total Tasks, Completed, Overdue, Urgent counters
+- **Overdue Alert Banner**: Red alert when overdue tasks exist
+- **Full CRUD**: Create, Edit, Delete tasks
+- **Client/Case Linking**: Link tasks to specific clients and cases
+- **Status Management**: Pending, In Progress, Completed with action menu
+- **Priority Badges**: Color-coded priority indicators (low, medium, high, urgent)
+- **Quick Status Toggle**: Click checkbox to toggle completion
+- **Action Menu**: Edit, Set Pending, Set In Progress, Mark Complete, Delete
 
 ---
 
