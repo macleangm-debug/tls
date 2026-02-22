@@ -1413,88 +1413,226 @@ const CalendarTab = ({ token }) => {
         </Card>
       )}
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="glass-card border-white/10">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-white">{events.length}</p>
-            <p className="text-xs text-white/50">Total Events</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card border-white/10">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-emerald-400">{upcomingEvents.length}</p>
-            <p className="text-xs text-white/50">Upcoming</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card border-white/10">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-amber-400">{events.filter(e => e.event_type === 'deadline').length}</p>
-            <p className="text-xs text-white/50">Deadlines</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card border-white/10">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-red-400">{events.filter(e => e.event_type === 'court_hearing').length}</p>
-            <p className="text-xs text-white/50">Court Hearings</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Events List */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-white/70">Upcoming Events</h3>
-        {upcomingEvents.map((event) => (
-          <Card key={event.id} className="glass-card border-white/10 hover:border-white/20 transition-all" data-testid={`event-card-${event.id}`}>
+      {/* Calendar View Mode */}
+      {viewMode === "calendar" ? (
+        <div className="grid lg:grid-cols-3 gap-4">
+          {/* Calendar Widget */}
+          <Card className="glass-card border-white/10 lg:col-span-1">
             <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getEventTypeColor(event.event_type)}`}>
-                  {getEventTypeIcon(event.event_type)}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium text-white">{event.title}</h3>
-                      <p className="text-sm text-white/50 mt-1">
-                        {new Date(event.start_datetime).toLocaleString('en-GB', { 
-                          weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                        })}
-                      </p>
-                      {event.location && (
-                        <p className="text-xs text-white/40 mt-1 flex items-center gap-1">
-                          <Building className="w-3 h-3" /> {event.location}
-                        </p>
-                      )}
-                      {(event.client_name || event.case_title) && (
-                        <div className="flex items-center gap-2 mt-2">
-                          {event.client_name && <Badge variant="outline" className="text-xs border-white/20 text-white/60">{event.client_name}</Badge>}
-                          {event.case_title && <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">{event.case_title}</Badge>}
-                        </div>
-                      )}
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[140px]">
-                        <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuItem onClick={() => handleDeleteEvent(event.id)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+              <CalendarWidget
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                className="rounded-md bg-transparent text-white"
+                modifiers={{
+                  hasEvent: eventDates
+                }}
+                modifiersStyles={{
+                  hasEvent: { 
+                    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                    borderRadius: '50%',
+                    fontWeight: 'bold'
+                  }
+                }}
+                classNames={{
+                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                  month: "space-y-4 w-full",
+                  caption: "flex justify-center pt-1 relative items-center text-white",
+                  caption_label: "text-sm font-medium text-white",
+                  nav: "space-x-1 flex items-center",
+                  nav_button: "h-7 w-7 bg-white/10 hover:bg-white/20 text-white rounded-md p-0 flex items-center justify-center",
+                  nav_button_previous: "absolute left-1",
+                  nav_button_next: "absolute right-1",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex justify-between",
+                  head_cell: "text-white/50 rounded-md w-8 font-normal text-[0.8rem] text-center",
+                  row: "flex w-full mt-2 justify-between",
+                  cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
+                  day: "h-8 w-8 p-0 font-normal text-white/70 hover:bg-white/10 rounded-md flex items-center justify-center cursor-pointer",
+                  day_selected: "bg-tls-blue-electric text-white hover:bg-tls-blue-electric",
+                  day_today: "bg-white/20 text-white font-bold",
+                  day_outside: "text-white/30",
+                  day_disabled: "text-white/20",
+                }}
+              />
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-xs text-white/50 mb-2">Legend</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Meeting</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Court</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Deadline</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Appointment</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          
+          {/* Selected Day Events */}
+          <Card className="glass-card border-white/10 lg:col-span-2">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </h3>
+                  <p className="text-sm text-white/50">
+                    {selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''} scheduled
+                  </p>
+                </div>
+                {selectedDateEvents.length > 0 && (
+                  <div className="flex gap-2">
+                    {getEventTypeCount('meeting') > 0 && <Badge className="bg-blue-500/20 text-blue-400">{getEventTypeCount('meeting')} meetings</Badge>}
+                    {getEventTypeCount('court_hearing') > 0 && <Badge className="bg-red-500/20 text-red-400">{getEventTypeCount('court_hearing')} court</Badge>}
+                    {getEventTypeCount('deadline') > 0 && <Badge className="bg-amber-500/20 text-amber-400">{getEventTypeCount('deadline')} deadlines</Badge>}
+                  </div>
+                )}
+              </div>
+              
+              {selectedDateEvents.length > 0 ? (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {selectedDateEvents.map((event) => (
+                    <div key={event.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getEventTypeColor(event.event_type)}`}>
+                        {getEventTypeIcon(event.event_type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-medium text-white">{event.title}</h4>
+                            <p className="text-xs text-white/50">
+                              {new Date(event.start_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                              {event.end_datetime && ` - ${new Date(event.end_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}
+                            </p>
+                            {event.location && <p className="text-xs text-white/40 mt-1">{event.location}</p>}
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/50 hover:text-white">
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white">
+                              <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
+                                <Edit className="mr-2 h-3 w-3" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteEvent(event.id)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
+                                <Trash2 className="mr-2 h-3 w-3" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="w-10 h-10 mx-auto mb-3 text-white/20" />
+                  <p className="text-white/40">No events on this day</p>
+                  <Button 
+                    onClick={() => {
+                      const dateStr = selectedDate.toISOString().slice(0, 16);
+                      setFormData({...formData, start_datetime: dateStr});
+                      setShowForm(true);
+                    }} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3 border-white/20 text-white"
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Add Event
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        /* List View */
+        <>
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card className="glass-card border-white/10">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-white">{events.length}</p>
+                <p className="text-xs text-white/50">Total Events</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card border-white/10">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-emerald-400">{upcomingEvents.length}</p>
+                <p className="text-xs text-white/50">Upcoming</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card border-white/10">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-amber-400">{events.filter(e => e.event_type === 'deadline').length}</p>
+                <p className="text-xs text-white/50">Deadlines</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card border-white/10">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-red-400">{events.filter(e => e.event_type === 'court_hearing').length}</p>
+                <p className="text-xs text-white/50">Court Hearings</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Events List */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-white/70">Upcoming Events</h3>
+            {upcomingEvents.map((event) => (
+              <Card key={event.id} className="glass-card border-white/10 hover:border-white/20 transition-all" data-testid={`event-card-${event.id}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getEventTypeColor(event.event_type)}`}>
+                      {getEventTypeIcon(event.event_type)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium text-white">{event.title}</h3>
+                          <p className="text-sm text-white/50 mt-1">
+                            {new Date(event.start_datetime).toLocaleString('en-GB', { 
+                              weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                            })}
+                          </p>
+                          {event.location && (
+                            <p className="text-xs text-white/40 mt-1 flex items-center gap-1">
+                              <Building className="w-3 h-3" /> {event.location}
+                            </p>
+                          )}
+                          {(event.client_name || event.case_title) && (
+                            <div className="flex items-center gap-2 mt-2">
+                              {event.client_name && <Badge variant="outline" className="text-xs border-white/20 text-white/60">{event.client_name}</Badge>}
+                              {event.case_title && <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">{event.case_title}</Badge>}
+                            </div>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[140px]">
+                            <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-white/10" />
+                            <DropdownMenuItem onClick={() => handleDeleteEvent(event.id)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       {events.length === 0 && (
         <div className="text-center py-12">
