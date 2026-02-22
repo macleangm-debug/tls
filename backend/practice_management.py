@@ -752,6 +752,56 @@ def create_practice_routes(db, get_current_user):
             raise HTTPException(status_code=404, detail="Event not found")
         return {"message": "Event deleted"}
     
+    @practice_router.patch("/events/{event_id}/status")
+    async def update_event_status(event_id: str, data: EventStatusUpdate, user: dict = Depends(get_current_user)):
+        """Mark event as complete, cancelled, or scheduled"""
+        valid_statuses = ["scheduled", "completed", "cancelled"]
+        if data.status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Status must be one of: {', '.join(valid_statuses)}")
+        
+        result = await db.events.update_one(
+            {"id": event_id, "advocate_id": user["id"]},
+            {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        return {"message": f"Event marked as {data.status}"}
+    
+    @practice_router.patch("/events/{event_id}/reminder")
+    async def update_event_reminder(event_id: str, data: EventReminderUpdate, user: dict = Depends(get_current_user)):
+        """Set or update event reminders"""
+        result = await db.events.update_one(
+            {"id": event_id, "advocate_id": user["id"]},
+            {"$set": {"reminder_minutes": data.reminder_minutes, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        return {"message": "Event reminders updated", "reminder_minutes": data.reminder_minutes}
+    
+    @practice_router.post("/events/{event_id}/duplicate")
+    async def duplicate_event(event_id: str, user: dict = Depends(get_current_user)):
+        """Duplicate an existing event"""
+        event = await db.events.find_one({"id": event_id, "advocate_id": user["id"]}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Create a new event based on the original
+        new_event = {
+            **event,
+            "id": str(uuid.uuid4()),
+            "title": f"{event['title']} (Copy)",
+            "status": "scheduled",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.events.insert_one(new_event)
+        del new_event["_id"] if "_id" in new_event else None
+        
+        return {"message": "Event duplicated", "event": new_event}
+    
     @practice_router.get("/events/upcoming/reminders")
     async def get_upcoming_reminders(user: dict = Depends(get_current_user)):
         """Get events with upcoming reminders"""
