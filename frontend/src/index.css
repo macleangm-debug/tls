@@ -113,6 +113,26 @@ body {
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
+/* Fix for dark theme dropdown visibility */
+select.dark-select,
+.dark-select option {
+    background-color: #1a1f2e;
+    color: white;
+}
+
+select option {
+    background-color: #1a1f2e;
+    color: #e2e8f0;
+    padding: 8px 12px;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+    background-color: #3b82f6;
+    color: white;
+}
+
 /* Text gradient */
 .text-gradient-gold {
     background: linear-gradient(to right, #C5A059, #FCD34D, #C5A059);
