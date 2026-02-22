@@ -1,0 +1,51 @@
+{
+  "summary": "Completed testing of iteration 47 features: Calendar event actions (Mark Complete, Set Reminder, Duplicate), Case status update endpoints (Active, Pending, On Hold, Closed), and Document Vault Demo badges. All features working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_47_features.py",
+    "/app/test_reports/pytest/iteration_47_features_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_47_features.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "test@tls.or.tz / Test@12345678!",
+  "seed_data_creation": "None - used existing seed/demo data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All iteration 47 features tested and verified: Calendar event actions (Mark Complete, Set Reminder, Duplicate), Case status updates (Set Active, Set Pending, Put On Hold, Close Case), Document Vault Demo badges with download toast message and delete confirmation modal. Backend test file created at /app/backend/tests/test_iteration_47_features.py with 19 passing tests.",
+  "features_tested": {
+    "calendar_event_actions": {
+      "mark_complete": "PASS - Available in event dropdown menu, API endpoint PATCH /api/practice/events/{id}/status working",
+      "set_reminder": "PASS - Available in event dropdown menu, API endpoint PATCH /api/practice/events/{id}/reminder working",
+      "duplicate": "PASS - Available in event dropdown menu, API endpoint POST /api/practice/events/{id}/duplicate working"
+    },
+    "case_status_updates": {
+      "set_active": "PASS - Available in case action dropdown, API endpoint PATCH /api/practice/cases/{id}/status working",
+      "set_pending": "PASS - Available in case action dropdown, API verified",
+      "put_on_hold": "PASS - Available in case action dropdown, API verified",
+      "close_case": "PASS - Available in case action dropdown, API verified"
+    },
+    "document_vault_demo": {
+      "demo_badges": "PASS - Amber 'Demo' badges visible on seed documents in Status column",
+      "download_info_message": "PASS - Toast message 'This is a demo document. Upload a real document to test downloads.' shown when clicking download on demo docs",
+      "delete_confirmation_modal": "PASS - Modal with Cancel/Delete buttons, message 'Are you sure you want to delete...? This action cannot be undone.'"
+    }
+  },
+  "mocked_apis": {
+    "KwikPay_payments": "Still MOCKED as noted in previous iterations"
+  }
+}
