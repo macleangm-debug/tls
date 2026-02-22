@@ -1096,35 +1096,16 @@ def create_templates_routes(db, get_current_user):
             if user.get('roll_number'):
                 story.append(Paragraph(f"Roll No: {user.get('roll_number')}", sig_style))
         
-        # Add QR stamp if requested
+        # Add QR stamp if requested (using unified design)
         verification_id = None
         if request.include_qr_stamp:
             story.append(Spacer(1, 0.5*inch))
-            story.append(HRFlowable(width="100%", thickness=1, color=colors.black))
-            story.append(Spacer(1, 0.3*inch))
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.Color(0.231, 0.510, 0.965)))
             
             verification_id = f"TLS-CUSTOM-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
             qr_data = f"https://tls.or.tz/verify?doc={verification_id}"
-            qr_buffer = generate_qr_code_image(qr_data, 80)
-            qr_img = Image(qr_buffer, width=1.2*inch, height=1.2*inch)
-            
-            verification_text = f"""
-            <b>DOCUMENT VERIFICATION</b><br/>
-            ID: {verification_id}<br/>
-            Generated: {datetime.now().strftime('%d/%m/%Y %H:%M')}<br/>
-            Advocate: {user.get('full_name', 'N/A')}
-            """
-            qr_style = ParagraphStyle('QRInfo', parent=styles['Normal'], fontSize=9)
-            
-            stamp_table = Table([
-                [qr_img, Paragraph(verification_text, qr_style)]
-            ], colWidths=[1.5*inch, 3.5*inch])
-            stamp_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('BOX', (0, 0), (-1, -1), 1, colors.black),
-            ]))
-            story.append(stamp_table)
+            stamp_elements, verification_id = create_unified_stamp_section(qr_data, verification_id, user, styles)
+            story.extend(stamp_elements)
         
         # Build PDF
         doc.build(story)
