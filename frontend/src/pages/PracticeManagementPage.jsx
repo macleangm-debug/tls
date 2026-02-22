@@ -1150,7 +1150,18 @@ const DocumentsTab = ({ token }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error("Failed to download document");
+      // Handle blob response errors - need to read the blob as text to get the error message
+      if (error.response?.data instanceof Blob) {
+        try {
+          const errorText = await error.response.data.text();
+          const errorJson = JSON.parse(errorText);
+          toast.error(errorJson.detail || "Failed to download document");
+        } catch {
+          toast.error("Failed to download document");
+        }
+      } else {
+        toast.error(error.response?.data?.detail || "Failed to download document");
+      }
     }
   };
 
