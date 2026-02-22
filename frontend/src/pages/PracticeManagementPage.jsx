@@ -322,15 +322,17 @@ const EnhancedDashboard = ({ analytics, caseAnalytics, revenueData, recentActivi
               Cases by Status
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center gap-4">
+          <CardContent className="h-[180px]">
+            <div className="flex items-center justify-center gap-6 h-full">
               {caseStatusData.length > 0 ? (
                 <>
-                  <DonutChart data={caseStatusData} colors={statusColors} size={100} />
-                  <div className="space-y-1">
+                  <div className="flex-shrink-0">
+                    <DonutChart data={caseStatusData} colors={statusColors} size={120} />
+                  </div>
+                  <div className="space-y-2">
                     {caseStatusData.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-xs">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[idx % statusColors.length] }} />
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[idx % statusColors.length] }} />
                         <span className="text-white/60 capitalize">{item.label}</span>
                         <span className="text-white font-medium">{item.value}</span>
                       </div>
