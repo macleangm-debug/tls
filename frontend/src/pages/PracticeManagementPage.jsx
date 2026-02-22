@@ -642,9 +642,29 @@ const CasesTab = ({ token }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">Cases & Matters</h2>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-tls-blue-electric" disabled={clients.length === 0} data-testid="new-case-btn">
-          <Plus className="w-4 h-4 mr-2" /> New Case
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
+            <button 
+              onClick={() => setViewMode("table")} 
+              className={`p-1.5 rounded transition-colors ${viewMode === "table" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
+              title="Table view"
+              data-testid="view-table-btn"
+            >
+              <LayoutList className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setViewMode("card")} 
+              className={`p-1.5 rounded transition-colors ${viewMode === "card" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
+              title="Card view"
+              data-testid="view-card-btn"
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </button>
+          </div>
+          <Button onClick={() => setShowForm(!showForm)} className="bg-tls-blue-electric" disabled={clients.length === 0} data-testid="new-case-btn">
+            <Plus className="w-4 h-4 mr-2" /> New Case
+          </Button>
+        </div>
       </div>
 
       {showForm && (
