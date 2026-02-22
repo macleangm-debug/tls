@@ -727,6 +727,7 @@ def create_practice_routes(db, get_current_user):
             "id": str(uuid.uuid4()),
             "advocate_id": user["id"],
             **data.dict(),
+            "status": "scheduled",  # Default status for new events
             "created_at": now,
             "updated_at": now
         }
