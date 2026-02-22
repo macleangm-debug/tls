@@ -1165,27 +1165,20 @@ const DocumentsTab = ({ token }) => {
 
   const handleShare = async (doc) => {
     setSelectedDoc(doc);
-    // Download the document to share
     try {
-      const response = await axios.get(`${API}/api/practice/documents/${doc.id}/download`, {
-        headers,
-        responseType: 'blob',
-        validateStatus: (status) => status < 500 // Don't throw for 4xx errors
+      // Use fetch instead of axios for blob downloads
+      const response = await fetch(`${API}/api/practice/documents/${doc.id}/download`, {
+        headers: headers,
+        credentials: 'include'
       });
       
-      // Check if the response is an error (4xx status)
-      if (response.status >= 400) {
-        const errorText = await response.data.text();
-        try {
-          const errorJson = JSON.parse(errorText);
-          toast.error(errorJson.detail || "Failed to share document");
-        } catch {
-          toast.error("Failed to share document");
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.detail || "Failed to share document");
         return;
       }
       
-      const blob = new Blob([response.data], { type: doc.file_type || 'application/pdf' });
+      const blob = await response.blob();
       const file = new File([blob], doc.original_filename || doc.name, { type: doc.file_type || 'application/pdf' });
       
       // Check if Web Share API supports file sharing
