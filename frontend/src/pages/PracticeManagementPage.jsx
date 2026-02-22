@@ -1416,7 +1416,7 @@ const DocumentsTab = ({ token }) => {
             <Card key={doc.id} className="glass-card border-white/10 hover:border-white/20 transition-all group" data-testid={`doc-card-${doc.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.generated_doc_id ? 'bg-emerald-500/20' : 'bg-teal-500/20'}`}>
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.generated_doc_id ? 'bg-emerald-500/20' : doc.is_seed_data ? 'bg-amber-500/20' : 'bg-teal-500/20'}`}>
                     {getDocIcon(doc)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1424,6 +1424,9 @@ const DocumentsTab = ({ token }) => {
                     <p className="text-xs text-white/50">{formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}</p>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <Badge variant="outline" className="text-xs border-white/20 text-white/60">{doc.folder}</Badge>
+                      {doc.is_seed_data && (
+                        <Badge className="text-xs bg-amber-500/20 text-amber-400 border-amber-500/30">Demo</Badge>
+                      )}
                       {doc.generated_doc_id && (
                         <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Generated</Badge>
                       )}
@@ -1437,10 +1440,22 @@ const DocumentsTab = ({ token }) => {
                 </div>
                 {/* Action buttons - always visible */}
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-                  <Button variant="outline" size="sm" onClick={() => handleDownload(doc)} className="flex-1 border-white/20 text-white hover:bg-white/10 text-xs">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleDownload(doc)} 
+                    className={`flex-1 text-xs ${doc.is_seed_data ? 'border-white/10 text-white/30 cursor-not-allowed' : 'border-white/20 text-white hover:bg-white/10'}`}
+                    title={doc.is_seed_data ? "Demo document" : "Download"}
+                  >
                     <Download className="w-3 h-3 mr-1" /> Download
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleShare(doc)} className="flex-1 border-white/20 text-white hover:bg-white/10 text-xs">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleShare(doc)} 
+                    className={`flex-1 text-xs ${doc.is_seed_data ? 'border-white/10 text-white/30 cursor-not-allowed' : 'border-white/20 text-white hover:bg-white/10'}`}
+                    title={doc.is_seed_data ? "Demo document" : "Share"}
+                  >
                     <Share2 className="w-3 h-3 mr-1" /> Share
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => setDeleteDoc(doc)} className="text-red-400 hover:bg-red-500/10">
