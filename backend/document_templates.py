@@ -649,6 +649,87 @@ def generate_qr_code_image(data: str, size: int = 100) -> io.BytesIO:
     buffer.seek(0)
     return buffer
 
+
+def create_unified_stamp_section(qr_data: str, verification_id: str, user: dict, styles) -> list:
+    """Create a unified TLS stamp section that matches the frontend design"""
+    from reportlab.graphics.shapes import Drawing, Rect, String, Circle, Line
+    from reportlab.graphics import renderPDF
+    
+    elements = []
+    
+    # Generate QR code
+    qr_buffer = generate_qr_code_image(qr_data, 80)
+    qr_img = Image(qr_buffer, width=1.2*inch, height=1.2*inch)
+    
+    # TLS brand color (blue)
+    tls_blue = colors.Color(0.231, 0.510, 0.965)  # #3B82F6
+    
+    # Create styled stamp paragraph
+    stamp_title_style = ParagraphStyle(
+        'StampTitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        fontName='Helvetica-Bold',
+        textColor=tls_blue,
+        alignment=TA_CENTER
+    )
+    
+    stamp_info_style = ParagraphStyle(
+        'StampInfo',
+        parent=styles['Normal'],
+        fontSize=8,
+        fontName='Helvetica',
+        textColor=colors.black,
+        alignment=TA_CENTER,
+        leading=10
+    )
+    
+    # Build stamp content
+    title_para = Paragraph("★ TLS VERIFIED ★", stamp_title_style)
+    
+    info_text = f"""
+    <font color="#3B82F6"><b>ID: {verification_id}</b></font><br/>
+    <font size="7">Generated: {datetime.now().strftime('%d %b %Y, %H:%M')}</font><br/>
+    <font size="7">{user.get('full_name', 'N/A')}</font><br/>
+    <font size="7">Roll No: {user.get('roll_number', 'N/A')}</font>
+    """
+    info_para = Paragraph(info_text, stamp_info_style)
+    
+    # Create inner table for stamp content (QR left, text right)
+    inner_table = Table([
+        [qr_img, info_para]
+    ], colWidths=[1.5*inch, 2.5*inch])
+    
+    inner_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    
+    # Create outer stamp table with TLS styling
+    stamp_table = Table([
+        [title_para],
+        [inner_table]
+    ], colWidths=[4.2*inch])
+    
+    stamp_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOX', (0, 0), (-1, -1), 2, tls_blue),
+        ('LINEABOVE', (0, 1), (-1, 1), 1, tls_blue),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.98, 0.98, 1.0)),  # Very light blue
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    
+    elements.append(Spacer(1, 0.5*cm))
+    elements.append(stamp_table)
+    
+    return elements, verification_id
+
+
 def fill_placeholders(template: str, data: Dict[str, str]) -> str:
     """Replace {{placeholder}} with actual values"""
     result = template
