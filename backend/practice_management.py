@@ -126,6 +126,16 @@ class EventUpdate(BaseModel):
     reminder_minutes: Optional[List[int]] = None
     recurring: Optional[str] = None
     color: Optional[str] = None
+    status: Optional[str] = None  # scheduled, completed, cancelled
+
+class EventStatusUpdate(BaseModel):
+    status: str  # scheduled, completed, cancelled
+
+class EventReminderUpdate(BaseModel):
+    reminder_minutes: List[int]  # e.g., [15, 30, 60, 1440] for 15min, 30min, 1hr, 1day
+
+class CaseStatusUpdate(BaseModel):
+    status: str  # active, pending, closed, on_hold
 
 # Task Models
 class TaskCreate(BaseModel):
