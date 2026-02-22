@@ -206,17 +206,19 @@ const BarChart = ({ data, color = "#3B82F6", height = 150 }) => {
   const maxValue = Math.max(...data.map(d => d.value), 1);
   
   return (
-    <div className="flex items-end gap-1 h-[150px]">
+    <div className="flex items-end gap-1 h-full" style={{ height: `${height}px` }}>
       {data.map((item, idx) => (
-        <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-          <div 
-            className="w-full rounded-t-sm transition-all duration-300 hover:opacity-80"
-            style={{ 
-              height: `${(item.value / maxValue) * 100}%`,
-              backgroundColor: color,
-              minHeight: item.value > 0 ? '4px' : '0'
-            }}
-          />
+        <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full">
+          <div className="flex-1 w-full flex items-end">
+            <div 
+              className="w-full rounded-t-sm transition-all duration-300 hover:opacity-80"
+              style={{ 
+                height: `${(item.value / maxValue) * 100}%`,
+                backgroundColor: color,
+                minHeight: item.value > 0 ? '4px' : '0'
+              }}
+            />
+          </div>
           <span className="text-[10px] text-white/40 truncate w-full text-center">{item.label}</span>
         </div>
       ))}
