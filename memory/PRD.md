@@ -1,6 +1,52 @@
 # TLS PDF Stamping Tool - Product Requirements Document
 
-## Last Updated: 2026-02-19
+## Last Updated: 2026-02-22
+
+## UI/UX Improvements (2026-02-22)
+
+### 6 User-Requested Improvements Implemented
+
+#### 1. Seed Data Generation
+- New API endpoint: `POST /api/dev/seed`
+- Creates comprehensive sample data for preview/demo purposes
+- Generates: 15 clients, 12 cases, 20 tasks, 15 events, 10 invoices, 12 documents
+- Data includes realistic Tanzanian names, addresses, phone numbers
+- File: `/app/backend/seed_data.py`
+
+#### 2. Table/Card View Toggle (Cases Tab)
+- Cases tab now supports both table and card view layouts
+- Toggle buttons in header (visible on desktop only)
+- Table view is default on desktop (>768px), card on mobile
+- Table includes columns: Case, Client, Type, Status, Priority, Court, Actions
+- Both views maintain action menu functionality
+
+#### 3. Case Action Menu
+- Three-dot menu added to each case card/row
+- Actions: Edit Case, Set Active, Set Pending, Put On Hold, Close Case, Delete Case
+- Status changes update immediately via PUT API
+- Delete requires confirmation
+- Uses Shadcn DropdownMenu component
+
+#### 4. Dropdown Visibility Fix
+- CSS fix applied in `/app/frontend/src/index.css`
+- Dark background (#1a1f2e) applied to select options
+- Light text (#e2e8f0) for readability
+- Blue highlight (#3b82f6) for focused/selected options
+
+#### 5. Wider Document Modal
+- Custom template "Generate Document" modal widened
+- Changed from `max-w-lg` to `max-w-2xl w-[90vw]`
+- Better accommodates form fields on larger screens
+
+#### 6. Unified QR Stamp Design
+- Backend PDF stamp now matches frontend TLS branding
+- TLS blue color (#3B82F6) used for borders and titles
+- "★ TLS VERIFIED ★" header text
+- QR code with verification ID, timestamp, advocate name, roll number
+- Light blue background with blue borders
+- Reusable function: `create_unified_stamp_section()` in document_templates.py
+
+---
 
 ## Document Template Generation Feature (2026-02-19)
 
