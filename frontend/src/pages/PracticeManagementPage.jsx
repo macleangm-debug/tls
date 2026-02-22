@@ -1721,7 +1721,7 @@ Date: {{date}}"
 
       {/* Use Template Modal */}
       <Dialog open={showUseTemplate} onOpenChange={setShowUseTemplate}>
-        <DialogContent className="bg-[#0a0d14] border-white/10 max-w-lg">
+        <DialogContent className="bg-[#0a0d14] border-white/10 max-w-2xl w-[90vw]">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <FileCheck className="w-5 h-5 text-emerald-500" />
