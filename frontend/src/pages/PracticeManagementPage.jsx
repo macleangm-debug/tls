@@ -1279,55 +1279,144 @@ const DocumentsTab = ({ token }) => {
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        <Button
-          variant={!selectedFolder ? "default" : "outline"}
-          size="sm"
-          onClick={() => setSelectedFolder(null)}
-          className={!selectedFolder ? "bg-tls-blue-electric" : "border-white/20 text-white"}
-        >
-          All Documents ({documents.length})
-        </Button>
-        {folders.map((folder) => (
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
           <Button
-            key={folder.id}
-            variant={selectedFolder === folder.name ? "default" : "outline"}
+            variant={!selectedFolder ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedFolder(folder.name)}
-            className={selectedFolder === folder.name ? "bg-tls-blue-electric" : "border-white/20 text-white"}
+            onClick={() => setSelectedFolder(null)}
+            className={!selectedFolder ? "bg-tls-blue-electric" : "border-white/20 text-white"}
           >
-            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: folder.color }} />
-            {folder.name}
+            All Documents ({documents.length})
           </Button>
-        ))}
+          {folders.map((folder) => (
+            <Button
+              key={folder.id}
+              variant={selectedFolder === folder.name ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedFolder(folder.name)}
+              className={selectedFolder === folder.name ? "bg-tls-blue-electric" : "border-white/20 text-white"}
+            >
+              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: folder.color }} />
+              {folder.name}
+            </Button>
+          ))}
+        </div>
+        <div className="hidden md:flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
+          <button 
+            onClick={() => setViewMode("table")} 
+            className={`p-1.5 rounded transition-colors ${viewMode === "table" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
+            title="Table view"
+            data-testid="docs-view-table-btn"
+          >
+            <LayoutList className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => setViewMode("card")} 
+            className={`p-1.5 rounded transition-colors ${viewMode === "card" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
+            title="Card view"
+            data-testid="docs-view-card-btn"
+          >
+            <Grid3X3 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {documents.map((doc) => (
-          <Card key={doc.id} className="glass-card border-white/10 hover:border-white/20 transition-all group">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.generated_doc_id ? 'bg-emerald-500/20' : 'bg-teal-500/20'}`}>
-                  {getDocIcon(doc)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-white truncate">{doc.name}</h3>
-                  <p className="text-xs text-white/50">{formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}</p>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+      {documents.length > 0 && viewMode === "table" ? (
+        /* Table View */
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Document</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Folder</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Size</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Date</th>
+                <th className="text-left p-3 text-white/50 text-sm font-medium">Status</th>
+                <th className="text-right p-3 text-white/50 text-sm font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((doc) => (
+                <tr key={doc.id} className="border-b border-white/5 hover:bg-white/5 transition-colors" data-testid={`doc-row-${doc.id}`}>
+                  <td className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${doc.generated_doc_id ? 'bg-emerald-500/20' : 'bg-teal-500/20'}`}>
+                        {getDocIcon(doc)}
+                      </div>
+                      <span className="text-white font-medium truncate max-w-[200px]">{doc.name}</span>
+                    </div>
+                  </td>
+                  <td className="p-3">
                     <Badge variant="outline" className="text-xs border-white/20 text-white/60">{doc.folder}</Badge>
-                    {doc.generated_doc_id && (
-                      <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Generated</Badge>
-                    )}
-                    {doc.verification_id && (
-                      <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
-                        <QrCode className="w-3 h-3 mr-1" /> Verified
-                      </Badge>
-                    )}
+                  </td>
+                  <td className="p-3 text-white/70 text-sm">{formatFileSize(doc.file_size)}</td>
+                  <td className="p-3 text-white/50 text-sm">{new Date(doc.created_at).toLocaleDateString()}</td>
+                  <td className="p-3">
+                    {doc.generated_doc_id && <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-emerald-500/30 mr-1">Generated</Badge>}
+                    {doc.verification_id && <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Verified</Badge>}
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => handleDownload(doc)} className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10" title="Download">
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleShare(doc)} className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10" title="Share">
+                        <Share2 className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteDoc(doc)} className="h-8 w-8 p-0 text-red-400/70 hover:text-red-400 hover:bg-red-500/10" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : documents.length > 0 ? (
+        /* Card View */
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {documents.map((doc) => (
+            <Card key={doc.id} className="glass-card border-white/10 hover:border-white/20 transition-all group" data-testid={`doc-card-${doc.id}`}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.generated_doc_id ? 'bg-emerald-500/20' : 'bg-teal-500/20'}`}>
+                    {getDocIcon(doc)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-white truncate">{doc.name}</h3>
+                    <p className="text-xs text-white/50">{formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}</p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs border-white/20 text-white/60">{doc.folder}</Badge>
+                      {doc.generated_doc_id && (
+                        <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Generated</Badge>
+                      )}
+                      {doc.verification_id && (
+                        <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                          <QrCode className="w-3 h-3 mr-1" /> Verified
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              {/* Action buttons - show on hover */}
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Action buttons - always visible */}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                  <Button variant="outline" size="sm" onClick={() => handleDownload(doc)} className="flex-1 border-white/20 text-white hover:bg-white/10 text-xs">
+                    <Download className="w-3 h-3 mr-1" /> Download
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleShare(doc)} className="flex-1 border-white/20 text-white hover:bg-white/10 text-xs">
+                    <Share2 className="w-3 h-3 mr-1" /> Share
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDeleteDoc(doc)} className="text-red-400 hover:bg-red-500/10">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
                 <Button size="sm" variant="ghost" className="flex-1 h-8 text-white/70 hover:text-white hover:bg-white/10" onClick={() => handleDownload(doc)}>
                   <Download className="w-3 h-3 mr-1" /> Download
                 </Button>
