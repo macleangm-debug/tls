@@ -1147,9 +1147,14 @@ const DocumentsTab = ({ token }) => {
       });
       
       if (!response.ok) {
-        // Handle error responses
-        const errorData = await response.json();
-        toast.error(errorData.detail || "Failed to download document");
+        // Handle error responses - try to get JSON error message
+        try {
+          const errorData = await response.json();
+          toast.error(errorData.detail || "Failed to download document");
+        } catch (parseError) {
+          // If not JSON, show generic error
+          toast.error("Failed to download document");
+        }
         return;
       }
       
@@ -1162,7 +1167,9 @@ const DocumentsTab = ({ token }) => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      toast.success("Document downloaded!");
     } catch (error) {
+      console.error("Download error:", error);
       toast.error("Failed to download document. Please try again.");
     }
   };
