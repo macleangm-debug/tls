@@ -679,10 +679,14 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 ### Completed (2026-02-22)
 - [x] Seed Data Generation - API endpoint to populate database with realistic sample data
 - [x] Table/Card View Toggle - Cases tab now supports both table and card views
+- [x] Table/Card View Toggle - Clients tab now supports both table and card views
 - [x] Case Action Menus - Dropdown menu on case cards with Edit, Status changes, Delete
+- [x] Client Action Menus - Dropdown menu on client cards with Edit, Delete
 - [x] Dropdown Visibility Fix - CSS fix for dark theme dropdown option visibility
 - [x] Wider Document Modal - Custom template usage modal widened to max-w-2xl
 - [x] Unified QR Stamp Design - Backend stamp now uses TLS blue theme matching frontend
+- [x] Calendar Tab Enhanced - Full CRUD, stats row, client/case linking, event type icons
+- [x] Tasks Tab Enhanced - Full CRUD, stats row, overdue alerts, status menus, client/case linking
 
 ### Completed (2026-02-20)
 - [x] CSRF Protection (comprehensive middleware with token validation)
@@ -695,7 +699,6 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 - [x] Login Attempt Logging
 
 ### Future Features
-- [ ] Table/Card view toggle for Clients tab
 - [ ] Batch document stamping
 - [ ] Full offline verification
 - [ ] Quick stamp mode
