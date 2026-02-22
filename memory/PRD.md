@@ -605,6 +605,18 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 - [x] Practice Management Full CRUD (Clients, Cases, Documents)
 - [x] Enhanced Documents tab with search, download, share, delete
 
+### Completed (2026-02-22)
+- [x] Seed Data Generation - API endpoint to populate database with realistic sample data
+- [x] Table/Card View Toggle - Cases tab now supports both table and card views
+- [x] Case Action Menus - Dropdown menu on case cards with Edit, Status changes, Delete
+- [x] Dropdown Visibility Fix - CSS fix for dark theme dropdown option visibility
+- [x] Wider Document Modal - Custom template usage modal widened to max-w-2xl
+- [x] Unified QR Stamp Design - Backend stamp now uses TLS blue theme matching frontend
+
+### Completed (2026-02-20)
+- [x] CSRF Protection (comprehensive middleware with token validation)
+- [x] HttpOnly Cookie JWT Storage (enterprise-grade token security)
+
 ### Completed (2026-02-19)
 - [x] Practice Management Suite initial (Clients, Cases, Documents, Calendar, Tasks, Invoices)
 - [x] KwikPay Payment Integration (MOCKED)
@@ -612,6 +624,7 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 - [x] Login Attempt Logging
 
 ### Future Features
+- [ ] Table/Card view toggle for Clients tab
 - [ ] Batch document stamping
 - [ ] Full offline verification
 - [ ] Quick stamp mode
