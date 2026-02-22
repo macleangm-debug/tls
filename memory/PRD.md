@@ -697,6 +697,7 @@ Build a web-based PDF stamping tool for the Tanganyika Law Society (TLS) that al
 - [x] Unified QR Stamp Design - Backend stamp now uses TLS blue theme matching frontend
 - [x] Calendar Tab Enhanced - Full CRUD, stats row, client/case linking, event type icons
 - [x] Tasks Tab Enhanced - Full CRUD, stats row, overdue alerts, status menus, client/case linking
+- [x] Calendar Widget View - Month grid with event highlighting, day selection, badges, legend
 
 ### Completed (2026-02-20)
 - [x] CSRF Protection (comprehensive middleware with token validation)
