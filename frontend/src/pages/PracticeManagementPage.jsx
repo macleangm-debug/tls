@@ -1080,9 +1080,14 @@ const DocumentsTab = ({ token }) => {
   const [documents, setDocuments] = useState([]);
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [deleteDoc, setDeleteDoc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState(() => {
+    return window.innerWidth >= 768 ? "table" : "card";
+  });
 
   const headers = { Authorization: `Bearer ${token}` };
 
