@@ -845,8 +845,8 @@ const CasesTab = ({ token }) => {
 
   const handleUpdateStatus = async (caseId, newStatus) => {
     try {
-      await axios.put(`${API}/api/practice/cases/${caseId}`, { status: newStatus }, { headers });
-      toast.success(`Case status updated to ${newStatus}`);
+      await axios.patch(`${API}/api/practice/cases/${caseId}/status`, { status: newStatus }, { headers });
+      toast.success(`Case status updated to ${newStatus.replace('_', ' ')}`);
       fetchData();
     } catch (error) {
       toast.error("Failed to update status");
