@@ -391,11 +391,11 @@ const EnhancedDashboard = ({ analytics, caseAnalytics, revenueData, recentActivi
               Revenue Trend
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="h-[180px]">
             {revenueChartData.length > 0 ? (
-              <BarChart data={revenueChartData} color="#10B981" />
+              <BarChart data={revenueChartData} color="#10B981" height={160} />
             ) : (
-              <div className="h-[150px] flex items-center justify-center">
+              <div className="h-full flex items-center justify-center">
                 <p className="text-white/40 text-sm">No revenue data yet</p>
               </div>
             )}
