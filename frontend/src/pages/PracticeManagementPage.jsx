@@ -1220,11 +1220,12 @@ const DocumentsTab = ({ token }) => {
     }
   };
 
-  const handleDelete = async (doc) => {
-    if (!window.confirm("Are you sure you want to delete this document?")) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteDoc) return;
     try {
-      await axios.delete(`${API}/api/practice/documents/${doc.id}`, { headers });
-      toast.success("Document deleted");
+      await axios.delete(`${API}/api/practice/documents/${deleteDoc.id}`, { headers });
+      toast.success("Document deleted successfully");
+      setDeleteDoc(null);
       fetchData();
     } catch (error) {
       toast.error("Failed to delete document");
@@ -1246,6 +1247,17 @@ const DocumentsTab = ({ token }) => {
 
   return (
     <div className="space-y-4">
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        open={!!deleteDoc}
+        onOpenChange={(open) => !open && setDeleteDoc(null)}
+        title="Delete Document"
+        description={`Are you sure you want to delete "${deleteDoc?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+      />
+
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-lg font-semibold text-white">Document Vault</h2>
         <div className="flex items-center gap-3">
