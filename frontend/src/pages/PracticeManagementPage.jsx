@@ -1777,12 +1777,19 @@ const CalendarTab = ({ token }) => {
                                 <MoreVertical className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white">
-                              <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                                <Edit className="mr-2 h-3 w-3" /> Edit
+                            <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[160px]">
+                              <DropdownMenuItem onClick={() => setViewEvent(event)} className="hover:bg-white/10 cursor-pointer">
+                                <Eye className="mr-2 h-4 w-4" /> View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteEvent(event.id)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
-                                <Trash2 className="mr-2 h-3 w-3" /> Delete
+                              <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
+                                <Edit className="mr-2 h-4 w-4" /> Edit Event
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicateEvent(event)} className="hover:bg-white/10 cursor-pointer">
+                                <Copy className="mr-2 h-4 w-4" /> Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-white/10" />
+                              <DropdownMenuItem onClick={() => setDeleteEvent(event)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
