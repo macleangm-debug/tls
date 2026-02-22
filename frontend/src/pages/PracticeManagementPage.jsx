@@ -1527,51 +1527,157 @@ const CalendarTab = ({ token }) => {
               <CalendarDays className="w-4 h-4" />
             </button>
           </div>
-          <Button onClick={() => { setEditEvent(null); setShowForm(!showForm); }} className="bg-tls-blue-electric" data-testid="add-event-btn">
+          <Button onClick={() => { setEditEvent(null); resetForm(); setShowForm(true); }} className="bg-tls-blue-electric" data-testid="add-event-btn">
             <Plus className="w-4 h-4 mr-2" /> Add Event
           </Button>
         </div>
       </div>
 
-      {showForm && (
-        <Card className="glass-card border-white/10">
-          <CardContent className="p-6">
-            <h3 className="text-white font-medium mb-4">{editEvent ? "Edit Event" : "New Event"}</h3>
-            <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-4">
-              <Input placeholder="Event Title *" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
-              <select value={formData.event_type} onChange={(e) => setFormData({...formData, event_type: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
-                <option value="meeting">Meeting</option>
-                <option value="court_hearing">Court Hearing</option>
-                <option value="deadline">Deadline</option>
-                <option value="reminder">Reminder</option>
-                <option value="appointment">Appointment</option>
-              </select>
-              <div>
-                <label className="text-xs text-white/50 block mb-1">Start Date/Time *</label>
-                <Input type="datetime-local" value={formData.start_datetime} onChange={(e) => setFormData({...formData, start_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
+      {/* Event Form Modal */}
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) { setEditEvent(null); resetForm(); } }}>
+        <DialogContent className="bg-[#0a0d14] border-white/10 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-lg">{editEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
+            <DialogDescription className="text-white/60">
+              {editEvent ? "Update the event details below" : "Fill in the details for your new event"}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-white/50">Event Title *</label>
+                <Input placeholder="Enter event title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="bg-white/5 border-white/10 text-white" required />
               </div>
-              <div>
-                <label className="text-xs text-white/50 block mb-1">End Date/Time</label>
-                <Input type="datetime-local" value={formData.end_datetime} onChange={(e) => setFormData({...formData, end_datetime: e.target.value})} className="bg-white/5 border-white/10 text-white" />
+              <div className="space-y-1">
+                <label className="text-xs text-white/50">Event Type</label>
+                <select value={formData.event_type} onChange={(e) => setFormData({...formData, event_type: e.target.value})} className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
+                  <option value="meeting">Meeting</option>
+                  <option value="court_hearing">Court Hearing</option>
+                  <option value="deadline">Deadline</option>
+                  <option value="reminder">Reminder</option>
+                  <option value="appointment">Appointment</option>
+                </select>
               </div>
-              <Input placeholder="Location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="bg-white/5 border-white/10 text-white" />
-              <select value={formData.client_id} onChange={(e) => setFormData({...formData, client_id: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
-                <option value="">Link to Client (optional)</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <select value={formData.case_id} onChange={(e) => setFormData({...formData, case_id: e.target.value})} className="bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 md:col-span-2">
-                <option value="">Link to Case (optional)</option>
-                {cases.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-              </select>
-              <Textarea placeholder="Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="bg-white/5 border-white/10 text-white md:col-span-2" rows={2} />
-              <div className="md:col-span-2 flex gap-2">
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">{editEvent ? "Update Event" : "Create Event"}</Button>
-                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditEvent(null); }} className="border-white/20 text-white">Cancel</Button>
+              <DateTimePicker 
+                label="Start Date & Time *" 
+                value={formData.start_datetime} 
+                onChange={(val) => setFormData({...formData, start_datetime: val})} 
+              />
+              <DateTimePicker 
+                label="End Date & Time" 
+                value={formData.end_datetime} 
+                onChange={(val) => setFormData({...formData, end_datetime: val})} 
+              />
+              <div className="space-y-1">
+                <label className="text-xs text-white/50">Location</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <Input placeholder="Enter location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="pl-10 bg-white/5 border-white/10 text-white" />
+                </div>
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+              <div className="space-y-1">
+                <label className="text-xs text-white/50">Link to Client</label>
+                <select value={formData.client_id} onChange={(e) => setFormData({...formData, client_id: e.target.value})} className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
+                  <option value="">Select client (optional)</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-xs text-white/50">Link to Case</label>
+                <select value={formData.case_id} onChange={(e) => setFormData({...formData, case_id: e.target.value})} className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2">
+                  <option value="">Select case (optional)</option>
+                  {cases.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-xs text-white/50">Description</label>
+                <Textarea placeholder="Add event notes or description..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="bg-white/5 border-white/10 text-white" rows={3} />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditEvent(null); resetForm(); }} className="border-white/20 text-white hover:bg-white/10">
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-tls-blue-electric hover:bg-tls-blue-electric/90">
+                {editEvent ? "Save Changes" : "Create Event"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Event Modal */}
+      <Dialog open={!!viewEvent} onOpenChange={(open) => !open && setViewEvent(null)}>
+        <DialogContent className="bg-[#0a0d14] border-white/10 max-w-lg">
+          {viewEvent && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getEventTypeColor(viewEvent.event_type)}`}>
+                    {getEventTypeIcon(viewEvent.event_type)}
+                  </div>
+                  <div>
+                    <DialogTitle className="text-white text-lg">{viewEvent.title}</DialogTitle>
+                    <Badge className="capitalize mt-1">{viewEvent.event_type.replace('_', ' ')}</Badge>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-3 text-white/70">
+                  <CalendarIcon className="w-4 h-4 text-white/50" />
+                  <span>
+                    {new Date(viewEvent.start_datetime).toLocaleString('en-GB', { 
+                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                    })}
+                  </span>
+                </div>
+                {viewEvent.end_datetime && (
+                  <div className="flex items-center gap-3 text-white/70">
+                    <ClockIcon className="w-4 h-4 text-white/50" />
+                    <span>Until {new Date(viewEvent.end_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                )}
+                {viewEvent.location && (
+                  <div className="flex items-center gap-3 text-white/70">
+                    <MapPin className="w-4 h-4 text-white/50" />
+                    <span>{viewEvent.location}</span>
+                  </div>
+                )}
+                {viewEvent.description && (
+                  <div className="p-3 bg-white/5 rounded-lg">
+                    <p className="text-white/60 text-sm">{viewEvent.description}</p>
+                  </div>
+                )}
+                {(viewEvent.client_name || viewEvent.case_title) && (
+                  <div className="flex flex-wrap gap-2">
+                    {viewEvent.client_name && <Badge variant="outline" className="border-white/20 text-white/70">{viewEvent.client_name}</Badge>}
+                    {viewEvent.case_title && <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">{viewEvent.case_title}</Badge>}
+                  </div>
+                )}
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => { handleEditEvent(viewEvent); setViewEvent(null); }} className="border-white/20 text-white hover:bg-white/10">
+                  <Edit className="w-4 h-4 mr-2" /> Edit
+                </Button>
+                <Button variant="outline" onClick={() => { handleDuplicateEvent(viewEvent); setViewEvent(null); }} className="border-white/20 text-white hover:bg-white/10">
+                  <Copy className="w-4 h-4 mr-2" /> Duplicate
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        open={!!deleteEvent}
+        onOpenChange={(open) => !open && setDeleteEvent(null)}
+        title="Delete Event"
+        description={`Are you sure you want to delete "${deleteEvent?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+      />
 
       {/* Calendar View Mode */}
       {viewMode === "calendar" ? (
