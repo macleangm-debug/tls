@@ -1174,11 +1174,6 @@ def create_templates_routes(db, get_current_user):
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
         
-        # Get vault document for the PDF
-        vault_doc = await db.vault_documents.find_one(
-            {"generated_doc_id": request.document_id, "advocate_id": user["id"]}
-        )
-        
         share_record = {
             "id": str(uuid.uuid4()),
             "document_id": request.document_id,
