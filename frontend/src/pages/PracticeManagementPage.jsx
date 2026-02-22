@@ -1146,22 +1146,14 @@ const DocumentsTab = ({ token }) => {
         credentials: 'include'
       });
       
-      // Clone the response before reading to allow error handling
-      const responseClone = response.clone();
-      
       if (!response.ok) {
-        // Handle error responses - get response as text first, then try to parse
-        const errorText = await responseClone.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          toast.error(errorData.detail || "Failed to download document");
-        } catch (parseError) {
-          // If not JSON, show the text or generic error
-          toast.error(errorText || "Failed to download document");
-        }
+        // For error responses, parse as JSON
+        const errorData = await response.json();
+        toast.error(errorData.detail || "Failed to download document");
         return;
       }
       
+      // For success, get as blob
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
