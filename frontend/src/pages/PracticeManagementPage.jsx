@@ -1176,8 +1176,22 @@ const DocumentsTab = ({ token }) => {
     try {
       const response = await axios.get(`${API}/api/practice/documents/${doc.id}/download`, {
         headers,
-        responseType: 'blob'
+        responseType: 'blob',
+        validateStatus: (status) => status < 500 // Don't throw for 4xx errors
       });
+      
+      // Check if the response is an error (4xx status)
+      if (response.status >= 400) {
+        const errorText = await response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          toast.error(errorJson.detail || "Failed to share document");
+        } catch {
+          toast.error("Failed to share document");
+        }
+        return;
+      }
+      
       const blob = new Blob([response.data], { type: doc.file_type || 'application/pdf' });
       const file = new File([blob], doc.original_filename || doc.name, { type: doc.file_type || 'application/pdf' });
       
@@ -1203,18 +1217,7 @@ const DocumentsTab = ({ token }) => {
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
-        // Handle blob response errors
-        if (error.response?.data instanceof Blob) {
-          try {
-            const errorText = await error.response.data.text();
-            const errorJson = JSON.parse(errorText);
-            toast.error(errorJson.detail || "Failed to share document");
-          } catch {
-            toast.error("Failed to share document");
-          }
-        } else {
-          toast.error(error.response?.data?.detail || "Failed to share document");
-        }
+        toast.error("Failed to share document. Please try again.");
       }
     }
   };
