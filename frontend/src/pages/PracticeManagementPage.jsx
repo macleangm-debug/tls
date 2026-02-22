@@ -1089,7 +1089,11 @@ const DocumentsTab = ({ token }) => {
     return window.innerWidth >= 768 ? "table" : "card";
   });
 
-  const headers = { Authorization: `Bearer ${token}` };
+  const csrfToken = localStorage.getItem("tls_csrf_token") || "";
+  const headers = { 
+    Authorization: `Bearer ${token}`,
+    "X-CSRF-Token": csrfToken
+  };
 
   const fetchData = async () => {
     try {
