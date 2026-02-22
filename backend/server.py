@@ -6524,6 +6524,11 @@ from document_templates import templates_router, create_templates_routes
 doc_templates_routes = create_templates_routes(db, get_current_user)
 app.include_router(doc_templates_routes)
 
+# Include seed data router (development only)
+from seed_data import seed_router, create_seed_routes
+seed_routes = create_seed_routes(db, get_current_user)
+app.include_router(seed_routes)
+
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
