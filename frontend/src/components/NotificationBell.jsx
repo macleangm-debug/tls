@@ -24,8 +24,12 @@ export const NotificationBell = ({ token }) => {
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
+  const fetchNotifications = useCallback(async () => {
+    if (!token) return;
     try {
-      const response = await axios.get(`${API}/api/notifications?limit=10`, { headers });
+      const response = await axios.get(`${API}/api/notifications?limit=10`, { 
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setNotifications(response.data.notifications || []);
       setUnreadCount(response.data.unread_count || 0);
     } catch (error) {
@@ -36,7 +40,9 @@ export const NotificationBell = ({ token }) => {
   const fetchUnreadCount = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await axios.get(`${API}/api/notifications/unread-count`, { headers });
+      const response = await axios.get(`${API}/api/notifications/unread-count`, { 
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setUnreadCount(response.data.unread_count || 0);
     } catch (error) {
       console.error("Failed to fetch unread count:", error);
