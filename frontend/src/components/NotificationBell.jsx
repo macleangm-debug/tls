@@ -60,7 +60,9 @@ export const NotificationBell = ({ token }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      await axios.post(`${API}/api/notifications/mark-read/${notificationId}`, {}, { headers });
+      await axios.post(`${API}/api/notifications/mark-read/${notificationId}`, {}, { 
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
@@ -73,7 +75,9 @@ export const NotificationBell = ({ token }) => {
   const markAllAsRead = async () => {
     setLoading(true);
     try {
-      await axios.post(`${API}/api/notifications/mark-all-read`, {}, { headers });
+      await axios.post(`${API}/api/notifications/mark-all-read`, {}, { 
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
       toast.success("All notifications marked as read");
