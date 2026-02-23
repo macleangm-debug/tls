@@ -1416,9 +1416,9 @@ async def register_deprecated(request: Request, data: AdvocateRegister):
         "requires_verification": True
     }
 
-@api_router.post("/auth/login")
-@limiter.limit("5/minute")
-async def login(request: Request, data: AdvocateLogin):
+# @api_router.post("/auth/login")
+# @limiter.limit("5/minute")
+async def login_deprecated(request: Request, data: AdvocateLogin):
     # Get request metadata for logging
     ip_address = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
     if "," in ip_address:
