@@ -2137,9 +2137,9 @@ async def forgot_password_deprecated(request: Request, data: PasswordResetReques
     
     return {"message": "If an account exists with this email, you will receive a password reset link"}
 
-@api_router.post("/auth/reset-password")
-@limiter.limit("3/minute")
-async def reset_password(request: Request, data: PasswordResetConfirm):
+# @api_router.post("/auth/reset-password")
+# @limiter.limit("3/minute")
+async def reset_password_deprecated(request: Request, data: PasswordResetConfirm):
     """Reset password using token from email"""
     # Find and validate token
     token_doc = await db.password_reset_tokens.find_one({"token": data.token}, {"_id": 0})
