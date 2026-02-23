@@ -91,7 +91,9 @@ export const NotificationBell = ({ token }) => {
   const deleteNotification = async (notificationId, e) => {
     e.stopPropagation();
     try {
-      await axios.delete(`${API}/api/notifications/${notificationId}`, { headers });
+      await axios.delete(`${API}/api/notifications/${notificationId}`, { 
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       toast.success("Notification deleted");
     } catch (error) {
