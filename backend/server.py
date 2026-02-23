@@ -6558,6 +6558,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # CSRF token store (in production, use Redis or database)
 csrf_tokens = {}
 
+# Include auth router (routes are under /api/auth/*)
+# Must be defined after csrf_tokens since auth routes need it
+from routes.auth import auth_router, setup_auth_routes
+auth_config = {
+    'SECRET_KEY': SECRET_KEY,
+    'ALGORITHM': ALGORITHM,
+    'ACCESS_TOKEN_EXPIRE_MINUTES': ACCESS_TOKEN_EXPIRE_MINUTES,
+    'PASSWORD_RESET_EXPIRE_MINUTES': PASSWORD_RESET_EXPIRE_MINUTES,
+    'EMAIL_VERIFICATION_EXPIRE_HOURS': EMAIL_VERIFICATION_EXPIRE_HOURS,
+    'FRONTEND_URL': FRONTEND_URL,
+    'COOKIE_NAME': COOKIE_NAME,
+    'COOKIE_MAX_AGE': COOKIE_MAX_AGE,
+    'COOKIE_SECURE': COOKIE_SECURE,
+    'COOKIE_HTTPONLY': COOKIE_HTTPONLY,
+    'COOKIE_SAMESITE': COOKIE_SAMESITE,
+}
+auth_routes = setup_auth_routes(db, get_current_user, send_email, limiter, csrf_tokens, auth_config)
+api_router.include_router(auth_routes)
+
 def generate_csrf_token() -> str:
     """Generate a secure CSRF token"""
     return secrets.token_urlsafe(32)
