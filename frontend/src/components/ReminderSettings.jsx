@@ -4,17 +4,20 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { toast } from "sonner";
 import { Bell, Mail, Clock, Save, RefreshCw, Check } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export const ReminderSettings = ({ token }) => {
+export const ReminderSettings = () => {
+  const { token } = useAuth();
   const [preferences, setPreferences] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   const fetchPreferences = async () => {
+    if (!token) return;
     try {
       const response = await axios.get(`${API}/api/notifications/reminder-preferences`, { 
         headers: { Authorization: `Bearer ${token}` }
@@ -41,7 +44,7 @@ export const ReminderSettings = ({ token }) => {
   };
 
   useEffect(() => {
-    if (token) fetchPreferences();
+    fetchPreferences();
   }, [token]);
 
   const handleToggle = (key) => {
