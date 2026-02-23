@@ -218,9 +218,9 @@ def setup_notification_routes(db, get_current_user, send_email_func=None):
         await db.notifications.delete_many({"user_id": user["id"]})
         return {"message": "All notifications cleared"}
     
-    @notifications_router.get("/preferences")
-    async def get_notification_preferences(user: dict = Depends(get_current_user)):
-        """Get user's notification preferences"""
+    @notifications_router.get("/reminder-preferences")
+    async def get_reminder_preferences(user: dict = Depends(get_current_user)):
+        """Get user's event reminder preferences"""
         advocate = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "reminder_preferences": 1})
         preferences = advocate.get("reminder_preferences") if advocate else None
         
@@ -229,12 +229,12 @@ def setup_notification_routes(db, get_current_user, send_email_func=None):
         
         return {"preferences": preferences}
     
-    @notifications_router.put("/preferences")
-    async def update_notification_preferences(
+    @notifications_router.put("/reminder-preferences")
+    async def update_reminder_preferences(
         preferences: NotificationPreferencesUpdate,
         user: dict = Depends(get_current_user)
     ):
-        """Update user's notification preferences"""
+        """Update user's event reminder preferences"""
         # Get current preferences or defaults
         advocate = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "reminder_preferences": 1})
         current_prefs = advocate.get("reminder_preferences") if advocate else get_default_notification_preferences()
