@@ -2091,9 +2091,9 @@ async def change_password_deprecated(request: Request, data: PasswordChange, use
     
     return {"message": "Password changed successfully"}
 
-@api_router.post("/auth/forgot-password")
-@limiter.limit("3/minute")
-async def forgot_password(request: Request, data: PasswordResetRequest):
+# @api_router.post("/auth/forgot-password")
+# @limiter.limit("3/minute")
+async def forgot_password_deprecated(request: Request, data: PasswordResetRequest):
     """Request password reset email"""
     # Find user by email in advocates
     user = await db.advocates.find_one({"email": data.email}, {"_id": 0})
