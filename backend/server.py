@@ -1553,8 +1553,8 @@ async def logout_deprecated(request: Request):
 
 # =============== EMAIL VERIFICATION ENDPOINTS ===============
 
-@api_router.get("/auth/verify-email/{token}")
-async def verify_email(token: str):
+# @api_router.get("/auth/verify-email/{token}")
+async def verify_email_deprecated(token: str):
     """Verify user's email address using the verification token"""
     # Find user with this verification token
     user = await db.advocates.find_one({"verification_token": token})
