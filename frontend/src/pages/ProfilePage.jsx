@@ -350,7 +350,7 @@ const ProfilePage = () => {
   return (
     <DashboardLayout title="My Profile" subtitle="Manage your advocate credentials and public presence">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-lg grid-cols-3 mb-8 bg-white/5 p-1 rounded-xl">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-8 bg-white/5 p-1 rounded-xl">
           <TabsTrigger 
             value="basic" 
             className="rounded-lg data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
@@ -372,6 +372,13 @@ const ProfilePage = () => {
           >
             <Bell className="w-4 h-4 mr-2" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger 
+            value="security" 
+            className="rounded-lg data-[state=active]:bg-red-500 data-[state=active]:text-white"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            Security
           </TabsTrigger>
         </TabsList>
 
