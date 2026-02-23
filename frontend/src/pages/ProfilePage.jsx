@@ -1166,7 +1166,7 @@ const ProfilePage = () => {
         <TabsContent value="notifications">
           <div className="max-w-4xl mx-auto space-y-8">
             {/* Event Reminders Section - NEW */}
-            <ReminderSettings token={user?.token || localStorage.getItem('tls_token')} />
+            <ReminderSettings />
             
             {/* General Notification Preferences */}
             <Card className="glass-card rounded-2xl border-white/10">
