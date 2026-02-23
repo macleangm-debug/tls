@@ -1157,12 +1157,19 @@ const ProfilePage = () => {
 
         {/* Notifications Tab */}
         <TabsContent value="notifications">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-4xl mx-auto space-y-8">
+            {/* Event Reminders Section - NEW */}
+            <ReminderSettings token={user?.token || localStorage.getItem('tls_token')} />
+            
+            {/* General Notification Preferences */}
             <Card className="glass-card rounded-2xl border-white/10">
               <CardContent className="p-6">
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-white mb-2">Notification Preferences</h2>
-                  <p className="text-white/50">
+                  <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-tls-blue-electric" />
+                    Push Notification Preferences
+                  </h2>
+                  <p className="text-white/50 text-sm">
                     Choose which events trigger push notifications on your devices
                   </p>
                 </div>
