@@ -161,6 +161,9 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 app = FastAPI(title="TLS Advocate Management System")
 api_router = APIRouter(prefix="/api")
 
+# CSRF token store (in production, use Redis or database)
+csrf_tokens = {}
+
 # Attach limiter to app state
 app.state.limiter = limiter
 
