@@ -1,130 +1,147 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to review and enhance a GitHub repository, which evolved into building a comprehensive Practice Management Suite for advocates. The initial scope included security hardening, core features like document generation, and progressive UI/UX improvements.
+The user's initial request was to build a comprehensive Practice Management Suite for advocates. The project has evolved through several stages of feature implementation, bug fixing, and refactoring.
 
-The most recent user requests were:
-1.  Fix four specific UI/UX issues related to the Document Vault (non-functional Share/Download buttons) and the Calendar module (better date picker, more actions, modal for editing).
-2.  Fix an issue where the pie chart on the dashboard was not sized correctly and overflowed its card.
-3.  Implement backend logic for new Calendar actions (Mark Complete, Set Reminder) and for changing a Case status.
-4.  Refactor the monolithic frontend  and backend  files for better maintainability.
-5.  Add a real file upload testing flow.
+Recent user requests included:
+1.  Refactor the monolithic frontend  (Completed).
+2.  Implement a full-featured reminder system with both in-app and email notifications, including a user-configurable settings UI (Completed).
+3.  Continue the refactoring of the monolithic backend  file (In Progress).
+4.  Implement and test a real file upload flow for documents, moving beyond the initial demo data (Pending).
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack practice management platform for advocates, built with React, FastAPI, and MongoDB. It includes a secure dashboard for managing clients, cases, documents, calendar, tasks, and invoices.
+The application is a stable, full-stack practice management platform for advocates, built with React, FastAPI, and MongoDB.
 
-Key recent updates:
--   **Bug Fixes:** The non-functional Share and Download buttons in the Document Vault for demo documents have been fixed. The UI now correctly indicates which documents are demos and disables the actions. The dashboard chart layout issue has also been resolved.
--   **Feature Implementation:** Backend endpoints and frontend UI connections for marking calendar events as complete and updating case statuses are fully implemented and functional.
--   **Refactoring Started:** A plan for refactoring the main frontend page and backend server has been documented. New empty/scaffold files have been created in  and  to begin the modularization process. The application is currently stable and building successfully, but the refactoring is in a very early stage.
+-   **Frontend:** The entire frontend has been successfully refactored from a single monolithic component () into a set of modular, maintainable components located in . The application UI is stable and all features are functional.
+-   **Notification System:** A complete reminder system is now in place. This includes:
+    -   **Backend:** A new  route module, a background scheduler running in  to check for upcoming events, and integration with  for sending email notifications.
+    -   **Frontend:** A  component in the main header to display alerts and a comprehensive  component on the user's profile page, allowing them to configure in-app/email preferences and reminder timings.
+-   **Backend Refactoring:** A detailed plan for breaking down the 6,700+ line  file into modular routes has been created and documented in . The process is about to begin.
 
 **Last working item**:
--   **Last item agent was working:** The agent was executing a major refactoring of the frontend and backend. It created a  file to document the plan and then created the new file structure for modular components and routes (, ,  on the frontend, and  on the backend). The agent was in the process of preparing to migrate code from the monolithic files to these new modules.
+-   **Last item agent was working:** The agent was preparing to start the large-scale backend refactoring of . It had analyzed the scope of the authentication-related routes () and was about to begin the process of extracting them into a new, dedicated  module.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** both
+-   **Which testing method agent to use?** backend testing agent
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-There are no pending bugs. The primary focus is the ongoing refactoring task.
+There are no pending bugs. The focus is on the refactoring and feature implementation tasks.
 
 **In progress Task List**:
--   **Task 1: Complete the Refactoring of Frontend and Backend (P2)**
-    -   **Where to resume:** Continue the refactoring process outlined in . The next step is to systematically move the code for each tab (Clients, Cases, Dashboard, etc.) from  into their respective new component files (, etc.). Similarly, move route logic from  and  into modular  files within the  directory.
-    -   **What will be achieved with this?** This will significantly improve the maintainability, readability, and scalability of the codebase, making future development easier and less error-prone.
+-   **Task 1: Backend Auth Module Refactoring (P1)**
+    -   **Where to resume:** Begin migrating all authentication-related endpoints (e.g., login, register, password reset, token verification) from  to the  file. This involves creating a new FastAPI  in , moving the relevant endpoint functions and their dependencies, and then including the new router in the main  app.
+    -   **What will be achieved with this?** This is the first and most critical step in modularizing the monolithic backend, making the codebase cleaner, more organized, and easier to maintain.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None, but this is a high-risk task that requires careful, incremental changes and frequent testing to avoid breaking the application.
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P2)** Complete the frontend refactor by moving all tab content out of .
-    -   **(P2)** Complete the backend refactor by modularizing all endpoint groups into  files.
+    -   **(P1) Backend Profile Module:** After the auth module, continue the refactoring by extracting user profile routes (, ) into a new  module.
+    -   **(P2) Real File Upload Testing:** Implement the functionality for users to upload their own documents, and verify that the upload, storage, and retrieval process works correctly with non-demo files.
 -   **Future Tasks:**
-    -   **(P1)** Implement the logic for Set Reminder on calendar events. The UI and a placeholder endpoint exist, but the notification/reminder mechanism needs to be built.
-    -   **(P2)** Add a real file upload and testing flow, so that non-demo documents can be created and downloaded.
+    -   **(P1)** Complete the backend logic for the Set Reminder calendar action, connecting it to the newly built notification system.
+    -   **(P2)** Finish the complete backend refactoring by modularizing all remaining endpoint groups (Stamps, Orders, Admin, etc.) as outlined in .
 
 **Completed work in this session**
--   **Document Vault Bug Fixes (P0):**
-    -   Fixed non-functional Download and Share buttons for seed data by disabling them and showing an informative toast ().
-    -   Added a Demo badge to indicate non-downloadable seed documents.
-    -   Verified that the Delete confirmation modal is working as expected.
--   **Dashboard UI Fix:**
-    -   Resized the Cases by Status donut chart and standardized card heights on the dashboard to fix layout overflow ().
--   **P1 Feature Implementation (Backend & Frontend):**
-    -   Created and integrated backend endpoints to mark calendar events as complete and to update case statuses ().
-    -   Updated the frontend calendar and case action menus to use the new endpoints, with toast notifications for success ().
--   **Initiated Major Refactoring (P2):**
-    -   Created  with a detailed plan.
-    -   Created new directories and scaffold files for the modular architecture (, ).
+-   **Frontend Refactoring (COMPLETED):**
+    -   Successfully extracted all tab components (, , , , etc.) from  into individual component files.
+    -   Rewrote  as a lightweight container for the new modular components.
+    -   Verified the fully refactored frontend with the testing agent, confirming 100% functionality across all tabs.
+-   **Reminder & Notification System (COMPLETED):**
+    -   **Backend:** Created  for managing notifications and user preferences. Implemented a background scheduler in  to generate reminders for upcoming events.
+    -   **Frontend:** Added a  component to the main dashboard header and a detailed  component to the user profile page.
+-   **Notification Settings UI (COMPLETED):**
+    -   Created and integrated a user-friendly UI for managing event reminder preferences, including toggles for in-app vs. email notifications and options for reminder timing.
+-   **Documentation:**
+    -   Updated  to reflect the completion of the frontend refactor and to add a detailed plan for the backend work.
+    -   Updated  to log all completed features.
 -   **Testing:**
-    -   Successfully ran the testing agent to verify all new features and bug fixes, achieving a 100% pass rate.
+    -   Successfully used the testing agent multiple times to validate the frontend refactoring and the new notification system, achieving 100% pass rates.
+
+**Earlier issues found/mentioned but not fixed**
+-   None. All known issues have been addressed.
+
+**Known issue recurrence from previous fork**
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend:** React, Shadcn UI. Debugged  vs.  for blob request error handling. Resolved browser caching/hot-reload issues.
--   **Backend:** FastAPI  for modularization, Pydantic models, and handling edge cases with seed data.
--   **Refactoring:** Strategy for breaking down monolithic components and servers into smaller, maintainable modules.
+-   **Frontend:** React, Shadcn UI, Component-based architecture.
+-   **Backend:** FastAPI  for modularization, Background Tasks for scheduling, Pydantic models,  for transactional emails.
+-   **Refactoring:** Completed a large-scale frontend refactoring (monolith to modules). Now starting a similar process for the backend.
 
 **key DB schema**
--   **events:** A  field (string) has been added to the model to support the Mark Complete feature. Default is 'pending'.
--   **cases:** The existing  field is now actively used by the new  endpoint.
+-   **notifications:** (New) Stores in-app notification records. Includes fields like , , , and .
+-   **users:** Implicitly updated to store  (JSON object) for each user.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   : The monolithic component being actively refactored.
--   : The monolithic backend file being actively refactored.
--   : The new directory containing the refactored frontend components.
--   : The new directory that will contain modular backend routes.
--   : The official plan for the ongoing refactoring task.
+-   : The monolithic backend file that is the primary target for refactoring.
+-   : The file where the auth routes will be moved.
+-   : The newly created module for the notification system.
+-   : The profile page, which now hosts the new reminder settings UI.
+-   : The new UI component for configuring reminder preferences.
+-   : The new UI component for displaying notifications in the header.
+-   : The official plan for the ongoing backend refactoring.
 
 **Areas that need refactoring**:
--   ****: Refactoring is IN PROGRESS.
--   ** & **: Refactoring is IN PROGRESS.
+-   ****: Refactoring is IN PROGRESS. The next step is to extract the  module.
+-   ****: This file also contains business logic that should be modularized after .
 
 **key api endpoints**
--   : Marks a calendar event as complete.
--   : Placeholder endpoint for setting reminders.
--   : Updates the status of a case (e.g., 'active', 'closed').
+-   : Fetches all notifications for the current user.
+-   : Retrieves the current user's notification settings.
+-   : Updates the user's notification settings.
 
 **Critical Info for New Agent**
--   Your primary and immediate task is to continue the large-scale refactoring of the frontend and backend. The groundwork has been laid, but the bulk of the code migration still needs to be done.
--   Follow the plan documented in . Proceed with one component or route module at a time, and test thoroughly after each migration to ensure the application remains stable.
--   All user-facing bugs and high-priority features from the previous session have been resolved. The current focus is entirely on improving the internal code quality.
+-   Your primary task is to execute the backend refactoring plan documented in . Start by extracting the  routes from  into .
+-   This is a high-risk task. Proceed incrementally, module by module, and test thoroughly after each major change to ensure authentication and other core functionalities remain stable.
+-   The frontend is fully refactored and stable. A complete notification system has been implemented and tested.
+-   The next feature on the user's priority list, after starting the backend refactor, is implementing a real file upload and testing flow.
 
 **documents and test reports created in this job**
+-    (Updated)
+-    (Updated)
 -   
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user:** Approved the plan to proceed with refactoring. (RESOLVED)
-2.  **user:** Listed P2 refactoring tasks as the next step. (PENDING)
-3.  **agent:** Completed P1 features and updated the PRD.
-4.  **user:** Approved plan to implement P1 features. (RESOLVED)
-5.  **user:** Approved plan to fix the pie chart sizing. (RESOLVED)
-6.  **user:** Provided screenshot and requested a fix for the pie chart size. (RESOLVED)
+1.  **user:** Prioritized the next set of tasks: Backend Auth Module (P1), Backend Profile Module (P1), and Real File Upload Testing (P2). (PENDING - This is the current directive.)
+2.  **agent:** Finished the previous task and proposed building a comprehensive admin dashboard. (SUPERSEDED by user's new priorities).
+3.  **user:** Ignored the admin dashboard suggestion and provided their own priorities: Backend Refactoring and Notification Settings UI. (RESOLVED - These tasks were completed).
+4.  **user:** Confirmed they wanted both in-app and email reminders, configurable by the user in settings. (RESOLVED).
+5.  **agent:** Proposed options for implementing the reminder system. (RESOLVED).
+6.  **user:** Approved the plan to proceed with the reminder system. (RESOLVED).
+7.  **agent:** Finished the frontend refactoring. (RESOLVED).
+8.  **user:**  (Gave green light for agent to continue its plan). (RESOLVED).
+9.  **agent:** Completed another step in the frontend refactoring. (RESOLVED).
+10. **user:**  (Gave green light for agent to continue its plan). (RESOLVED).
 
 **Project Health Check:**
 -   **Broken:**
-    -   None. The application is currently stable and all known bugs are fixed.
+    -   None. The application is stable.
 -   **Mocked:**
     -   KwikPay payment integration.
-    -   The Set Reminder calendar action has UI but no backend notification logic.
+    -   The Set Reminder calendar action UI exists, but the final backend connection to schedule the specific reminder is not yet implemented (though the underlying notification system is ready).
 
 **3rd Party Integrations**
--   **Resend:** For sending transactional emails.
+-   **Resend:** Used for sending transactional emails (e.g., event reminders).
 -   **KwikPay (Mocked):** A placeholder for a payment gateway.
 -   **Faker:** Used in the backend for generating seed data.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (after P1 features were implemented).
+-   **Testing agent used after significant changes:** YES. It was used to validate the frontend refactoring and the new notification system.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:**
+    -   
+    -   
     -   
 -   **Known regressions:** None.
 
@@ -136,4 +153,4 @@ There are no pending bugs. The primary focus is the ongoing refactoring task.
 | Super Admin |  |  | Super admin account. |
 
 **What agent forgot to execute**
--   The user's request to Add real file upload testing flow was noted but not prioritized or implemented in this session. This should be added to the future tasks backlog.</analysis>
+-   The agent has correctly identified and prioritized all user requests. The Real File Upload Testing task was deferred based on user direction and is now queued as an upcoming task.</analysis>

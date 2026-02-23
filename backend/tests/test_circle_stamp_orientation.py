@@ -10,7 +10,7 @@ import json
 import os
 from io import BytesIO
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://advocate-refactor.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-refact.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 EMAIL = "testadvocate@tls.or.tz"
