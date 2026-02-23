@@ -1,223 +1,139 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to pull the repository  for a comprehensive review and to fix any identified issues.
+The user's initial request was to review and enhance a GitHub repository, which evolved into building a comprehensive Practice Management Suite for advocates. The initial scope included security hardening, core features like document generation, and progressive UI/UX improvements.
 
-The scope evolved to build a comprehensive Practice Management Suite for advocates, including:
-1.  **Security Hardening:** Implementing rate limiting, CORS, security headers, CSRF protection, and moving JWTs to  cookies.
-2.  **Core Features:** Email verification, login attempt logging, and a robust document generation system.
-3.  **Document Generation:** The primary focus of the recent session was implementing a system for generating legal documents from both pre-built and custom-made templates, complete with placeholders, digital signatures, QR code stamping, and integration into a document vault.
-4.  **UI/UX Improvements:** The user has provided a new list of 6 specific UI/UX improvements and feature requests to be addressed next, including seeding data for a better preview, adding table/card view toggles, fixing UI bugs, and improving workflows.
+The most recent user requests were:
+1.  Fix four specific UI/UX issues related to the Document Vault (non-functional Share/Download buttons) and the Calendar module (better date picker, more actions, modal for editing).
+2.  Fix an issue where the pie chart on the dashboard was not sized correctly and overflowed its card.
+3.  Implement backend logic for new Calendar actions (Mark Complete, Set Reminder) and for changing a Case status.
+4.  Refactor the monolithic frontend  and backend  files for better maintainability.
+5.  Add a real file upload testing flow.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack TLS PDF Stamping Tool that has been transformed into a practice management platform for advocates, using React, FastAPI, and MongoDB.
+The application is a full-stack practice management platform for advocates, built with React, FastAPI, and MongoDB. It includes a secure dashboard for managing clients, cases, documents, calendar, tasks, and invoices.
 
-Key existing functionalities include:
--   **Enterprise-Grade Security:** User authentication with JWTs stored in secure  cookies, complemented by full CSRF protection.
--   **Practice Management Dashboard:** A central hub for advocates featuring analytics, and tabs for managing clients, cases, documents, calendar, tasks, and invoices.
--   **Document Generation & Management:**
-    -   A Document Generator that can create PDFs from 10 pre-built legal templates or from advocate-created custom templates.
-    -   Features include placeholder filling, digital signature and QR stamp application, and live previews.
-    -   An integrated Document Vault where generated documents are automatically saved.
-    -   Enhanced sharing functionality via direct PDF download or the Web Share API (e.g., for WhatsApp).
--   **Mocked Payments:** A KwikPay payment system is integrated for generating mock invoices and simulating payments.
--   **Persistent Test Accounts:** Admin and Advocate accounts are available for testing.
+Key recent updates:
+-   **Bug Fixes:** The non-functional Share and Download buttons in the Document Vault for demo documents have been fixed. The UI now correctly indicates which documents are demos and disables the actions. The dashboard chart layout issue has also been resolved.
+-   **Feature Implementation:** Backend endpoints and frontend UI connections for marking calendar events as complete and updating case statuses are fully implemented and functional.
+-   **Refactoring Started:** A plan for refactoring the main frontend page and backend server has been documented. New empty/scaffold files have been created in  and  to begin the modularization process. The application is currently stable and building successfully, but the refactoring is in a very early stage.
 
 **Last working item**:
--   **Last item agent was working:** The agent acknowledged a list of six new UI/UX and data-related improvements requested by the user. The agent created a plan and was about to start implementing the first item: populating the application with more comprehensive seed data for a better preview experience.
--   **Status:** NOT STARTED
+-   **Last item agent was working:** The agent was executing a major refactoring of the frontend and backend. It created a  file to document the plan and then created the new file structure for modular components and routes (, ,  on the frontend, and  on the backend). The agent was in the process of preparing to migrate code from the monolithic files to these new modules.
+-   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
 -   **Which testing method agent to use?** both
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0):** Populate the app with more seed data for a better preview experience.
--   **Issue 2 (P1):** Implement a toggle for list views (table vs. card), with table as default for web and card for mobile.
--   **Issue 3 (P1):** Fix invisible dropdowns in forms.
--   **Issue 4 (P1):** Discuss and implement actions for the case/matters card list.
--   **Issue 5 (P1):** Unify the QR stamp design to be consistent across the document generator and the main stamping module.
--   **Issue 6 (P1):** Fix the layout of the pop-up modal during document creation, as it doesn't fit well.
-
-**Issues Detail:**
--   **Issue 1: Populate with seed data**
-    -   **Attempted fixes:** None.
-    -   **Next debug checklist:**
-        1.  Create a script or a dedicated API endpoint () to populate the database.
-        2.  Generate realistic sample data for users (advocates), clients, cases, documents, tasks, and invoices.
-        3.  Ensure the data creates meaningful connections (e.g., link documents to cases, cases to clients).
-        4.  Run the seed script/endpoint.
-    -   **Why fix this issue and what will be achieved with the fix?** To provide a richer and more realistic preview of the application's capabilities, as requested by the user.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
-
--   **Issue 2: Chart/Table Toggle for Lists**
-    -   **Attempted fixes:** None.
-    -   **Next debug checklist:**
-        1.  In , for each list (Clients, Cases, etc.), add state to manage the view mode ( or ).
-        2.  Add a UI toggle component (e.g., segmented control or buttons) to switch the view.
-        3.  Implement a  hook or CSS to set the default view based on screen size (table for web, card for mobile).
-        4.  Create a generic  component (using a library like  or a custom one) to render the data.
-        5.  Conditionally render either the existing card grid or the new  based on the selected view mode.
-    -   **Why fix this issue and what will be achieved with the fix?** To offer users flexibility in how they view data, improving usability especially on larger screens where tables are more efficient.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** None
-
--   **Issue 3: Fix Invisible Dropdowns**
-    -   **Attempted fixes:** None.
-    -   **Next debug checklist:**
-        1.  Identify the specific forms where dropdowns are not visible (likely in the Document Generator).
-        2.  Inspect the CSS of the dropdown/select components. The issue is likely a z-index conflict or an  on a parent container.
-        3.  Adjust the z-index of the dropdown's portal/menu to be higher than other elements (e.g., modals, headers).
-        4.  Verify the fix on the affected forms.
-    -   **Why fix this issue and what will be achieved with the fix?** To fix a critical UI bug that prevents users from using forms correctly.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** None
-
--   **Issue 4: Actions on Case/Matters List**
-    -   **Attempted fixes:** None.
-    -   **Next debug checklist:**
-        1.  Propose a list of actions to the user via  (e.g., View Details, Edit, Add Document, Create Invoice, Archive Case).
-        2.  Based on user feedback, add a dropdown menu (e.g., Shadcn's ) to each case/matter card/row.
-        3.  Implement the backend logic and frontend components/modals for each approved action.
-    -   **Why fix this issue and what will be achieved with the fix?** To make the case management module more interactive and functional, allowing advocates to perform key actions directly from the list view.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
-
--   **Issue 5: Unify Stamp Design**
-    -   **Attempted fixes:** None.
-    -   **Next debug checklist:**
-        1.  Locate the code for the actual stamp in the  component.
-        2.  Locate the code for the QR stamp generation in .
-        3.  Refactor the backend PDF generation logic to draw a stamp that visually matches the one from the frontend stamping module. This might involve using  drawing primitives to recreate the design.
-    -   **Why fix this issue and what will be achieved with the fix?** To ensure brand and UI consistency across the application, making the generated documents look official and uniform.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
-
--   **Issue 6: Fix Document Creation Modal Layout**
-    -   **Attempted fixes:** None.
-    -   **Next debug checklist:**
-        1.  In , locate the modal component used for generating documents from custom templates.
-        2.  Inspect its CSS. The issue is likely related to , , or flexbox/grid properties that are not responsive.
-        3.  Adjust the styling to ensure the modal is wider on larger screens and its content wraps properly, preventing overflow.
-    -   **Why fix this issue and what will be achieved with the fix?** To resolve a UI layout bug that makes the document creation feature difficult to use.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** None
+There are no pending bugs. The primary focus is the ongoing refactoring task.
 
 **In progress Task List**:
--   None.
+-   **Task 1: Complete the Refactoring of Frontend and Backend (P2)**
+    -   **Where to resume:** Continue the refactoring process outlined in . The next step is to systematically move the code for each tab (Clients, Cases, Dashboard, etc.) from  into their respective new component files (, etc.). Similarly, move route logic from  and  into modular  files within the  directory.
+    -   **What will be achieved with this?** This will significantly improve the maintainability, readability, and scalability of the codebase, making future development easier and less error-prone.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** None, but this is a high-risk task that requires careful, incremental changes and frequent testing to avoid breaking the application.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Flesh out Practice Management Modules:** After the current UI fixes, build out full CRUD operations and business logic for the modules that are still stubs (e.g., Calendar, Tasks).
+    -   **(P2)** Complete the frontend refactor by moving all tab content out of .
+    -   **(P2)** Complete the backend refactor by modularizing all endpoint groups into  files.
 -   **Future Tasks:**
-    -   **(P2) Refactor :** Continue breaking down the monolithic  file into more modular  files (e.g., for admin, user profile) to improve maintainability.
+    -   **(P1)** Implement the logic for Set Reminder on calendar events. The UI and a placeholder endpoint exist, but the notification/reminder mechanism needs to be built.
+    -   **(P2)** Add a real file upload and testing flow, so that non-demo documents can be created and downloaded.
 
 **Completed work in this session**
--   **Document Template Generation (P0):**
-    -   Implemented a Document Generator feature with 10 pre-built legal templates.
-    -   Implemented a Custom Templates feature allowing advocates to create, edit, and use their own templates with a rich text editor.
--   **Document Vault & Workflow Integration (P0):**
-    -   Enhanced the generator to automatically save generated PDFs to a Document Vault.
-    -   Added the ability to link generated documents to clients and cases.
-    -   Improved the document sharing workflow to use direct PDF downloads and the Web Share API, removing the previous link-based sharing.
--   **Security Hardening (P0):**
-    -   **CSRF Protection:** Implemented end-to-end CSRF protection using a custom middleware and token-based validation for all state-changing requests.
-    -   **HttpOnly Cookie JWT Storage:** Migrated JWT storage from  to secure,  cookies to protect against XSS token theft.
--   **Bug Fixes:**
-    -   Resolved a critical routing bug where the  API endpoint was conflicting with a dynamic  route.
-
-**Earlier issues found/mentioned but not fixed**
--   None. The previously identified issues (JWT in localStorage, no CSRF) were resolved in this session.
-
-**Known issue recurrence from previous fork**
--   None.
+-   **Document Vault Bug Fixes (P0):**
+    -   Fixed non-functional Download and Share buttons for seed data by disabling them and showing an informative toast ().
+    -   Added a Demo badge to indicate non-downloadable seed documents.
+    -   Verified that the Delete confirmation modal is working as expected.
+-   **Dashboard UI Fix:**
+    -   Resized the Cases by Status donut chart and standardized card heights on the dashboard to fix layout overflow ().
+-   **P1 Feature Implementation (Backend & Frontend):**
+    -   Created and integrated backend endpoints to mark calendar events as complete and to update case statuses ().
+    -   Updated the frontend calendar and case action menus to use the new endpoints, with toast notifications for success ().
+-   **Initiated Major Refactoring (P2):**
+    -   Created  with a detailed plan.
+    -   Created new directories and scaffold files for the modular architecture (, ).
+-   **Testing:**
+    -   Successfully ran the testing agent to verify all new features and bug fixes, achieving a 100% pass rate.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, MongoDB (), Pydantic, Passlib, JWT.
--   **Frontend:** React, Tailwind CSS, , React Router, .
--   **Security:** JWTs in  cookies, custom CSRF token middleware,  rate limiting.
--   **PDF Generation:**  library for creating PDFs with text, QR codes, and digital signatures.
+-   **Frontend:** React, Shadcn UI. Debugged  vs.  for blob request error handling. Resolved browser caching/hot-reload issues.
+-   **Backend:** FastAPI  for modularization, Pydantic models, and handling edge cases with seed data.
+-   **Refactoring:** Strategy for breaking down monolithic components and servers into smaller, maintainable modules.
 
 **key DB schema**
--   **users:**  (No recent changes, but used for auth).
--   **login_attempts:**  (Exists for security logging).
--   **clients, cases, tasks, invoices:** Collections exist to support practice management.
--   **custom_templates:**  (Collection for advocate-created templates).
--   **generated_documents:**  (New collection for the document vault).
+-   **events:** A  field (string) has been added to the model to support the Mark Complete feature. Default is 'pending'.
+-   **cases:** The existing  field is now actively used by the new  endpoint.
 
 **changes in tech stack**
--   : Added to  to support CSRF token generation.
--   : Used for all PDF generation tasks.
+-   None.
 
 **All files of reference**
--   : Major changes to implement  cookie logic, CSRF middleware, and a new logout endpoint.
--   : New file created and heavily populated with logic for pre-built and custom template generation, PDF creation, and vault integration.
--   : Major refactoring to add the Document Generator tab, Custom Templates tab, and enhanced Document Vault tab.
--   : Updated to handle the new authentication flow (removing JWT from , using , storing CSRF token).
+-   : The monolithic component being actively refactored.
+-   : The monolithic backend file being actively refactored.
+-   : The new directory containing the refactored frontend components.
+-   : The new directory that will contain modular backend routes.
+-   : The official plan for the ongoing refactoring task.
 
 **Areas that need refactoring**:
--   **:** Still contains a large number of routes and could be further modularized.
--   **:** This component is extremely large and complex. It should be broken down into smaller components, with each tab's content (, , , etc.) extracted into its own file.
+-   ****: Refactoring is IN PROGRESS.
+-   ** & **: Refactoring is IN PROGRESS.
+
+**key api endpoints**
+-   : Marks a calendar event as complete.
+-   : Placeholder endpoint for setting reminders.
+-   : Updates the status of a case (e.g., 'active', 'closed').
 
 **Critical Info for New Agent**
--   **Top Priority:** The user has provided a clear, 6-item list of UI/UX and data-related tasks. Address these items systematically, starting with populating the database with seed data.
--   **Security Model:** The application now uses a robust security model with JWTs in  cookies and full CSRF protection. All new API endpoints must be compatible with this model. The  instance on the frontend is already configured to handle this automatically.
--   **Modular Approach:** Continue the pattern of creating modular backend files () for new features and breaking down large frontend components. The  file is the next prime candidate for refactoring.
+-   Your primary and immediate task is to continue the large-scale refactoring of the frontend and backend. The groundwork has been laid, but the bulk of the code migration still needs to be done.
+-   Follow the plan documented in . Proceed with one component or route module at a time, and test thoroughly after each migration to ensure the application remains stable.
+-   All user-facing bugs and high-priority features from the previous session have been resolved. The current focus is entirely on improving the internal code quality.
 
 **documents and test reports created in this job**
 -   
 -   
 -   
--   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user:** Provided a screenshot and a 6-point list of required changes/fixes. (PENDING)
-2.  **agent:** Acknowledged the feedback and listed the 6 points to be addressed.
-3.  **user:** Asked for a logged-in advocate account. (RESOLVED)
-4.  **agent:** Provided credentials for the test advocate account.
-5.  **user:** Confirmed to proceed with implementing HttpOnly cookie storage. (RESOLVED)
-6.  **agent:** Proposed implementing HttpOnly cookie storage as a follow-up to CSRF protection.
-7.  **user:** Confirmed to proceed with implementing CSRF protection. (RESOLVED)
-8.  **agent:** Explained what CSRF is and recommended implementing it along with HttpOnly cookies.
-9.  **user:** Asked for more details about CSRF. (RESOLVED)
-10. **agent:** Finished the custom templates feature and proposed next steps.
+1.  **user:** Approved the plan to proceed with refactoring. (RESOLVED)
+2.  **user:** Listed P2 refactoring tasks as the next step. (PENDING)
+3.  **agent:** Completed P1 features and updated the PRD.
+4.  **user:** Approved plan to implement P1 features. (RESOLVED)
+5.  **user:** Approved plan to fix the pie chart sizing. (RESOLVED)
+6.  **user:** Provided screenshot and requested a fix for the pie chart size. (RESOLVED)
 
 **Project Health Check:**
--   **Broken:** None.
--   **Mocked:** The KwikPay payment integration is fully mocked on the backend.
+-   **Broken:**
+    -   None. The application is currently stable and all known bugs are fixed.
+-   **Mocked:**
+    -   KwikPay payment integration.
+    -   The Set Reminder calendar action has UI but no backend notification logic.
 
 **3rd Party Integrations**
--   **Resend:** Used for sending transactional emails.
--   **KwikPay (Mocked):** A placeholder for a future payment gateway integration.
+-   **Resend:** For sending transactional emails.
+-   **KwikPay (Mocked):** A placeholder for a payment gateway.
+-   **Faker:** Used in the backend for generating seed data.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, used multiple times to validate Document Generation, CSRF, and HttpOnly cookie features. All tests passed.
+-   **Testing agent used after significant changes:** YES (after P1 features were implemented).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None.
+-   **Test files created:**
+    -   
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
 | Role | Email | Password | Notes |
 |---|---|---|---|
-| Test Advocate |  |  | Verified, persistent account for testing advocate features. |
-| TLS Admin |  |  | May trigger forced password reset. |
-| Super Admin |  |  | May trigger forced password reset. |
+| Test Advocate |  |  | **Primary testing account.** Has rich seed data. |
+| TLS Admin |  |  | Admin account. |
+| Super Admin |  |  | Super admin account. |
 
 **What agent forgot to execute**
--   The agent has a new list of 6 tasks from the user. Work on these has not yet begun.</analysis>
+-   The user's request to Add real file upload testing flow was noted but not prioritized or implemented in this session. This should be added to the future tasks backlog.</analysis>

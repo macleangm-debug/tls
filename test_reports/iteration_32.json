@@ -128,7 +128,7 @@
 
   "console_logs_observed": [
     "IndexedDB initialized - Multiple instances as components initialize",
-    "Service Worker registered: https://case-management-hub-5.preview.emergentagent.com/",
+    "Service Worker registered: https://advocate-refactor.preview.emergentagent.com/",
     "PWA initialized successfully",
     "Offline database initialized"
   ]
