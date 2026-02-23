@@ -1,16 +1,30 @@
 // Practice Management Tab Components - Index Export
-// This file re-exports all tab components for easy importing
+// Components that have been extracted to separate files
 
+// Extracted Components
 export { ClientsTab, ClientFormModal } from './ClientsTab';
 export { CasesTab } from './CasesTab';
-export { DocumentsTab } from './DocumentsTab';
-export { CalendarTab } from './CalendarTab';
-export { TasksTab } from './TasksTab';
-export { InvoicesTab } from './InvoicesTab';
-export { MessagesTab } from './MessagesTab';
-export { TemplatesTab } from './TemplatesTab';
-export { DocumentGeneratorTab } from './DocumentGeneratorTab';
 export { DashboardTab } from './DashboardTab';
 
-// Re-export shared utilities
-export * from './shared';
+// Shared utilities, charts and constants
+export { 
+  API,
+  ConfirmDialog, 
+  DateTimePicker, 
+  DonutChart, 
+  BarChart,
+  statusColors,
+  typeColors,
+  formatFileSize,
+  formatCurrency
+} from './shared';
+
+// Note: The following tabs are still in PracticeManagementPage.jsx
+// and can be extracted incrementally:
+// - DocumentsTab
+// - CalendarTab
+// - TasksTab
+// - InvoicesTab
+// - MessagesTab
+// - TemplatesTab
+// - DocumentGeneratorTab
