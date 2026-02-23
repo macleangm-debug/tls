@@ -159,7 +159,7 @@ backend/
 - KwikPay payment integration is mocked
 
 ## Backlog
-- P2: Complete frontend refactoring (extract remaining tabs)
-- P2: Complete backend modularization (extract route groups)
-- P3: Add real file upload testing flow
+- P1: Backend Profile Module - Extract profile routes to backend/routes/profile.py
+- P2: Real file upload testing flow
+- P2: Continue backend modularization (Stamps, Orders, Admin routes)
 - P3: Performance optimization for large datasets
