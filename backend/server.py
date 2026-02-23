@@ -1612,9 +1612,9 @@ async def verify_email_deprecated(token: str):
 class ResendVerificationRequest(BaseModel):
     email: EmailStr
 
-@api_router.post("/auth/resend-verification")
-@limiter.limit("3/minute")
-async def resend_verification(request: Request, data: ResendVerificationRequest):
+# @api_router.post("/auth/resend-verification")
+# @limiter.limit("3/minute")
+async def resend_verification_deprecated(request: Request, data: ResendVerificationRequest):
     """Resend email verification link"""
     user = await db.advocates.find_one({"email": data.email})
     
