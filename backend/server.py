@@ -6758,6 +6758,24 @@ async def startup_db_client():
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         logger.info("Default system settings initialized")
+    
+    # Create notifications index
+    await db.notifications.create_index("user_id")
+    await db.notifications.create_index([("user_id", 1), ("read", 1)])
+    await db.sent_reminders.create_index("reminder_key", unique=True)
+    
+    # Start background reminder scheduler
+    asyncio.create_task(reminder_scheduler())
+    logger.info("Reminder scheduler started")
+
+async def reminder_scheduler():
+    """Background task that checks for event reminders every 5 minutes"""
+    while True:
+        try:
+            await notification_routes.check_and_send_reminders()
+        except Exception as e:
+            logger.error(f"Reminder scheduler error: {e}")
+        await asyncio.sleep(300)  # Check every 5 minutes
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
