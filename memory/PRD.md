@@ -26,6 +26,13 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 - Actions: View, Edit, Duplicate, Mark Complete, Set Reminder, Delete
 - Event status tracking (scheduled, completed, cancelled)
 
+### Notification System (NEW - Feb 23, 2026) ✅
+- **In-App Notifications**: Bell icon in header, dropdown with notification list
+- **Email Notifications**: Event reminders via Resend email integration
+- **User-Configurable Preferences**: Toggle in-app/email for reminders, calendar, tasks, system
+- **Reminder Timing**: Configurable (5min, 15min, 30min, 1hr, 2hr, 1day, 2days)
+- **Background Scheduler**: Checks for upcoming events every 5 minutes
+
 ### Cases Management (Enhanced Feb 22, 2026)
 - Table/Card view toggle
 - Status Actions: Set Active, Set Pending, Put On Hold, Close Case, Delete
@@ -35,6 +42,14 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 - `/api/dev/seed` endpoint populates database with demo data
 
 ## Recent Changes
+
+### Feb 23, 2026 - Notification System IMPLEMENTED ✅
+**Event reminder notifications with in-app and email support:**
+- Created `/app/backend/routes/notifications.py` with full notification management
+- Added `NotificationBell.jsx` component with dropdown
+- Integrated bell icon into dashboard header
+- Background scheduler for automatic reminder sending
+- User preferences stored in `reminder_preferences` field on advocate documents
 
 ### Feb 23, 2026 - Frontend Refactoring COMPLETED ✅
 **Major refactoring of PracticeManagementPage.jsx completed:**
@@ -54,30 +69,32 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 ```
 frontend/src/
 ├── components/
-│   ├── practice-management/  # COMPLETE: Modular tab components
-│   │   ├── index.js          # Re-exports all components
-│   │   ├── shared.js         # Charts, utilities, constants
-│   │   ├── ClientsTab.jsx    # Client management ✅
-│   │   ├── CasesTab.jsx      # Case management ✅
-│   │   ├── DashboardTab.jsx  # Analytics dashboard ✅
-│   │   ├── DocumentsTab.jsx  # Document vault ✅
-│   │   ├── CalendarTab.jsx   # Calendar & events ✅
-│   │   ├── TasksTab.jsx      # Task management ✅
-│   │   ├── InvoicesTab.jsx   # Invoice management ✅
-│   │   ├── MessagesTab.jsx   # Messaging ✅
-│   │   ├── TemplatesTab.jsx  # Document templates ✅
+│   ├── NotificationBell.jsx      # NEW: Bell icon with dropdown ✅
+│   ├── practice-management/      # COMPLETE: Modular tab components
+│   │   ├── index.js              # Re-exports all components
+│   │   ├── shared.js             # Charts, utilities, constants
+│   │   ├── ClientsTab.jsx        # Client management ✅
+│   │   ├── CasesTab.jsx          # Case management ✅
+│   │   ├── DashboardTab.jsx      # Analytics dashboard ✅
+│   │   ├── DocumentsTab.jsx      # Document vault ✅
+│   │   ├── CalendarTab.jsx       # Calendar & events ✅
+│   │   ├── TasksTab.jsx          # Task management ✅
+│   │   ├── InvoicesTab.jsx       # Invoice management ✅
+│   │   ├── MessagesTab.jsx       # Messaging ✅
+│   │   ├── TemplatesTab.jsx      # Document templates ✅
 │   │   └── DocumentGeneratorTab.jsx # PDF generation ✅
-│   └── ui/                   # Shadcn UI components
+│   └── ui/                       # Shadcn UI components
 ├── pages/
 │   └── PracticeManagementPage.jsx  # Main container (~130 lines)
 └── context/
-    └── AuthContext.js        # Auth state management
+    └── AuthContext.js            # Auth state management
 ```
 
 ### Backend Structure
 ```
 backend/
 ├── routes/
+│   ├── notifications.py          # NEW: Notification system ✅
 │   └── auth.py               # Auth route template (not yet migrated)
 ├── practice_management.py    # Practice management APIs
 └── server.py                 # Main app (6759 lines - needs refactoring)
