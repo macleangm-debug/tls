@@ -1517,8 +1517,8 @@ async def login_deprecated(request: Request, data: AdvocateLogin):
     
     return response
 
-@api_router.get("/auth/me")
-async def get_me(user: dict = Depends(get_current_user)):
+# @api_router.get("/auth/me")
+async def get_me_deprecated(user: dict = Depends(get_current_user)):
     # Return user data without password hash
     return {k: v for k, v in user.items() if k not in ["_id", "password_hash", "verification_token", "verification_token_expires"]}
 
