@@ -20,10 +20,6 @@ export const NotificationBell = ({ token }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const headers = { Authorization: `Bearer ${token}` };
-
-  const fetchNotifications = useCallback(async () => {
-    if (!token) return;
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
     try {
