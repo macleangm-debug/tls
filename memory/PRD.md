@@ -105,11 +105,30 @@ frontend/src/
 ```
 backend/
 ├── routes/
-│   ├── notifications.py          # NEW: Notification system ✅
-│   └── auth.py               # Auth route template (not yet migrated)
-├── practice_management.py    # Practice management APIs
-└── server.py                 # Main app (6759 lines - needs refactoring)
+│   ├── notifications.py          # Notification system ✅
+│   └── auth.py                   # Auth routes module ✅ (REFACTORED Feb 23, 2026)
+├── practice_management.py        # Practice management APIs
+└── server.py                     # Main app (~6700 lines, continues to be modularized)
 ```
+
+## Auth Module (REFACTORED Feb 23, 2026) ✅
+**Routes extracted from server.py to backend/routes/auth.py:**
+- `POST /api/auth/register` - User registration with email verification
+- `POST /api/auth/login` - Login with JWT tokens, CSRF protection, HttpOnly cookies
+- `GET /api/auth/me` - Get current authenticated user
+- `POST /api/auth/logout` - Clear session and cookies
+- `GET /api/auth/verify-email/{token}` - Email verification
+- `POST /api/auth/resend-verification` - Resend verification email
+- `POST /api/auth/change-password` - Change user password
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password with token
+- `GET /api/auth/password-rules` - Get password validation rules
+
+**Module features:**
+- `setup_auth_routes()` function for dependency injection
+- Helper functions attached to router (hash_password, verify_password, etc.)
+- Email templates for verification, welcome, password reset
+- Login attempt logging for security auditing
 
 ## API Endpoints Summary
 | Endpoint | Method | Description |
