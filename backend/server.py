@@ -6529,6 +6529,11 @@ from seed_data import seed_router, create_seed_routes
 seed_routes = create_seed_routes(db, get_current_user)
 app.include_router(seed_routes)
 
+# Include notifications router
+from routes.notifications import notifications_router, setup_notification_routes
+notification_routes = setup_notification_routes(db, get_current_user, send_email)
+app.include_router(notification_routes)
+
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
