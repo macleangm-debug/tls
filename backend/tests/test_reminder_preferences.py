@@ -20,6 +20,9 @@ class TestReminderPreferencesAPI:
     @pytest.fixture(autouse=True)
     def setup(self):
         """Login and get auth token + CSRF token for each test"""
+        import time
+        time.sleep(0.5)  # Rate limiting protection
+        
         session = requests.Session()
         response = session.post(f"{BASE_URL}/api/auth/login", json={
             "email": TEST_EMAIL,
@@ -30,10 +33,10 @@ class TestReminderPreferencesAPI:
         self.token = data["access_token"]
         self.session = session
         
-        # Get CSRF token from cookies
-        self.csrf_token = session.cookies.get("csrf_token", "")
+        # Get CSRF token from JSON response body (not cookies)
+        self.csrf_token = data.get("csrf_token", "")
         
-        # Auth headers
+        # Auth headers with CSRF token
         self.auth_headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
