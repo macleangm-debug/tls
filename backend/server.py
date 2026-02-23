@@ -2204,8 +2204,8 @@ async def reset_password_deprecated(request: Request, data: PasswordResetConfirm
     
     return {"message": "Password has been reset successfully. You can now login with your new password"}
 
-@api_router.get("/auth/password-rules")
-async def get_password_rules():
+# @api_router.get("/auth/password-rules")
+async def get_password_rules_deprecated():
     """Get password validation rules for frontend"""
     return {
         "rules": [
