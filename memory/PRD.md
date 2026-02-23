@@ -43,6 +43,17 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 23, 2026 - Notification Settings UI COMPLETE ✅
+**User-configurable notification preferences:**
+- Created `ReminderSettings.jsx` component with comprehensive UI
+- Added to Profile page under new "Notifications" tab
+- Profile page now has 4 tabs: Basic Info, Public Profile, Notifications, Security
+- Features:
+  - In-App Notifications: 4 toggles (Event Reminders, Calendar Updates, Task Alerts, System)
+  - Email Notifications: 4 toggles (Event Reminders, Calendar Updates, Task Due Dates, System Emails)
+  - Reminder Timing: 7 options (5min, 15min, 30min, 1hr, 2hr, 1day, 2days)
+  - Save/Reset functionality with unsaved changes warning
+
 ### Feb 23, 2026 - Notification System IMPLEMENTED ✅
 **Event reminder notifications with in-app and email support:**
 - Created `/app/backend/routes/notifications.py` with full notification management
