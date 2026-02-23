@@ -2044,9 +2044,9 @@ async def check_suspicious_activity(email: str, ip_address: str) -> dict:
         "is_suspicious": failed_from_ip >= 5 or failed_for_email >= 5
     }
 
-@api_router.post("/auth/change-password")
-@limiter.limit("3/minute")
-async def change_password(request: Request, data: PasswordChange, user: dict = Depends(get_current_user)):
+# @api_router.post("/auth/change-password")
+# @limiter.limit("3/minute")
+async def change_password_deprecated(request: Request, data: PasswordChange, user: dict = Depends(get_current_user)):
     """Change user password with strict validation"""
     # Verify current password
     if not verify_password(data.current_password, user.get("password_hash", "")):
