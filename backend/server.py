@@ -1336,11 +1336,13 @@ DIGITAL_STAMP_PRICES = {
     "notary": 10000.0
 }
 
-# =============== AUTH ROUTES ===============
+# =============== AUTH ROUTES (DEPRECATED - Now handled by routes/auth.py module) ===============
+# These functions are kept for reference but routes are disabled
+# To enable the old routes, uncomment the decorators below
 
-@api_router.post("/auth/register")
-@limiter.limit("5/minute")
-async def register(request: Request, data: AdvocateRegister):
+# @api_router.post("/auth/register")
+# @limiter.limit("5/minute")
+async def register_deprecated(request: Request, data: AdvocateRegister):
     existing = await db.advocates.find_one({"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
