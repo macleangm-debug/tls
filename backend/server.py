@@ -1522,8 +1522,8 @@ async def get_me_deprecated(user: dict = Depends(get_current_user)):
     # Return user data without password hash
     return {k: v for k, v in user.items() if k not in ["_id", "password_hash", "verification_token", "verification_token_expires"]}
 
-@api_router.post("/auth/logout")
-async def logout(request: Request):
+# @api_router.post("/auth/logout")
+async def logout_deprecated(request: Request):
     """
     Logout user by clearing the HttpOnly cookie.
     Also clears CSRF token from server-side storage.
