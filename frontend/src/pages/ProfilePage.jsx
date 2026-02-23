@@ -20,6 +20,7 @@ import {
   Users, Gavel, Quote, Camera, Upload, Trash2, Bell
 } from "lucide-react";
 import NotificationSettings from "../components/NotificationSettings";
+import ReminderSettings from "../components/ReminderSettings";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
