@@ -388,8 +388,17 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       <main className="lg:ml-72 pt-16 lg:pt-0 min-h-screen">
         {/* Page Header */}
         <div className="glass border-b border-white/5 px-6 lg:px-8 py-6 sticky top-0 lg:top-0 z-20">
-          <h1 className="font-heading text-2xl font-bold text-white">{title}</h1>
-          {subtitle && <p className="text-white/50 mt-1">{subtitle}</p>}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-heading text-2xl font-bold text-white">{title}</h1>
+              {subtitle && <p className="text-white/50 mt-1">{subtitle}</p>}
+            </div>
+            {!isAdmin && token && (
+              <div className="hidden lg:block">
+                <NotificationBell token={token} />
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Page Content */}
