@@ -294,9 +294,12 @@ const DashboardLayout = ({ children, title, subtitle }) => {
               <img src="/assets/tls-logo.png" alt="TLS" className="w-full h-full object-contain" />
             </div>
           </Link>
-          <Button onClick={handleLogout} variant="ghost" size="sm" className="text-white/60">
-            <LogOut className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {!isAdmin && token && <NotificationBell token={token} />}
+            <Button onClick={handleLogout} variant="ghost" size="sm" className="text-white/60">
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
