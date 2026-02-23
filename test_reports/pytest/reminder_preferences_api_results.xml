@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="5" failures="8" skipped="0" tests="15" time="5.121" timestamp="2026-02-23T13:33:34.849008+00:00" hostname="agent-env-2f2ca3f7-ac2b-4cf1-9743-c62da348d704"><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_get_reminder_preferences" time="0.465" /><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_get_reminder_preferences_default_values" time="0.422" /><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_preferences_update_in_app" time="0.455"><failure message="AssertionError: PUT failed: {&quot;detail&quot;:&quot;CSRF token missing&quot;,&quot;error_code&quot;:&quot;CSRF_MISSING&quot;}&#10;assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:107: in test_put_reminder_preferences_update_in_app
+    assert response.status_code == 200, f"PUT failed: {response.text}"
+E   AssertionError: PUT failed: {"detail":"CSRF token missing","error_code":"CSRF_MISSING"}
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_preferences_update_email" time="0.454"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:147: in test_put_reminder_preferences_update_email
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_times_5min" time="0.482"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:167: in test_put_reminder_times_5min
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_times_15min" time="0.473"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:180: in test_put_reminder_times_15min
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_times_30min" time="0.388"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:193: in test_put_reminder_times_30min
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_times_1hour" time="0.402"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:206: in test_put_reminder_times_1hour
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_times_2hours" time="0.409"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:219: in test_put_reminder_times_2hours
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_times_1day" time="0.419"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_reminder_preferences.py:232: in test_put_reminder_times_1day
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_reminder_times_2days" time="0.149"><error message="failed on setup with &quot;AssertionError: Login failed: {&quot;detail&quot;:&quot;Too many requests. Please slow down.&quot;,&quot;retry_after&quot;:&quot;5 per 1 minute&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">backend/tests/test_reminder_preferences.py:28: in setup
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"detail":"Too many requests. Please slow down.","retry_after":"5 per 1 minute"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_multiple_reminder_times" time="0.121"><error message="failed on setup with &quot;AssertionError: Login failed: {&quot;detail&quot;:&quot;Too many requests. Please slow down.&quot;,&quot;retry_after&quot;:&quot;5 per 1 minute&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">backend/tests/test_reminder_preferences.py:28: in setup
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"detail":"Too many requests. Please slow down.","retry_after":"5 per 1 minute"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_all_preferences_at_once" time="0.115"><error message="failed on setup with &quot;AssertionError: Login failed: {&quot;detail&quot;:&quot;Too many requests. Please slow down.&quot;,&quot;retry_after&quot;:&quot;5 per 1 minute&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">backend/tests/test_reminder_preferences.py:28: in setup
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"detail":"Too many requests. Please slow down.","retry_after":"5 per 1 minute"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_get_preferences_requires_auth" time="0.112"><error message="failed on setup with &quot;AssertionError: Login failed: {&quot;detail&quot;:&quot;Too many requests. Please slow down.&quot;,&quot;retry_after&quot;:&quot;5 per 1 minute&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">backend/tests/test_reminder_preferences.py:28: in setup
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"detail":"Too many requests. Please slow down.","retry_after":"5 per 1 minute"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_reminder_preferences.TestReminderPreferencesAPI" name="test_put_preferences_requires_auth" time="0.107"><error message="failed on setup with &quot;AssertionError: Login failed: {&quot;detail&quot;:&quot;Too many requests. Please slow down.&quot;,&quot;retry_after&quot;:&quot;5 per 1 minute&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">backend/tests/test_reminder_preferences.py:28: in setup
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"detail":"Too many requests. Please slow down.","retry_after":"5 per 1 minute"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</error></testcase></testsuite></testsuites>
