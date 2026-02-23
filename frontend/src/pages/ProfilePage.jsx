@@ -1185,6 +1185,94 @@ const ProfilePage = () => {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Security Tab */}
+        <TabsContent value="security">
+          <div className="max-w-2xl mx-auto">
+            <Card className="glass-card rounded-2xl border-white/10">
+              <CardContent className="p-6">
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-red-400" />
+                    Security Settings
+                  </h2>
+                  <p className="text-white/50 text-sm">
+                    Manage your account security and authentication
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Password Section */}
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white font-medium">Password</p>
+                        <p className="text-xs text-white/50">Last changed: Unknown</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-white/20 text-white hover:bg-white/10"
+                        onClick={() => toast.info("Password change feature coming soon")}
+                      >
+                        Change Password
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Two-Factor Authentication */}
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white font-medium">Two-Factor Authentication</p>
+                        <p className="text-xs text-white/50">Add an extra layer of security</p>
+                      </div>
+                      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                        Coming Soon
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Active Sessions */}
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white font-medium">Active Sessions</p>
+                        <p className="text-xs text-white/50">View and manage your login sessions</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-white/20 text-white hover:bg-white/10"
+                        onClick={() => toast.info("Session management coming soon")}
+                      >
+                        View Sessions
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Account Deletion */}
+                  <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-red-400 font-medium">Delete Account</p>
+                        <p className="text-xs text-red-400/60">Permanently delete your account and all data</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        onClick={() => toast.error("Please contact TLS support to delete your account")}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
     </DashboardLayout>
   );
