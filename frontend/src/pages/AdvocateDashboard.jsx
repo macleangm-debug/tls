@@ -253,7 +253,7 @@ const ShareProfileModal = ({ isOpen, onClose, user }) => {
 };
 
 const DashboardLayout = ({ children, title, subtitle }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
