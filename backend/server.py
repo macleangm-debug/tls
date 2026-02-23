@@ -6509,6 +6509,25 @@ async def get_user_notification_preferences(user_id: str) -> dict:
     user_prefs = user.get("notification_preferences", {}) if user else {}
     return {**DEFAULT_NOTIFICATION_PREFERENCES, **user_prefs}
 
+# Include auth router BEFORE including api_router in app
+# This ensures auth routes from the module take precedence over any old routes in api_router
+from routes.auth import auth_router, setup_auth_routes
+auth_config = {
+    'SECRET_KEY': SECRET_KEY,
+    'ALGORITHM': ALGORITHM,
+    'ACCESS_TOKEN_EXPIRE_MINUTES': ACCESS_TOKEN_EXPIRE_MINUTES,
+    'PASSWORD_RESET_EXPIRE_MINUTES': PASSWORD_RESET_EXPIRE_MINUTES,
+    'EMAIL_VERIFICATION_EXPIRE_HOURS': EMAIL_VERIFICATION_EXPIRE_HOURS,
+    'FRONTEND_URL': FRONTEND_URL,
+    'COOKIE_NAME': COOKIE_NAME,
+    'COOKIE_MAX_AGE': COOKIE_MAX_AGE,
+    'COOKIE_SECURE': COOKIE_SECURE,
+    'COOKIE_HTTPONLY': COOKIE_HTTPONLY,
+    'COOKIE_SAMESITE': COOKIE_SAMESITE,
+}
+auth_routes = setup_auth_routes(db, get_current_user, send_email, limiter, csrf_tokens, auth_config)
+api_router.include_router(auth_routes)
+
 # Include router
 app.include_router(api_router)
 
