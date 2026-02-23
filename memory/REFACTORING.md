@@ -3,10 +3,11 @@
 ## Overview
 The application has grown significantly and needs modularization for maintainability.
 
-## Current State
+## Current State (Updated Feb 23, 2026)
 - ✅ **FRONTEND REFACTORING COMPLETE** (Feb 23, 2026)
-- `frontend/src/pages/PracticeManagementPage.jsx`: Reduced from 3,860 lines to ~130 lines
-- `backend/server.py`: 6,759 lines (still needs refactoring)
+- ✅ **NOTIFICATION SYSTEM IMPLEMENTED** (Feb 23, 2026)
+- ✅ **NOTIFICATION SETTINGS UI ADDED** (Feb 23, 2026)
+- `backend/server.py`: 6,782 lines (needs refactoring)
 
 ## Frontend Refactoring - COMPLETED ✅
 
@@ -14,6 +15,8 @@ The application has grown significantly and needs modularization for maintainabi
 ```
 frontend/src/
 ├── components/
+│   ├── NotificationBell.jsx        # Bell icon with dropdown ✅
+│   ├── ReminderSettings.jsx        # Event reminder preferences ✅
 │   └── practice-management/
 │       ├── index.js              # Re-exports all components ✅
 │       ├── shared.js             # Common utilities, charts, constants ✅
@@ -27,106 +30,126 @@ frontend/src/
 │       ├── TemplatesTab.jsx      # Document templates ✅
 │       ├── DocumentGeneratorTab.jsx # PDF generation ✅
 │       └── DashboardTab.jsx      # Analytics dashboard ✅
-└── pages/
-    └── PracticeManagementPage.jsx  # Main container (imports tabs) ✅
+├── pages/
+│   ├── PracticeManagementPage.jsx  # Main container (imports tabs) ✅
+│   └── ProfilePage.jsx             # Updated with 4 tabs ✅
+└── context/
+    └── AuthContext.js              # Auth state management
 ```
 
-### Files Created
-1. `/frontend/src/components/practice-management/shared.js` ✅
-   - ConfirmDialog component
-   - DateTimePicker component
-   - DonutChart component
-   - BarChart component
-   - Common constants (statusColors, typeColors)
-   - Helper functions (formatFileSize, formatCurrency)
+### Files Created/Updated
+1. `/frontend/src/components/ReminderSettings.jsx` ✅ NEW
+   - In-app notification toggles
+   - Email notification toggles  
+   - Reminder timing selection (5min to 2days)
+   - Save/Reset functionality
 
-2. All Tab Components ✅
-   - ClientsTab.jsx (with ClientFormModal)
-   - CasesTab.jsx
-   - DashboardTab.jsx
-   - DocumentsTab.jsx
-   - CalendarTab.jsx
-   - TasksTab.jsx
-   - InvoicesTab.jsx
-   - MessagesTab.jsx
-   - TemplatesTab.jsx
-   - DocumentGeneratorTab.jsx
+2. `/frontend/src/pages/ProfilePage.jsx` ✅ UPDATED
+   - Added 4-tab layout: Basic Info, Public Profile, Notifications, Security
+   - Integrated ReminderSettings in Notifications tab
+   - Added Security tab with password, 2FA, sessions
 
-3. `/frontend/src/components/practice-management/index.js` ✅
-   - Re-exports for all tab components
+## Backend Refactoring Plan - IN PROGRESS
 
-### Migration Completed ✅
-1. ✅ Extract each Tab component to its own file
-2. ✅ Update imports in PracticeManagementPage.jsx
-3. ✅ Remove duplicated code from main file
-4. ✅ Test each tab after migration - ALL TABS WORKING
-
-## Backend Refactoring Plan
+### Current Modular Routes
+```
+backend/routes/
+├── __init__.py           # Package init
+├── auth.py               # Template (not migrated yet)
+├── notifications.py      # ✅ COMPLETE - Full notification system
+└── seed.py               # Seed data routes
+```
 
 ### Target Structure
 ```
 backend/
 ├── routes/
 │   ├── __init__.py
-│   ├── auth.py           # Authentication routes
-│   ├── profile.py        # User profile routes
-│   ├── stamps.py         # Stamp operations
-│   ├── documents.py      # Document management
-│   ├── verification.py   # Verification system
-│   ├── orders.py         # Order management
-│   └── admin.py          # Admin operations
+│   ├── auth.py           # Authentication routes (~500 lines)
+│   ├── profile.py        # User profile routes (~300 lines)
+│   ├── stamps.py         # Stamp operations (~800 lines)
+│   ├── documents.py      # Document management (~600 lines)
+│   ├── verification.py   # Verification system (~400 lines)
+│   ├── orders.py         # Order management (~500 lines)
+│   ├── admin.py          # Admin operations (~1000 lines)
+│   ├── super_admin.py    # Super admin (~800 lines)
+│   ├── institutional.py  # Institutional clients (~700 lines)
+│   └── notifications.py  # ✅ COMPLETE
 ├── models/
 │   ├── __init__.py
-│   ├── user.py           # User models
+│   ├── user.py           # User/Advocate models
 │   ├── stamp.py          # Stamp models
 │   └── document.py       # Document models
 ├── services/
-│   ├── email.py          # Email service
+│   ├── email.py          # Email service (Resend)
 │   ├── security.py       # Security utilities
 │   └── storage.py        # File storage
-├── practice_management.py # Already modularized
-└── server.py             # Main app with route registration
+├── practice_management.py # Already modularized ✅
+└── server.py             # Main app (~6782 lines → ~1500 lines after refactor)
 ```
 
-### Route Groups to Extract
-| Module | Routes | Line Count (approx) |
-|--------|--------|---------------------|
-| auth.py | /auth/* | ~500 lines |
-| profile.py | /profile/* | ~300 lines |
-| stamps.py | /stamps/* | ~800 lines |
-| documents.py | /documents/* | ~600 lines |
-| verification.py | /verification/* | ~400 lines |
-| orders.py | /orders/* | ~500 lines |
-| admin.py | /admin/* | ~1000 lines |
+### Route Groups to Extract (Priority Order)
 
-### Dependencies
+| Priority | Module | Routes | Lines | Risk |
+|----------|--------|--------|-------|------|
+| P1 | auth.py | /auth/* | ~500 | Low |
+| P1 | profile.py | /profile/*, /advocate/* | ~400 | Low |
+| P2 | stamps.py | /digital-stamps/*, /stamp-* | ~800 | Medium |
+| P2 | documents.py | /documents/* | ~600 | Medium |
+| P2 | verification.py | /verify/* | ~400 | Low |
+| P3 | orders.py | /orders/*, /physical-orders/* | ~500 | Medium |
+| P3 | admin.py | /admin/* | ~1000 | High |
+| P3 | super_admin.py | /super-admin/* | ~800 | High |
+| P4 | institutional.py | /institutional/* | ~700 | Medium |
+
+### Dependencies for Route Modules
 Each route module will need:
-- Database connection (db)
-- Authentication dependency (get_current_user)
-- Shared models and utilities
+- Database connection: `db` (passed via setup function)
+- Authentication: `get_current_user` dependency
+- Shared utilities: `send_email`, `generate_*` functions
+- Models: Pydantic models for request/response
 
-### Migration Steps
-1. Create base route file structure
-2. Extract auth routes first (lowest risk)
-3. Test auth endpoints
-4. Proceed with other modules
-5. Update imports in server.py
-6. Remove duplicated code
+### Migration Strategy
+1. Create setup function pattern (like notifications.py)
+2. Pass db and auth dependencies during app startup
+3. Use APIRouter for each module
+4. Keep server.py as the central registration point
 
-## Testing After Refactoring
-- Run existing test suite
-- Manual testing of all tabs
-- API endpoint verification
-- Performance comparison
+### Example Module Pattern (from notifications.py)
+```python
+def setup_route_module(db, get_current_user, send_email_func=None):
+    @router.get("/endpoint")
+    async def endpoint(user: dict = Depends(get_current_user)):
+        # Use db, user, etc.
+        pass
+    return router
+```
 
-## Risks
-- Breaking existing functionality during migration
-- Import path issues
-- State management between components
-- Authentication flow disruption
+## Testing Checklist
 
-## Recommendations
-1. Create feature branch for refactoring
-2. Implement one module at a time
-3. Full testing after each module
-4. Keep backup of working code
+### After Each Module Migration:
+- [ ] Run pytest for backend
+- [ ] Test all affected API endpoints
+- [ ] Verify frontend still works
+- [ ] Check authentication flows
+- [ ] Monitor error logs
+
+### Full Regression:
+- [ ] Login/logout flow
+- [ ] Profile management
+- [ ] Practice management (all tabs)
+- [ ] Stamp creation/verification
+- [ ] Document upload/download
+- [ ] Admin functions
+- [ ] Email notifications
+
+## Completed Work
+
+### Feb 23, 2026
+1. ✅ Notification bell component (NotificationBell.jsx)
+2. ✅ Notification routes (/api/notifications/*)
+3. ✅ Reminder preferences API
+4. ✅ Background scheduler for reminders
+5. ✅ ReminderSettings UI component
+6. ✅ Profile page with 4-tab layout
+7. ✅ Security tab (placeholder for 2FA, sessions)
