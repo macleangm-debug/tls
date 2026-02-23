@@ -1,10 +1,17 @@
 // Practice Management Tab Components - Index Export
-// Components that have been extracted to separate files
+// All tab components extracted for modular architecture
 
-// Extracted Components
+// Tab Components
 export { ClientsTab, ClientFormModal } from './ClientsTab';
 export { CasesTab } from './CasesTab';
 export { DashboardTab } from './DashboardTab';
+export { DocumentsTab } from './DocumentsTab';
+export { CalendarTab } from './CalendarTab';
+export { TasksTab } from './TasksTab';
+export { InvoicesTab } from './InvoicesTab';
+export { MessagesTab } from './MessagesTab';
+export { TemplatesTab } from './TemplatesTab';
+export { DocumentGeneratorTab } from './DocumentGeneratorTab';
 
 // Shared utilities, charts and constants
 export { 
@@ -18,13 +25,3 @@ export {
   formatFileSize,
   formatCurrency
 } from './shared';
-
-// Note: The following tabs are still in PracticeManagementPage.jsx
-// and can be extracted incrementally:
-// - DocumentsTab
-// - CalendarTab
-// - TasksTab
-// - InvoicesTab
-// - MessagesTab
-// - TemplatesTab
-// - DocumentGeneratorTab
