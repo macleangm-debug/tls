@@ -2943,7 +2943,7 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
         else:  # rectangle
             scale = 2.0  # 800x560px - optimal for QR scanning
         
-        # Generate the branded stamp image (WITHOUT signature - signature goes below)
+        # Generate the branded stamp image
         verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-refact.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
         show_sig_placeholder = branding.get("show_signature_placeholder", False)
         stamp_img = generate_branded_stamp_image(
@@ -2955,9 +2955,9 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
             shape=shape,
             show_advocate_name=show_advocate_name,
             show_tls_logo=show_tls_logo,
-            include_signature=False,  # Signature placed below stamp, not inside
-            signature_data=None,
-            show_signature_placeholder=False,
+            include_signature=include_signature,  # Include signature section for certification stamps
+            signature_data=signature_data,
+            show_signature_placeholder=show_sig_placeholder,
             scale=scale,
             transparent_background=transparent_bg
         )
