@@ -3827,6 +3827,252 @@ async def get_admin_stamps_ledger(
     
     return StampLedgerListResponse(items=items, page=page, page_size=page_size, total=total)
 
+
+# =============== BULK REVOKE (Admin Safety Control) ===============
+
+class BulkRevokeRequest(BaseModel):
+    reason: str
+    include_expired: bool = False
+    confirmation_text: str  # Must be "REVOKE" or advocate name
+
+class BulkRevokeResponse(BaseModel):
+    advocate_id: str
+    advocate_name: str
+    total_active_stamps: int
+    revoked_count: int
+    already_revoked: int
+    already_expired: int
+    timestamp: str
+    batch_revoke_id: str
+
+
+@api_router.get("/admin/advocates/{advocate_id}/stamp-summary")
+async def get_advocate_stamp_summary(
+    advocate_id: str,
+    user: dict = Depends(require_admin)
+):
+    """Get stamp summary for an advocate (for bulk revoke confirmation)"""
+    # Verify advocate exists
+    advocate = await db.advocates.find_one({"id": advocate_id}, {"_id": 0})
+    if not advocate:
+        raise HTTPException(status_code=404, detail="Advocate not found")
+    
+    # Count stamps by status
+    active_count = await db.document_stamps.count_documents({"advocate_id": advocate_id, "status": "active"})
+    revoked_count = await db.document_stamps.count_documents({"advocate_id": advocate_id, "status": "revoked"})
+    
+    # Count expired (computed dynamically)
+    now = datetime.now(timezone.utc)
+    all_active = await db.document_stamps.find(
+        {"advocate_id": advocate_id, "status": "active"},
+        {"expires_at": 1}
+    ).to_list(None)
+    
+    expired_count = 0
+    truly_active = 0
+    for s in all_active:
+        if s.get("expires_at"):
+            try:
+                expires = datetime.fromisoformat(s["expires_at"].replace("Z", "+00:00"))
+                if now > expires:
+                    expired_count += 1
+                else:
+                    truly_active += 1
+            except:
+                truly_active += 1
+        else:
+            truly_active += 1
+    
+    return {
+        "advocate_id": advocate_id,
+        "advocate_name": advocate.get("full_name", ""),
+        "advocate_email": advocate.get("email", ""),
+        "practicing_status": advocate.get("practicing_status", "Unknown"),
+        "stamp_summary": {
+            "active": truly_active,
+            "expired": expired_count,
+            "revoked": revoked_count,
+            "total": truly_active + expired_count + revoked_count
+        }
+    }
+
+
+@api_router.post("/admin/advocates/{advocate_id}/bulk-revoke", response_model=BulkRevokeResponse)
+async def bulk_revoke_advocate_stamps(
+    advocate_id: str,
+    request: Request,
+    body: BulkRevokeRequest,
+    user: dict = Depends(require_admin)
+):
+    """
+    Bulk revoke all active stamps for an advocate.
+    
+    REGULATORY-GRADE SAFETY CONTROLS:
+    - Only super_admin can perform bulk revoke
+    - Requires confirmation_text = "REVOKE" or advocate's full name
+    - Logs individual STAMP_REVOKED event for each stamp
+    - Logs ADVOCATE_BULK_REVOKE system audit event
+    - Irreversible action
+    
+    Use cases:
+    - Advocate license suspended
+    - Advocate disbarred
+    - Account compromised
+    - Disciplinary action
+    """
+    # SAFETY CHECK 1: Super admin only
+    if user.get("role") != "super_admin":
+        raise HTTPException(
+            status_code=403, 
+            detail="Only Super Administrators can perform bulk revoke. This action requires elevated privileges."
+        )
+    
+    # Verify advocate exists
+    advocate = await db.advocates.find_one({"id": advocate_id}, {"_id": 0})
+    if not advocate:
+        raise HTTPException(status_code=404, detail="Advocate not found")
+    
+    advocate_name = advocate.get("full_name", "")
+    
+    # SAFETY CHECK 2: Confirmation text must match
+    valid_confirmations = ["REVOKE", advocate_name.upper(), advocate_name]
+    if body.confirmation_text not in valid_confirmations:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid confirmation. Please type 'REVOKE' or the advocate's full name to proceed."
+        )
+    
+    # Validate reason
+    if not body.reason or len(body.reason.strip()) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Revocation reason must be at least 10 characters for audit compliance."
+        )
+    
+    now = datetime.now(timezone.utc)
+    batch_revoke_id = f"BULK-{now.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}"
+    
+    # Get all stamps to revoke
+    query = {"advocate_id": advocate_id, "status": "active"}
+    stamps_to_process = await db.document_stamps.find(query, {"_id": 0, "stamp_id": 1, "expires_at": 1}).to_list(None)
+    
+    revoked_count = 0
+    already_expired = 0
+    
+    for stamp in stamps_to_process:
+        stamp_id = stamp["stamp_id"]
+        
+        # Check if expired (don't count in revoked, just mark separately)
+        is_expired = False
+        if stamp.get("expires_at"):
+            try:
+                expires = datetime.fromisoformat(stamp["expires_at"].replace("Z", "+00:00"))
+                if now > expires:
+                    is_expired = True
+            except:
+                pass
+        
+        # Skip expired stamps unless include_expired is True
+        if is_expired and not body.include_expired:
+            already_expired += 1
+            continue
+        
+        # Revoke the stamp
+        await db.document_stamps.update_one(
+            {"stamp_id": stamp_id},
+            {"$set": {
+                "status": "revoked",
+                "revoked_at": now.isoformat(),
+                "revoked_by": user["id"],
+                "revoke_reason": body.reason,
+                "bulk_revoke_id": batch_revoke_id
+            }}
+        )
+        
+        # Log individual STAMP_REVOKED event
+        await log_stamp_event(
+            stamp_id=stamp_id,
+            event_type="STAMP_REVOKED",
+            actor_id=user["id"],
+            actor_type="admin",
+            ip=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={
+                "bulk": True,
+                "batch_revoke_id": batch_revoke_id,
+                "reason": body.reason,
+                "advocate_id": advocate_id
+            }
+        )
+        
+        revoked_count += 1
+    
+    # Get already revoked count
+    already_revoked = await db.document_stamps.count_documents({
+        "advocate_id": advocate_id,
+        "status": "revoked",
+        "bulk_revoke_id": {"$ne": batch_revoke_id}  # Exclude stamps just revoked
+    })
+    
+    # Log ADVOCATE_BULK_REVOKE system audit event
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "ADVOCATE_BULK_REVOKE",
+        "user_id": user["id"],
+        "user_role": user.get("role"),
+        "details": {
+            "advocate_id": advocate_id,
+            "advocate_name": advocate_name,
+            "batch_revoke_id": batch_revoke_id,
+            "reason": body.reason,
+            "revoked_count": revoked_count,
+            "already_expired": already_expired,
+            "already_revoked": already_revoked,
+            "include_expired": body.include_expired
+        },
+        "timestamp": now.isoformat(),
+        "ip": request.client.host if request.client else None,
+        "user_agent": request.headers.get("user-agent")
+    })
+    
+    # Optionally update advocate status
+    if advocate.get("practicing_status") == "Active":
+        logger.warning(f"Bulk revoke performed but advocate {advocate_id} is still Active. Consider suspending.")
+    
+    return BulkRevokeResponse(
+        advocate_id=advocate_id,
+        advocate_name=advocate_name,
+        total_active_stamps=len(stamps_to_process),
+        revoked_count=revoked_count,
+        already_revoked=already_revoked,
+        already_expired=already_expired,
+        timestamp=now.isoformat(),
+        batch_revoke_id=batch_revoke_id
+    )
+
+
+@api_router.get("/admin/bulk-revoke-history")
+async def get_bulk_revoke_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    user: dict = Depends(require_admin)
+):
+    """Get history of bulk revoke actions"""
+    query = {"action": "ADVOCATE_BULK_REVOKE"}
+    
+    total = await db.audit_logs.count_documents(query)
+    skip = (page - 1) * page_size
+    
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(page_size).to_list(page_size)
+    
+    return {
+        "items": logs,
+        "page": page,
+        "page_size": page_size,
+        "total": total
+    }
+
+
 # =============== BATCH STAMPING ===============
 
 @api_router.post("/documents/batch-stamp")
