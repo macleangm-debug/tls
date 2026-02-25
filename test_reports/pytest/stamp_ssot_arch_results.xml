@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="10" time="6.491" timestamp="2026-02-25T15:48:08.442221+00:00" hostname="agent-env-a4e29570-bf65-41d7-86d4-607396114129"><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_01_login_successful" time="0.609" /><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_02_stamp_preview_api" time="0.593" /><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_03_stamp_preview_with_different_colors" time="1.150" /><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_04_upload_pdf_document" time="0.567"><failure message="AssertionError: Upload failed: {&quot;detail&quot;:[{&quot;type&quot;:&quot;missing&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;file&quot;],&quot;msg&quot;:&quot;Field required&quot;,&quot;input&quot;:null,&quot;url&quot;:&quot;https://errors.pydantic.dev/2.12/v/missing&quot;}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">tests/test_stamp_ssot_arch.py:137: in test_04_upload_pdf_document
+    assert response.status_code == 200, f"Upload failed: {response.text}"
+E   AssertionError: Upload failed: {"detail":[{"type":"missing","loc":["body","file"],"msg":"Field required","input":null,"url":"https://errors.pydantic.dev/2.12/v/missing"}]}
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_05_stamp_document_center_position" time="0.443"><failure message="AssertionError: Stamp failed: {&quot;detail&quot;:[{&quot;type&quot;:&quot;missing&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;file&quot;],&quot;msg&quot;:&quot;Field required&quot;,&quot;input&quot;:null,&quot;url&quot;:&quot;https://errors.pydantic.dev/2.12/v/missing&quot;}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">tests/test_stamp_ssot_arch.py:206: in test_05_stamp_document_center_position
+    assert response.status_code == 200, f"Stamp failed: {response.text}"
+E   AssertionError: Stamp failed: {"detail":[{"type":"missing","loc":["body","file"],"msg":"Field required","input":null,"url":"https://errors.pydantic.dev/2.12/v/missing"}]}
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_06_stamp_document_corners" time="0.473"><failure message="AssertionError: Stamp at top-left failed: {&quot;detail&quot;:[{&quot;type&quot;:&quot;missing&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;file&quot;],&quot;msg&quot;:&quot;Field required&quot;,&quot;input&quot;:null,&quot;url&quot;:&quot;https://errors.pydantic.dev/2.12/v/missing&quot;}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">tests/test_stamp_ssot_arch.py:288: in test_06_stamp_document_corners
+    assert response.status_code == 200, f"Stamp at {corner_name} failed: {response.text}"
+E   AssertionError: Stamp at top-left failed: {"detail":[{"type":"missing","loc":["body","file"],"msg":"Field required","input":null,"url":"https://errors.pydantic.dev/2.12/v/missing"}]}
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_07_verify_qr_stamp" time="1.286"><failure message="AssertionError: Stamp failed: {&quot;detail&quot;:[{&quot;type&quot;:&quot;missing&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;file&quot;],&quot;msg&quot;:&quot;Field required&quot;,&quot;input&quot;:null,&quot;url&quot;:&quot;https://errors.pydantic.dev/2.12/v/missing&quot;}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">tests/test_stamp_ssot_arch.py:299: in test_07_verify_qr_stamp
+    result = self.test_05_stamp_document_center_position()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_stamp_ssot_arch.py:206: in test_05_stamp_document_center_position
+    assert response.status_code == 200, f"Stamp failed: {response.text}"
+E   AssertionError: Stamp failed: {"detail":[{"type":"missing","loc":["body","file"],"msg":"Field required","input":null,"url":"https://errors.pydantic.dev/2.12/v/missing"}]}
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_08_digital_signature_mode" time="0.569"><failure message="AssertionError: Normal mode stamp failed: {&quot;detail&quot;:[{&quot;type&quot;:&quot;missing&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;file&quot;],&quot;msg&quot;:&quot;Field required&quot;,&quot;input&quot;:null,&quot;url&quot;:&quot;https://errors.pydantic.dev/2.12/v/missing&quot;}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">tests/test_stamp_ssot_arch.py:364: in test_08_digital_signature_mode
+    assert response.status_code == 200, f"Normal mode stamp failed: {response.text}"
+E   AssertionError: Normal mode stamp failed: {"detail":[{"type":"missing","loc":["body","file"],"msg":"Field required","input":null,"url":"https://errors.pydantic.dev/2.12/v/missing"}]}
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_09_stamp_size_is_fixed" time="0.484"><failure message="AssertionError: Stamp with size {'w': 100, 'h': 50} failed&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">tests/test_stamp_ssot_arch.py:459: in test_09_stamp_size_is_fixed
+    assert response.status_code == 200, f"Stamp with size {size} failed"
+E   AssertionError: Stamp with size {'w': 100, 'h': 50} failed
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_stamp_ssot_arch.TestStampSSoTArchitecture" name="test_10_stamps_list_api" time="0.168"><failure message="AssertionError: Login failed: {&quot;detail&quot;:&quot;Too many requests. Please slow down.&quot;,&quot;retry_after&quot;:&quot;5 per 1 minute&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">tests/test_stamp_ssot_arch.py:466: in test_10_stamps_list_api
+    self.login()
+tests/test_stamp_ssot_arch.py:51: in login
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"detail":"Too many requests. Please slow down.","retry_after":"5 per 1 minute"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase></testsuite></testsuites>
