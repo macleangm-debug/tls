@@ -3042,29 +3042,36 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
         stamp_img.save(stamp_buffer, format='PNG')
         stamp_buffer.seek(0)
         
-        # Get stamp dimensions for PDF placement
-        stamp_width = stamp_img.width
-        stamp_height = stamp_img.height
+        # FIXED stamp dimensions in PDF POINTS - from golden contract
+        # These are constant regardless of the generated image size
+        STAMP_WIDTH_PT = position.get("stamp_width_pt", 350)
+        STAMP_HEIGHT_PT = position.get("stamp_height_pt", 310)
+        EDGE_MARGIN_PT = position.get("edge_margin_pt", 12)
         
-        # Use the width/height from position to scale the stamp on the PDF
-        # This ensures the stamp appears at the same size as the preview
-        target_width = position.get("width", stamp_width)
-        target_height = position.get("height", stamp_height)
+        # Frontend page dimensions in PDF points (for verification)
+        frontend_page_width_pt = position.get("page_width_pt", 0)
+        frontend_page_height_pt = position.get("page_height_pt", 0)
+        frontend_scale = position.get("scale", 1.5)
+        stamp_version = position.get("stamp_version", "unknown")
         
-        # Get frontend page dimensions for verification
-        frontend_page_width = position.get("frontendPageWidth", 0)
-        frontend_page_height = position.get("frontendPageHeight", 0)
+        # Generated image dimensions (for scaling to PDF points)
+        stamp_img_width = stamp_img.width
+        stamp_img_height = stamp_img.height
         
-        # DEBUG: Log stamp dimensions
-        print(f"DEBUG STAMP: Generated {stamp_width}x{stamp_height}, Target {target_width}x{target_height}")
-        print(f"DEBUG STAMP: Layout={layout}, Shape={shape}")
-        print(f"DEBUG FRONTEND: Page dimensions from frontend: {frontend_page_width}x{frontend_page_height}")
+        print(f"=== BACKEND STAMP CONTRACT ===")
+        print(f"  Stamp version: {stamp_version}")
+        print(f"  Generated image: {stamp_img_width}x{stamp_img_height}px")
+        print(f"  Target size (pt): {STAMP_WIDTH_PT}x{STAMP_HEIGHT_PT}")
+        print(f"  Edge margin (pt): {EDGE_MARGIN_PT}")
+        print(f"  Frontend page (pt): {frontend_page_width_pt}x{frontend_page_height_pt}")
+        print(f"  Frontend scale: {frontend_scale}")
+        print(f"=== END CONTRACT ===")
         
         # Get pages to stamp - support multi-page stamping
-        pages_to_stamp = position.get("pages", [target_page + 1])  # Default to target page if not specified
-        pages_to_stamp_0indexed = [p - 1 for p in pages_to_stamp]  # Convert to 0-indexed
+        pages_to_stamp = position.get("pages", [target_page + 1])
+        pages_to_stamp_0indexed = [p - 1 for p in pages_to_stamp]
         
-        # Get per-page positions if available
+        # Get per-page positions (all in PDF points, top-left origin)
         per_page_positions = position.get("positions", {})
         
         for page_num, page in enumerate(pdf_reader.pages):
