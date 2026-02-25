@@ -281,9 +281,11 @@ backend/
 | `/api/stamps/{id}/events` | GET | Audit trail for stamp |
 | `/api/stamps/export.csv` | GET | Export stamps as CSV |
 | `/api/admin/stamps` | GET | Admin view of all stamps |
-| `/api/admin/advocates/{id}/stamp-summary` | GET | Stamp counts for advocate (NEW) |
-| `/api/admin/advocates/{id}/bulk-revoke` | POST | Bulk revoke all active stamps (NEW) |
-| `/api/admin/bulk-revoke-history` | GET | Bulk revoke audit history (NEW) |
+| `/api/admin/advocates/{id}/stamp-summary` | GET | Stamp counts for advocate |
+| `/api/admin/advocates/{id}/bulk-revoke` | POST | Bulk revoke all active stamps |
+| `/api/admin/bulk-revoke-history` | GET | Bulk revoke audit history |
+| `/api/verify/stamp/{id}` | GET | Public verification (rate limited 30/min) |
+| `/api/verify/stamp/{id}/validate-document` | POST | Document hash validation (NEW) |
 
 ## Test Credentials
 | Role | Email | Password |
