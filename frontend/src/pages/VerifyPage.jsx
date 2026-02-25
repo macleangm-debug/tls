@@ -647,6 +647,29 @@ const VerifyPage = () => {
                       }`}>
                         {result.valid ? "AUTHENTIC" : result.warning ? "WARNING" : "NOT VERIFIED"}
                       </h2>
+                      
+                      {/* Cryptographic Verification Badge */}
+                      {result.crypto_verified !== undefined && (
+                        <div className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+                          result.crypto_verified 
+                            ? "bg-blue-500/20 border border-blue-500/30" 
+                            : "bg-red-500/20 border border-red-500/30"
+                        }`}>
+                          {result.crypto_verified ? (
+                            <>
+                              <Shield className="w-4 h-4 text-blue-400" />
+                              <span className="text-blue-400 font-semibold text-sm">Cryptographically Verified</span>
+                              <span className="text-blue-400/60 text-xs">({result.crypto_signature_alg})</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShieldX className="w-4 h-4 text-red-400" />
+                              <span className="text-red-400 font-semibold text-sm">Signature Invalid</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      
                       <p className={`mt-2 sm:mt-3 text-base sm:text-lg ${
                         result.valid ? "text-emerald-300/80" : result.warning ? "text-yellow-300/80" : "text-red-300/80"
                       }`}>
