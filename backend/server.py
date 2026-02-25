@@ -4412,6 +4412,31 @@ async def verify_stamp(stamp_id: str, request: Request):
         }
     )
     
+    # Verify cryptographic signature if present
+    crypto_verified = None
+    crypto_message = None
+    crypto_sig_alg = None
+    crypto_key_id = None
+    
+    if stamp.get("crypto_signature") and crypto_service.is_verification_available():
+        crypto_sig = stamp["crypto_signature"]
+        crypto_verified, crypto_message = crypto_service.verify_stamp_signature(
+            stamp_id=stamp["stamp_id"],
+            doc_hash=stamp.get("document_hash", ""),
+            issued_at=stamp.get("created_at", ""),
+            advocate_id=stamp.get("advocate_id", ""),
+            expires_at=stamp.get("expires_at"),
+            signature_b64=crypto_sig.get("signature_b64", ""),
+            key_id=crypto_sig.get("key_id")
+        )
+        crypto_sig_alg = crypto_sig.get("signature_alg")
+        crypto_key_id = crypto_sig.get("key_id")
+        
+        if crypto_verified:
+            logger.info(f"Cryptographic verification passed for stamp: {stamp_id}")
+        else:
+            logger.warning(f"Cryptographic verification FAILED for stamp: {stamp_id} - {crypto_message}")
+    
     return VerificationResult(
         valid=stamp["status"] == "active" and not warning,
         stamp_id=stamp["stamp_id"],
@@ -4432,7 +4457,11 @@ async def verify_stamp(stamp_id: str, request: Request):
         expires_at=stamp["expires_at"],
         verification_count=stamp.get("verification_count", stamp.get("used_count", 0)),
         warning=warning,
-        message="Stamp verified successfully" if not warning else warning
+        message="Stamp verified successfully" if not warning else warning,
+        crypto_verified=crypto_verified,
+        crypto_signature_alg=crypto_sig_alg,
+        crypto_key_id=crypto_key_id,
+        crypto_message=crypto_message
     )
 
 @api_router.post("/verify/document")
