@@ -45,6 +45,22 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 25, 2026 - Tamper-Proof Verification Page - COMPLETE ✅
+**Public trust portal for TLS digital certification:**
+- **Route**: `/verify` or `/verify?id={stamp_id}` (public, no auth required)
+- **Features**:
+  - **Status Banners**: AUTHENTIC (green checkmark), WARNING (amber triangle), NOT VERIFIED (red X)
+  - **Advocate Info**: Name, Roll Number, TLS Member ID, Status
+  - **Document Info**: Name, Type, Recipient
+  - **SHA-256 Hash Display**: Full document fingerprint shown
+  - **Document Validation**: Upload document to verify hash match (tamper detection)
+  - **Rate Limiting**: 30 requests/minute to prevent scraping
+- **API Endpoints**:
+  - `GET /api/verify/stamp/{id}` - Verification with audit logging
+  - `POST /api/verify/stamp/{id}/validate-document` - Hash validation (NEW)
+- **Trust Indicators**: "Tamper-proof", "Instant results", "SHA-256 secured"
+- **Test Report**: `/app/test_reports/iteration_56.json` - 100% pass rate (14/14 backend, all frontend)
+
 ### Feb 25, 2026 - Bulk Revoke (Admin Safety Control) - COMPLETE ✅
 **Regulatory-grade bulk stamp invalidation for compliance:**
 - **Super Admin Only**: Regular admins cannot access this feature
