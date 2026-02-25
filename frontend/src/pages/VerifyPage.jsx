@@ -252,9 +252,53 @@ const VerifyPage = () => {
     setSearched(false);
     setQuery("");
     setUploadedFile(null);
+    setDocumentValidation(null);
     stopCamera();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (validateFileInputRef.current) {
+      validateFileInputRef.current.value = '';
+    }
+  };
+
+  // Validate document against stamp hash
+  const handleValidateDocument = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !result?.stamp_id) return;
+    
+    setValidatingDocument(true);
+    setDocumentValidation(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(
+        `${API}/verify/stamp/${result.stamp_id}/validate-document`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      setDocumentValidation(response.data);
+      
+      if (response.data.hash_match) {
+        toast.success("Document verified - authentic and unmodified!");
+      } else {
+        toast.error("Warning: Document has been modified!");
+      }
+    } catch (error) {
+      setDocumentValidation({
+        valid: false,
+        hash_match: false,
+        message: "Failed to validate document"
+      });
+      toast.error("Document validation failed");
+    } finally {
+      setValidatingDocument(false);
+      if (validateFileInputRef.current) {
+        validateFileInputRef.current.value = '';
+      }
     }
   };
 
