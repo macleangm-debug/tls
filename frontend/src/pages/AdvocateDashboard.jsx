@@ -265,21 +265,51 @@ const DashboardLayout = ({ children, title, subtitle }) => {
     toast.success("Logged out successfully");
   };
 
-  const navItems = isAdmin ? [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
-    { icon: Users, label: "Advocates", path: "/admin/advocates" },
-    { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
-  ] : [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-    { icon: BarChart3, label: "Practice Management", path: "/practice" },
-    { icon: DollarSign, label: "Payments", path: "/payments" },
-    { icon: FileText, label: "Stamp Document", path: "/documents" },
-    { icon: QrCode, label: "Stamp Verification", path: "/stamp-verification" },
-    { icon: Stamp, label: "Physical Stamps", path: "/order-stamp" },
-    { icon: History, label: "Order History", path: "/orders" },
-    { icon: User, label: "My Profile", path: "/profile" },
-    { icon: Fingerprint, label: "My Stamps", path: "/my-stamps" },
+  // Grouped navigation items for advocates
+  const advocateNavGroups = [
+    {
+      label: "Main",
+      items: [
+        { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+        { icon: BarChart3, label: "Practice Management", path: "/practice" },
+      ]
+    },
+    {
+      label: "Documents & Stamps",
+      items: [
+        { icon: FileText, label: "Stamp Document", path: "/documents" },
+        { icon: QrCode, label: "Stamp Verification", path: "/stamp-verification" },
+        { icon: Fingerprint, label: "My Stamps", path: "/my-stamps" },
+      ]
+    },
+    {
+      label: "Orders & Payments",
+      items: [
+        { icon: Stamp, label: "Physical Stamps", path: "/order-stamp" },
+        { icon: History, label: "Order History", path: "/orders" },
+        { icon: DollarSign, label: "Payments", path: "/payments" },
+      ]
+    },
+    {
+      label: "Account",
+      items: [
+        { icon: User, label: "My Profile", path: "/profile" },
+      ]
+    }
   ];
+
+  const adminNavGroups = [
+    {
+      label: "Administration",
+      items: [
+        { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
+        { icon: Users, label: "Advocates", path: "/admin/advocates" },
+        { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
+      ]
+    }
+  ];
+
+  const navGroups = isAdmin ? adminNavGroups : advocateNavGroups;
 
   return (
     <div className="min-h-screen bg-[#02040A] text-white">
