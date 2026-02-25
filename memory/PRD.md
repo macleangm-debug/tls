@@ -43,6 +43,17 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 25, 2026 - Layout & Margin Fixes ✅
+**Fixed two user-reported issues:**
+1. **Layout Not Applied**: Removed misleading layout options from "My Stamps" since TLS uses a single standardized stamp design
+   - Replaced 5 layout options with 3 size presets (Small/Medium/Large)
+   - Updated completion steps: Name → Color → Size
+   - Shape options simplified to Rectangle only (official TLS design)
+2. **Margin Now Functional**: "Safe Margin" slider now properly constrains stamp placement
+   - Frontend clamps drag position to stay within margin from page edges
+   - Backend verifies and applies same clamping: `x in [margin, pageWidth - stampWidth - margin]`
+   - Margin value shown in PDF points (pt) for clarity
+
 ### Feb 25, 2026 - Bug Fixes for Digital Signature & PDF Download ✅
 **Fixed two user-reported issues:**
 1. **Digital Signature Preview Issue**: When selecting "Use Digital Signature" mode without a saved signature, the stamp preview was disappearing.
