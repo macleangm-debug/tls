@@ -219,6 +219,8 @@ backend/
 | `/api/practice/cases/{id}/status` | PATCH | Update case status |
 | `/api/practice/documents` | GET/POST | List/Upload documents |
 | `/api/practice/documents/{id}/download` | GET | Download document |
+| `/api/documents/batch-stamp` | POST | Batch stamp multiple PDFs (NEW) |
+| `/api/documents/batch-stamps` | GET | Get batch stamping history (NEW) |
 
 ## Test Credentials
 | Role | Email | Password |
@@ -229,16 +231,17 @@ backend/
 ## Tech Stack
 - Frontend: React 18, Shadcn UI, TailwindCSS
 - Backend: FastAPI, MongoDB
-- Libraries: react-day-picker, faker, reportlab, resend
+- Libraries: react-day-picker, faker, reportlab, resend, PIL, qrcode
 
 ## Known Limitations
 - Demo documents cannot be downloaded (intentional - no file data)
 - KwikPay payment integration is mocked
 
 ## Backlog
-- P1: Backend Profile Module - Extract profile routes to backend/routes/profile.py
-- P1: Real file upload testing flow
+- P1: Real file upload testing with scanned, rotated, mixed-size PDFs
+- P2: Backend Profile Module - Extract profile routes to backend/routes/profile.py
 - P2: Continue backend modularization (Stamps, Orders, Admin routes)
 - P2: Connect "Set Reminder" calendar action to notification backend
 - P2: Clean up dead code from server.py (commented auth routes)
+- P3: Async batch processing for large batches (v2)
 - P3: Performance optimization for large datasets
