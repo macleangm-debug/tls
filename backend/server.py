@@ -4538,6 +4538,28 @@ async def validate_document_against_stamp(
     }
 
 
+# =============== PUBLIC KEY ENDPOINT (Well-Known) ===============
+
+@api_router.get("/.well-known/tls-stamp-keys")
+async def get_tls_stamp_public_keys():
+    """
+    Public endpoint for TLS stamp verification keys.
+    Courts, banks, and other institutions can use this to independently verify stamps.
+    """
+    return crypto_service.get_public_key_info()
+
+
+@api_router.get("/crypto/status")
+async def get_crypto_status():
+    """Get cryptographic signing status"""
+    return {
+        "signing_available": crypto_service.is_signing_available(),
+        "verification_available": crypto_service.is_verification_available(),
+        "key_id": crypto_service.key_id if crypto_service.is_signing_available() else None,
+        "algorithm": "ECDSA_P256_SHA256"
+    }
+
+
 @api_router.get("/verify/advocate/{roll_number}", response_model=VerificationResult)
 async def verify_advocate(roll_number: str):
     advocate = await db.advocates.find_one({"roll_number": roll_number}, {"_id": 0, "password_hash": 0})
