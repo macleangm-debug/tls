@@ -78,7 +78,7 @@ else:
     logging.warning("RESEND_API_KEY not set - email functionality disabled")
 
 # Frontend URL for email links
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://practice-refact.preview.emergentagent.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://stamp-manager-1.preview.emergentagent.com')
 
 # VAPID configuration for push notifications
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
@@ -2808,7 +2808,7 @@ async def create_document_stamp(
     hash_value = generate_stamp_hash(stamp_id, user["id"], doc_hash, now.isoformat())
     
     # Generate verification URL and branded QR code
-    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-refact.preview.emergentagent.com')}/verify?id={stamp_id}"
+    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-manager-1.preview.emergentagent.com')}/verify?id={stamp_id}"
     qr_data = generate_branded_qr_code(verification_url, position.get("width", 150), brand_color)
     
     expires_at = (now + timedelta(days=365)).isoformat()
@@ -2943,7 +2943,7 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
             scale = 2.0  # 800x560px - optimal for QR scanning
         
         # Generate the branded stamp image
-        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-refact.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
+        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-manager-1.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
         show_sig_placeholder = branding.get("show_signature_placeholder", False)
         stamp_img = generate_branded_stamp_image(
             stamp_id=stamp_record['stamp_id'],
@@ -3209,7 +3209,7 @@ async def embed_stamp_in_image(content: bytes, stamp_record: dict, user: dict, p
         scale = stamp_size / 100.0
         
         # Generate the branded stamp image
-        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-refact.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
+        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-manager-1.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
         shape = branding.get("shape", "rectangle")
         stamp_img = generate_branded_stamp_image(
             stamp_id=stamp_record['stamp_id'],
@@ -3308,7 +3308,7 @@ async def create_digital_stamp(data: DigitalStampCreate, user: dict = Depends(ge
     stamp_id = generate_stamp_id()
     hash_value = generate_stamp_hash(stamp_id, user["id"], "", now.isoformat())
     
-    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-refact.preview.emergentagent.com')}/verify?id={stamp_id}"
+    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-manager-1.preview.emergentagent.com')}/verify?id={stamp_id}"
     qr_data = generate_qr_code(verification_url)
     
     expires_at = (now + timedelta(days=365)).isoformat()

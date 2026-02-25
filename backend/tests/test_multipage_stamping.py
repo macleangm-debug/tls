@@ -16,7 +16,7 @@ import base64
 from PyPDF2 import PdfReader
 from io import BytesIO
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-refact.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-manager-1.preview.emergentagent.com').rstrip('/')
 
 class TestMultipageStamping:
     """Test multi-page stamping functionality"""
