@@ -183,7 +183,11 @@ const DocumentStampPage = () => {
     setLoadingStampPreview(true);
     try {
       const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
-      const showPlaceholder = stampTypeConfig?.requiresSignature && signatureMode !== 'digital';
+      // Show placeholder when:
+      // 1. Stamp requires signature AND user hasn't selected digital mode, OR
+      // 2. Stamp requires signature AND user selected digital mode but has no saved signature
+      const hasDigitalSignature = signatureMode === 'digital' && savedSignature;
+      const showPlaceholder = stampTypeConfig?.requiresSignature && !hasDigitalSignature;
       
       const response = await axios.post(`${API}/documents/stamp-preview`, {
         stamp_type: selectedType,
@@ -192,7 +196,7 @@ const DocumentStampPage = () => {
         show_advocate_name: showAdvocateName,
         layout: stampLayout,
         shape: stampShape,
-        include_signature: signatureMode === 'digital' && savedSignature,
+        include_signature: hasDigitalSignature,
         show_signature_placeholder: showPlaceholder,
         width: stampSize.width,
         height: stampSize.height
