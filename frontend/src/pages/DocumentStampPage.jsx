@@ -854,24 +854,38 @@ const DocumentStampPage = () => {
       // PDF rendering scale used in renderPage function
       const pdfRenderScale = 1.5;
       
+      // Convert stampMargin from preview pixels to PDF points
+      const marginPt = Math.round(stampMargin / pdfRenderScale);
+      
+      // Get page dimensions in PDF points
+      const pageWidthPt = Math.round(pageDimensions.width / pdfRenderScale);
+      const pageHeightPt = Math.round(pageDimensions.height / pdfRenderScale);
+      
       // Build positions per page - convert from preview pixels to PDF points
+      // Apply margin clamping to ensure stamp stays in safe area
       const pagePositions = {};
       pagesToStamp.forEach(pageNum => {
         const pos = getStampPosition(pageNum);
-        // The preview is rendered at pdfRenderScale (1.5x), so positions are in scaled pixels
-        // Divide only by pdfRenderScale to convert back to PDF points
-        // NOTE: previewScale is a CSS transform zoom that doesn't affect Rnd coordinates
-        const pdfX = Math.round(pos.x / pdfRenderScale);
-        const pdfY = Math.round(pos.y / pdfRenderScale);
+        // Convert from scaled pixels to PDF points
+        let pdfX = Math.round(pos.x / pdfRenderScale);
+        let pdfY = Math.round(pos.y / pdfRenderScale);
+        
+        // Apply margin clamping - ensure stamp stays within safe area
+        // Safe area = margin from each edge
+        const maxX = pageWidthPt - marginPt - stampSize.width;
+        const maxY = pageHeightPt - marginPt - stampSize.height;
+        
+        pdfX = Math.max(marginPt, Math.min(pdfX, maxX));
+        pdfY = Math.max(marginPt, Math.min(pdfY, maxY));
+        
         console.log(`=== DEBUG POSITION START ===`);
         console.log(`Page ${pageNum}`);
-        console.log(`  - pageDimensions: ${pageDimensions.width}x${pageDimensions.height}`);
-        console.log(`  - stampSize: ${stampSize.width}x${stampSize.height}`);
-        console.log(`  - previewScale (CSS zoom, not used): ${previewScale}`);
-        console.log(`  - pdfRenderScale: ${pdfRenderScale}`);
-        console.log(`  - Preview position (scaled pixels): (${pos.x}, ${pos.y})`);
-        console.log(`  - PDF position (points): (${pdfX}, ${pdfY})`);
-        console.log(`  - Target width/height (points): ${stampSize.width}x${stampSize.height}`);
+        console.log(`  - Page size (pt): ${pageWidthPt}x${pageHeightPt}`);
+        console.log(`  - Stamp size (pt): ${stampSize.width}x${stampSize.height}`);
+        console.log(`  - Margin (pt): ${marginPt}`);
+        console.log(`  - Safe area: x=[${marginPt}, ${maxX}], y=[${marginPt}, ${maxY}]`);
+        console.log(`  - Raw position (pt): (${Math.round(pos.x / pdfRenderScale)}, ${Math.round(pos.y / pdfRenderScale)})`);
+        console.log(`  - Clamped position (pt): (${pdfX}, ${pdfY})`);
         console.log(`=== DEBUG POSITION END ===`);
         pagePositions[pageNum] = { x: pdfX, y: pdfY };
       });
@@ -879,14 +893,12 @@ const DocumentStampPage = () => {
       const stampPosition = {
         page: pagesToStamp[0], // Primary page
         pages: pagesToStamp, // All pages to stamp
-        positions: pagePositions, // Per-page positions in PDF points
-        // Send stamp size directly as desired PDF points - NOT divided by pdfRenderScale
-        // This ensures the stamp appears at a readable size on the final PDF
+        positions: pagePositions, // Per-page positions in PDF points (already clamped)
         width: stampSize.width,
         height: stampSize.height,
-        // Send page dimensions from frontend for verification
-        frontendPageWidth: Math.round(pageDimensions.width / pdfRenderScale),
-        frontendPageHeight: Math.round(pageDimensions.height / pdfRenderScale)
+        margin: marginPt, // Send margin to backend for verification
+        frontendPageWidth: pageWidthPt,
+        frontendPageHeight: pageHeightPt
       };
       
       formData.append('stamp_position', JSON.stringify(stampPosition));
