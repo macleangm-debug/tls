@@ -6249,6 +6249,10 @@ CSRF_EXEMPT_PATHS = [
     "/api/templates/shared",  # Public shared document access
     "/api/institutional/login",
     "/api/admin/login",
+    "/api/documents/stamp",  # Document stamping - authenticated via JWT
+    "/api/documents/upload",  # Document upload - authenticated via JWT
+    "/api/advocate/signature",  # Signature management - authenticated via JWT
+    "/api/stamp-templates",  # Stamp templates - authenticated via JWT
     "/health",
     "/docs",
     "/openapi.json",
