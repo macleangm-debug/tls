@@ -3757,65 +3757,6 @@ async def get_stamp_events(
     return [StampEvent(**e) for e in events]
 
 
-@api_router.get("/stamps/export.csv")
-async def export_stamps_csv(
-    request: Request,
-    status: Optional[str] = Query(None),
-    from_date: Optional[str] = Query(None, alias="from"),
-    to_date: Optional[str] = Query(None, alias="to"),
-    q: Optional[str] = Query(None),
-    user: dict = Depends(get_current_user)
-):
-    """Export stamps as CSV"""
-    # Build query (same as list endpoint)
-    query = {"advocate_id": user["id"]}
-    if user.get("role") in ["admin", "super_admin"]:
-        query = {}
-    
-    if status:
-        query["status"] = status
-    if from_date:
-        query["created_at"] = {"$gte": from_date}
-    if to_date:
-        if "created_at" in query:
-            query["created_at"]["$lte"] = to_date
-        else:
-            query["created_at"] = {"$lte": to_date}
-    if q:
-        query["$or"] = [
-            {"stamp_id": {"$regex": q, "$options": "i"}},
-            {"document_hash": {"$regex": q, "$options": "i"}}
-        ]
-    
-    # Get all matching stamps
-    stamps = await db.document_stamps.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
-    
-    # Build CSV
-    csv_content = "stamp_id,advocate_name,issued_at,status,document_name,document_type,recipient_name,doc_hash,verification_count,expires_at\n"
-    
-    now = datetime.now(timezone.utc)
-    for s in stamps:
-        # Compute effective status
-        effective_status = s.get("status", "active")
-        if effective_status == "active" and s.get("expires_at"):
-            try:
-                expires = datetime.fromisoformat(s["expires_at"].replace("Z", "+00:00"))
-                if now > expires:
-                    effective_status = "expired"
-            except:
-                pass
-        
-        csv_content += f"{s['stamp_id']},{s.get('advocate_name', '')},{s.get('created_at', '')},{effective_status},{s.get('document_name', '')},{s.get('document_type', '')},{s.get('recipient_name', '')},{s.get('document_hash', '')},{s.get('verification_count', 0)},{s.get('expires_at', '')}\n"
-    
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"attachment; filename=stamps_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        }
-    )
-
-
 # Admin-only ledger view
 @api_router.get("/admin/stamps", response_model=StampLedgerListResponse)
 async def get_admin_stamps_ledger(
