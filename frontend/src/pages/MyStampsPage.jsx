@@ -30,18 +30,21 @@ const BRAND_COLORS = [
   { id: "black", name: "Black", color: "#1F2937" }
 ];
 
+// TLS uses a single official stamp design - layout options removed for consistency
 const RECTANGLE_LAYOUTS = [
-  { id: "horizontal", name: "Wide", icon: RectangleHorizontal, desc: "Standard wide format" },
-  { id: "vertical", name: "Tall", icon: RectangleVertical, desc: "Vertical upright format" },
-  { id: "compact", name: "Square", icon: Square, desc: "Compact square format" },
-  { id: "logo_left", name: "QR Left", icon: LayoutGrid, desc: "QR code on left panel" },
-  { id: "logo_right", name: "QR Right", icon: LayoutGrid, desc: "QR code on right panel" }
+  { id: "tls_standard", name: "TLS Standard", icon: RectangleHorizontal, desc: "Official TLS verified stamp design" }
+];
+
+// Size presets for the stamp (in PDF points)
+const STAMP_SIZE_PRESETS = [
+  { id: "small", name: "Small", width: 250, height: 220, desc: "Compact size for dense documents" },
+  { id: "medium", name: "Medium", width: 350, height: 310, desc: "Standard recommended size" },
+  { id: "large", name: "Large", width: 450, height: 400, desc: "Large size for prominent placement" }
 ];
 
 const STAMP_SHAPES = [
-  { id: "rectangle", name: "Rectangle", desc: "Standard rectangular stamp" },
-  { id: "circle", name: "Circle", desc: "Round circular stamp" },
-  { id: "oval", name: "Oval", desc: "Elliptical oval stamp" }
+  { id: "rectangle", name: "Rectangle", desc: "Official TLS verified stamp" }
+  // Circle and oval removed - TLS uses standardized rectangular stamp
 ];
 
 // Stamp Editor Component - Full Page with Split View
@@ -49,7 +52,7 @@ const STAMP_SHAPES = [
 const COMPLETION_STEPS = [
   { id: 'name', label: 'Name', check: (data) => data.name && data.name.length > 0 },
   { id: 'color', label: 'Color', check: (data) => data.brand_color },
-  { id: 'layout', label: 'Layout', check: (data) => data.layout }
+  { id: 'size', label: 'Size', check: (data) => data.stamp_size_preset }
 ];
 
 const StampEditor = ({ shape, existingStamp, onSave, onCancel }) => {
