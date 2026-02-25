@@ -1547,8 +1547,8 @@ const DocumentStampPage = () => {
                                   }}
                                   minWidth={80}
                                   minHeight={60}
-                                  maxWidth={280}
-                                  maxHeight={250}
+                                  maxWidth={400}
+                                  maxHeight={400}
                                   bounds="parent"
                                   enableResizing={false}
                                   className="z-10"
