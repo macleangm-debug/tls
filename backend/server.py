@@ -913,6 +913,24 @@ def generate_branded_stamp_image(
         draw.text((info_x, y + int(16 * scale)), display_name, fill=TLS_GREEN, font=f_value_bold)
 
     return img
+
+
+async def get_system_settings():
+    """Get system settings from database with defaults"""
+    settings = await db.settings.find_one({"type": "system"})
+    if not settings:
+        settings = {
+            "type": "system",
+            "verification_fee_fixed": 500.0,
+            "verification_fee_percentage": 2.5,
+            "advocate_revenue_share": 30,
+            "official_stamp_price": 5000.0,
+            "commissioner_stamp_price": 7500.0,
+            "notary_stamp_price": 10000.0
+        }
+    return settings
+
+
 async def calculate_verification_revenue(stamp_price: float = 0) -> dict:
     """Calculate revenue split for a verification"""
     settings = await get_system_settings()
