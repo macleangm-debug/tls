@@ -108,6 +108,19 @@ class StampingService:
             "batch_id": batch_id,
         }
         
+        # Add cryptographic signature
+        if crypto_service.is_signing_available():
+            crypto_sig = crypto_service.sign_stamp(
+                stamp_id=stamp_id,
+                doc_hash=document_hash,
+                issued_at=now.isoformat(),
+                advocate_id=str(user.get("_id", user.get("id", ""))),
+                expires_at=expires_at
+            )
+            if crypto_sig:
+                stamp_record["crypto_signature"] = crypto_sig
+                logger.info(f"Cryptographically signed batch stamp: {stamp_id}")
+        
         # Store in database (use document_stamps collection for consistency)
         await self.db.document_stamps.insert_one(stamp_record)
         
