@@ -356,6 +356,147 @@ const AdminAdvocates = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Revoke Modal - Regulatory Grade */}
+      <Dialog open={showBulkRevokeModal} onOpenChange={closeBulkRevokeModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Bulk Revoke Stamps
+            </DialogTitle>
+            <DialogDescription>
+              This action will permanently revoke all active stamps issued by this advocate.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {bulkRevokeAdvocate && (
+            <div className="space-y-4 py-4">
+              {/* Advocate Info */}
+              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <User className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">{bulkRevokeAdvocate.full_name}</h3>
+                  <p className="text-sm text-slate-500">{bulkRevokeAdvocate.roll_number}</p>
+                  <Badge className={getStatusColor(bulkRevokeAdvocate.practicing_status)}>
+                    {bulkRevokeAdvocate.practicing_status}
+                  </Badge>
+                </div>
+              </div>
+              
+              {/* Stamp Summary */}
+              {loadingSummary ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                </div>
+              ) : stampSummary && (
+                <div className="grid grid-cols-3 gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-amber-600">{stampSummary.active}</p>
+                    <p className="text-xs text-amber-700">Active Stamps</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-slate-500">{stampSummary.expired}</p>
+                    <p className="text-xs text-slate-600">Expired</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-red-500">{stampSummary.revoked}</p>
+                    <p className="text-xs text-red-600">Already Revoked</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Result */}
+              {revokeResult ? (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-700 mb-2">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span className="font-medium">Bulk Revoke Complete</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-green-600">Revoked:</span>
+                      <span className="font-bold ml-1">{revokeResult.revoked_count}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Already Expired:</span>
+                      <span className="ml-1">{revokeResult.already_expired}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-600 mt-2">
+                    Batch ID: {revokeResult.batch_revoke_id}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Reason Input */}
+                  <div>
+                    <Label htmlFor="revoke-reason" className="text-sm font-medium">
+                      Reason for Revocation <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="revoke-reason"
+                      value={revokeReason}
+                      onChange={(e) => setRevokeReason(e.target.value)}
+                      placeholder="Enter detailed reason (min 10 characters)..."
+                      className="mt-1"
+                      rows={3}
+                      data-testid="bulk-revoke-reason"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      This will be logged for audit compliance.
+                    </p>
+                  </div>
+                  
+                  {/* Confirmation Input */}
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <Label htmlFor="confirmation" className="text-sm font-medium text-red-700">
+                      Type "REVOKE" or "{bulkRevokeAdvocate.full_name}" to confirm
+                    </Label>
+                    <Input
+                      id="confirmation"
+                      value={confirmationText}
+                      onChange={(e) => setConfirmationText(e.target.value)}
+                      placeholder="Type to confirm..."
+                      className="mt-2 border-red-300"
+                      data-testid="bulk-revoke-confirmation"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeBulkRevokeModal}>
+              {revokeResult ? "Close" : "Cancel"}
+            </Button>
+            {!revokeResult && (
+              <Button
+                onClick={handleBulkRevoke}
+                disabled={revoking || revokeReason.length < 10 || !confirmationText}
+                className="bg-red-600 hover:bg-red-700"
+                data-testid="confirm-bulk-revoke"
+              >
+                {revoking ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Revoking...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Revoke {stampSummary?.active || 0} Stamps
+                  </>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
