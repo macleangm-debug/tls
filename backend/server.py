@@ -384,6 +384,11 @@ class VerificationResult(BaseModel):
     verification_count: Optional[int] = None
     warning: Optional[str] = None
     message: str
+    # Cryptographic verification fields
+    crypto_verified: Optional[bool] = None
+    crypto_signature_alg: Optional[str] = None
+    crypto_key_id: Optional[str] = None
+    crypto_message: Optional[str] = None
 
 class PaymentInitiate(BaseModel):
     order_id: str
