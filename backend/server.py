@@ -3118,29 +3118,32 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
                     pos_x = x
                     pos_y = y
                 
-                # Convert visual coordinates (from frontend) to PDF mediabox coordinates
-                # Frontend positions are in visual space (how pdf.js renders, with rotation applied)
-                # Backend needs mediabox coordinates (raw PDF coordinate system)
+                # Frontend sends positions in PDF POINTS with TOP-LEFT origin
+                # We need to convert to mediabox coordinates (BOTTOM-LEFT origin)
                 
-                # Visual dimensions (what user sees)
-                visual_width = page_width   # Already accounts for rotation
-                visual_height = page_height  # Already accounts for rotation
+                # Visual dimensions (what user sees - accounts for rotation)
+                visual_width = page_width
+                visual_height = page_height
                 
-                # Check for dimension mismatch between frontend and backend
-                # This can happen if pdf.js and PyPDF2 interpret the page differently
-                if frontend_page_width > 0 and frontend_page_height > 0:
-                    if abs(visual_width - frontend_page_width) > 5 or abs(visual_height - frontend_page_height) > 5:
-                        print(f"DEBUG MISMATCH: Frontend={frontend_page_width}x{frontend_page_height}, Backend visual={visual_width}x{visual_height}")
-                        # Adjust positions to account for the mismatch
-                        # The frontend position is relative to its page size, so we need to scale
-                        scale_x = visual_width / frontend_page_width if frontend_page_width > 0 else 1
-                        scale_y = visual_height / frontend_page_height if frontend_page_height > 0 else 1
+                # Verify frontend and backend agree on page dimensions
+                if frontend_page_width_pt > 0 and frontend_page_height_pt > 0:
+                    if abs(visual_width - frontend_page_width_pt) > 5 or abs(visual_height - frontend_page_height_pt) > 5:
+                        print(f"WARNING: Page dimension mismatch!")
+                        print(f"  Frontend: {frontend_page_width_pt}x{frontend_page_height_pt}")
+                        print(f"  Backend: {visual_width}x{visual_height}")
+                        # Scale positions to account for mismatch
+                        scale_x = visual_width / frontend_page_width_pt
+                        scale_y = visual_height / frontend_page_height_pt
                         pos_x = pos_x * scale_x
                         pos_y = pos_y * scale_y
-                        print(f"DEBUG MISMATCH: Adjusted position to ({pos_x}, {pos_y}) with scale ({scale_x}, {scale_y})")
+                        print(f"  Scaled position: ({pos_x:.1f}, {pos_y:.1f})")
                 
-                # pos_x, pos_y are visual coordinates (top-left origin, after rotation)
-                # We need to convert to mediabox coordinates (bottom-left origin, before rotation)
+                # COORDINATE CONVERSION: Top-left → Bottom-left
+                # Formula: y_bottomLeft = pageHeight - y_topLeft - stampHeight
+                
+                # Use FIXED stamp dimensions from contract (not generated image size)
+                target_width = STAMP_WIDTH_PT
+                target_height = STAMP_HEIGHT_PT
                 
                 if page_rotation in [90, -270]:
                     # Page rotated 90° clockwise
