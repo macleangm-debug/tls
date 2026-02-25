@@ -122,10 +122,10 @@ const DocumentStampPage = () => {
   // This is the actual scale used to convert PDF points to preview pixels
   const [pdfRenderScale, setPdfRenderScale] = useState(1.5);
   
-  // FIXED stamp dimensions in PDF POINTS (not pixels)
+  // TLS FIXED stamp dimensions in PDF POINTS (matching backend)
   // These are constant - the stamp is always this size on the final PDF
-  const STAMP_WIDTH_PT = 350;
-  const STAMP_HEIGHT_PT = 310;
+  const STAMP_WIDTH_PT = 240;   // Fixed TLS official stamp width
+  const STAMP_HEIGHT_PT = 128;  // Fixed TLS official stamp height (compact card)
   
   // System edge margin in PDF points (prevents clipping, not user-controlled)
   const EDGE_MARGIN_PT = 12;
