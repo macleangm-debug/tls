@@ -1246,18 +1246,20 @@ const DocumentStampPage = () => {
                 </div>
               </div>
               
-              {/* Margin Control */}
+              {/* Margin Control - Safe area from page edges */}
               <div className="flex items-center gap-3">
-                <label className="text-xs text-white/60">Margin:</label>
+                <label className="text-xs text-white/60" title="Minimum distance from page edges">
+                  Safe Margin:
+                </label>
                 <input
                   type="range"
                   min="10"
-                  max="50"
+                  max="60"
                   value={stampMargin}
                   onChange={(e) => setStampMargin(parseInt(e.target.value))}
                   className="w-24 accent-emerald-500"
                 />
-                <span className="text-xs text-white/40">{stampMargin}px</span>
+                <span className="text-xs text-white/40">{Math.round(stampMargin / 1.5)}pt</span>
               </div>
             </div>
           </div>
