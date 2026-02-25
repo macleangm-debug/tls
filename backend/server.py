@@ -553,6 +553,62 @@ class BatchStampResponse(BaseModel):
     results: List[BatchStampResult]
     download_url: str
 
+# =============== STAMP LEDGER MODELS ===============
+
+class StampEventType(str):
+    ISSUED = "STAMP_ISSUED"
+    VERIFIED = "STAMP_VERIFIED"
+    REVOKED = "STAMP_REVOKED"
+    EXPIRED = "STAMP_EXPIRED"
+
+class StampEvent(BaseModel):
+    id: str
+    stamp_id: str
+    event_type: str
+    actor_id: Optional[str] = None
+    actor_type: str  # advocate, admin, public, system
+    created_at: str
+    ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    metadata: Optional[dict] = None
+
+class StampLedgerItem(BaseModel):
+    stamp_id: str
+    advocate_id: str
+    advocate_name: str
+    issued_at: str
+    status: str  # active, revoked, expired
+    doc_hash: str
+    doc_filename: Optional[str] = None
+    document_type: Optional[str] = None
+    recipient_name: Optional[str] = None
+    border_color: Optional[str] = None
+    pages_stamped: Optional[int] = None
+    verification_count: int = 0
+    expires_at: Optional[str] = None
+    revoked_at: Optional[str] = None
+    revoke_reason: Optional[str] = None
+
+class StampLedgerDetail(StampLedgerItem):
+    advocate_roll_number: Optional[str] = None
+    advocate_tls_number: Optional[str] = None
+    recipient_org: Optional[str] = None
+    description: Optional[str] = None
+    verification_url: str
+    qr_code_data: Optional[str] = None
+    hash_value: Optional[str] = None
+    total_earnings: float = 0.0
+    batch_id: Optional[str] = None
+
+class StampLedgerListResponse(BaseModel):
+    items: List[StampLedgerItem]
+    page: int
+    page_size: int
+    total: int
+
+class RevokeStampRequest(BaseModel):
+    reason: str
+
 # =============== HELPER FUNCTIONS ===============
 
 def hash_password(password: str) -> str:
