@@ -388,6 +388,7 @@ def setup_auth_routes(db, get_current_user, send_email_func, limiter, csrf_token
     @auth_router.post("/login")
     @limiter.limit("5/minute")
     async def login(request: Request, data: AdvocateLogin):
+        logger.info(f"=== AUTH MODULE LOGIN CALLED for {data.email} ===")
         ip_address = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
         if "," in ip_address:
             ip_address = ip_address.split(",")[0].strip()
