@@ -4296,6 +4296,7 @@ async def revoke_stamp(stamp_id: str, user: dict = Depends(get_current_user)):
 # =============== PUBLIC VERIFICATION ROUTES ===============
 
 @api_router.get("/verify/stamp/{stamp_id}", response_model=VerificationResult)
+@limiter.limit("30/minute")  # Rate limit to prevent scraping
 async def verify_stamp(stamp_id: str, request: Request):
     """Public verification endpoint - checks both document stamps and digital stamps"""
     
