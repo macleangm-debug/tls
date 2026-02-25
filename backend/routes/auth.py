@@ -394,13 +394,8 @@ def setup_auth_routes(db, get_current_user, send_email_func, limiter, csrf_token
         user_agent = request.headers.get("User-Agent", "unknown")
         
         user = await db.advocates.find_one({"email": data.email})
-        print(f"Found in advocates: {user is not None}", flush=True)
         if not user:
             user = await db.users.find_one({"email": data.email})
-            print(f"Found in users: {user is not None}", flush=True)
-        
-        if user:
-            print(f"User id: {user.get('id')}, force_password_reset: {user.get('force_password_reset')}", flush=True)
         
         if not user:
             logger.warning(f"Login attempt for non-existent email: {data.email}")
