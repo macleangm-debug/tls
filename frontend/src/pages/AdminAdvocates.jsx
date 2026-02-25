@@ -20,12 +20,24 @@ import {
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const AdminAdvocates = () => {
-  const { getAuthHeaders } = useAuth();
+  const { user, getAuthHeaders } = useAuth();
   const [advocates, setAdvocates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedAdvocate, setSelectedAdvocate] = useState(null);
+  
+  // Bulk revoke state
+  const [showBulkRevokeModal, setShowBulkRevokeModal] = useState(false);
+  const [bulkRevokeAdvocate, setBulkRevokeAdvocate] = useState(null);
+  const [stampSummary, setStampSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [revokeReason, setRevokeReason] = useState("");
+  const [confirmationText, setConfirmationText] = useState("");
+  const [revoking, setRevoking] = useState(false);
+  const [revokeResult, setRevokeResult] = useState(null);
+  
+  const isSuperAdmin = user?.role === "super_admin";
 
   useEffect(() => {
     fetchAdvocates();
