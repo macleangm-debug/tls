@@ -3175,10 +3175,16 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
                 print(f"  - Target size: {target_width}x{target_height}")
                 print(f"  - PDF coords BEFORE bounds: pdf_x={pdf_x}, pdf_y={pdf_y}, draw={draw_width}x{draw_height}")
                 
-                # Ensure stamp stays within page bounds (using mediabox dimensions)
-                pdf_x = max(10, min(pdf_x, orig_width - draw_width - 10))
-                pdf_y = max(10, min(pdf_y, orig_height - draw_height - 10))
+                # Get margin from position data (default to 10pt if not provided)
+                margin_pt = position.get("margin", 10)
                 
+                # Ensure stamp stays within page bounds with margin (safe area)
+                # Clamp: x in [margin, pageWidth - stampWidth - margin]
+                # Clamp: y in [margin, pageHeight - stampHeight - margin]
+                pdf_x = max(margin_pt, min(pdf_x, orig_width - draw_width - margin_pt))
+                pdf_y = max(margin_pt, min(pdf_y, orig_height - draw_height - margin_pt))
+                
+                print(f"  - Margin: {margin_pt}pt")
                 print(f"  - PDF coords AFTER bounds: pdf_x={pdf_x}, pdf_y={pdf_y}")
                 
                 # Draw the branded stamp image - reset buffer for each page
