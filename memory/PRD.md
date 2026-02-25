@@ -314,7 +314,7 @@ backend/
 ## Tech Stack
 - Frontend: React 18, Shadcn UI, TailwindCSS
 - Backend: FastAPI, MongoDB
-- Libraries: react-day-picker, faker, reportlab, resend, PIL, qrcode
+- Libraries: react-day-picker, faker, reportlab, resend, PIL, qrcode, cryptography (ECDSA)
 
 ## Known Limitations
 - Demo documents cannot be downloaded (intentional - no file data)
@@ -327,4 +327,6 @@ backend/
 - P2: Connect "Set Reminder" calendar action to notification backend
 - P2: Clean up dead code from server.py (commented auth routes)
 - P3: Performance optimization for large datasets
-- P3: Cryptographic signature layer (beyond visual stamp overlay)
+- P3: Key rotation mechanism for crypto signing
+- P3: PDF embedded digital signature (true PDF/A signature object)
+- P3: Blockchain anchoring of stamp hashes (periodic Merkle root)
