@@ -172,6 +172,50 @@ const DocumentStampPage = () => {
   // Recipient type state
   const [recipientType, setRecipientType] = useState("individual"); // individual or organization
 
+  // Backend-generated stamp preview (SINGLE SOURCE OF TRUTH)
+  const [stampPreviewImage, setStampPreviewImage] = useState(null);
+  const [loadingStampPreview, setLoadingStampPreview] = useState(false);
+
+  // Fetch stamp preview from backend when stamp settings change
+  const fetchStampPreview = useCallback(async () => {
+    if (!user) return;
+    
+    setLoadingStampPreview(true);
+    try {
+      const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
+      const showPlaceholder = stampTypeConfig?.requiresSignature && signatureMode !== 'digital';
+      
+      const response = await axios.post(`${API}/documents/stamp-preview`, {
+        stamp_type: selectedType,
+        brand_color: brandColor,
+        advocate_name: user?.full_name || 'Advocate',
+        show_advocate_name: showAdvocateName,
+        layout: stampLayout,
+        shape: stampShape,
+        include_signature: signatureMode === 'digital' && savedSignature,
+        show_signature_placeholder: showPlaceholder,
+        width: stampSize.width,
+        height: stampSize.height
+      }, getAuthHeaders());
+      
+      setStampPreviewImage(response.data.preview_image);
+    } catch (error) {
+      console.error("Failed to fetch stamp preview:", error);
+      setStampPreviewImage(null);
+    } finally {
+      setLoadingStampPreview(false);
+    }
+  }, [user, selectedType, brandColor, showAdvocateName, stampLayout, stampShape, signatureMode, savedSignature, stampSize.width, stampSize.height, getAuthHeaders]);
+
+  // Debounced stamp preview fetch to avoid excessive API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchStampPreview();
+    }, 300); // 300ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [fetchStampPreview]);
+
   // Helper to get stamp position for current page (CENTER by default)
   const getStampPosition = (pageNum = currentPage) => {
     if (stampPositions[pageNum]) {
