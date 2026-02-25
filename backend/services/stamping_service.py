@@ -107,8 +107,23 @@ class StampingService:
             "batch_id": batch_id,
         }
         
-        # Store in database
-        await self.db.stamps.insert_one(stamp_record)
+        # Store in database (use document_stamps collection for consistency)
+        await self.db.document_stamps.insert_one(stamp_record)
+        
+        # Log stamp event
+        await self.db.stamp_events.insert_one({
+            "id": str(uuid.uuid4()),
+            "stamp_id": stamp_id,
+            "event_type": "STAMP_ISSUED",
+            "actor_id": str(user.get("_id", user.get("id", ""))),
+            "actor_type": "advocate",
+            "created_at": now.isoformat(),
+            "metadata": {
+                "document_type": document_type,
+                "mode": "batch",
+                "batch_id": batch_id
+            }
+        })
         
         return stamp_record
     
