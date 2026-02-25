@@ -45,6 +45,24 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 25, 2026 - Bulk Revoke (Admin Safety Control) - COMPLETE ✅
+**Regulatory-grade bulk stamp invalidation for compliance:**
+- **Super Admin Only**: Regular admins cannot access this feature
+- **Use Cases**: License suspended, disbarred, account compromised
+- **Safety Controls**:
+  - Confirmation text required ("REVOKE" or advocate's full name)
+  - Reason must be at least 10 characters
+  - Irreversible action
+- **Audit Logging**:
+  - Individual `STAMP_REVOKED` event per stamp with `bulk=true`, `batch_revoke_id`
+  - `ADVOCATE_BULK_REVOKE` system audit event with full details
+- **API Endpoints**:
+  - `GET /api/admin/advocates/{id}/stamp-summary` - Active/revoked/expired counts
+  - `POST /api/admin/advocates/{id}/bulk-revoke` - Execute bulk revoke
+  - `GET /api/admin/bulk-revoke-history` - Audit history
+- **Frontend**: "Super Admin Actions" section in Manage Advocate dialog with confirmation modal
+- **Test Report**: `/app/test_reports/iteration_55.json` - 100% pass rate (15/15 backend, all frontend)
+
 ### Feb 25, 2026 - Advocate Stamp Ledger - COMPLETE ✅
 **Regulatory-grade stamp management for compliance:**
 - **Frontend**: `/stamp-ledger` route with full management UI
