@@ -20,6 +20,7 @@ import StampOrderPage from "./pages/StampOrderPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import DigitalStampsPage from "./pages/DigitalStampsPage";
 import DocumentStampPage from "./pages/DocumentStampPage";
+import BatchStampPage from "./pages/BatchStampPage";
 import MyStampsPage from "./pages/MyStampsPage";
 import StampVerificationPage from "./pages/StampVerificationPage";
 import InstitutionalPortal from "./pages/InstitutionalPortal";
@@ -129,6 +130,7 @@ function App() {
           <Route path="/digital-stamps" element={<ProtectedRoute><DigitalStampsPage /></ProtectedRoute>} />
           <Route path="/documents" element={<ProtectedRoute><DocumentStampPage /></ProtectedRoute>} />
           <Route path="/stamp-document" element={<ProtectedRoute><DocumentStampPage /></ProtectedRoute>} />
+          <Route path="/batch-stamp" element={<ProtectedRoute><BatchStampPage /></ProtectedRoute>} />
           <Route path="/stamp-settings" element={<ProtectedRoute><MyStampsPage /></ProtectedRoute>} />
           <Route path="/my-stamps" element={<ProtectedRoute><MyStampsPage /></ProtectedRoute>} />
           <Route path="/stamp-verification" element={<ProtectedRoute><StampVerificationPage /></ProtectedRoute>} />
