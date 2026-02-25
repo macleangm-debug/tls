@@ -45,6 +45,23 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 25, 2026 - Cryptographic Signing Layer - COMPLETE ✅
+**ECDSA P-256 + SHA-256 digital signatures for non-forgeable stamps:**
+- **Key Management**: Private/public keys stored in .env as base64
+- **Signing on Issuance**: All new stamps signed with TLS private key
+- **Verification**: Signature verified on every stamp check
+- **Public Key Endpoint**: `GET /api/.well-known/tls-stamp-keys` for independent verification
+- **Features**:
+  - Canonical payload format (deterministic JSON)
+  - Key ID tracking for future rotation (`tls-key-2026-01`)
+  - Algorithm: `ECDSA_P256_SHA256`
+- **Frontend**: Blue "Cryptographically Verified" badge with algorithm name
+- **Test Report**: `/app/test_reports/iteration_57.json` - 100% pass rate
+
+**Trust Level Upgrade:**
+- ✅ **Before**: Operationally secure (server verification + hash comparison)
+- ✅ **After**: Cryptographically verifiable (independently provable, non-forgeable)
+
 ### Feb 25, 2026 - Tamper-Proof Verification Page - COMPLETE ✅
 **Public trust portal for TLS digital certification:**
 - **Route**: `/verify` or `/verify?id={stamp_id}` (public, no auth required)
