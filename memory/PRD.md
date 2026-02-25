@@ -43,17 +43,16 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
-### Feb 25, 2026 - Stamp Preview Single Source of Truth Architecture ✅
-**Implemented pixel-perfect stamp preview by using backend-generated images:**
-- **Problem**: Frontend CSS preview (React/tailwind) didn't match backend stamp (PIL/ReportLab)
-- **Solution**: Created `/api/documents/stamp-preview` endpoint that generates the exact same stamp image
-- **Result**: Preview and final PDF now use identical rendering engine
-- **Changes**:
-  - Added `StampPreviewRequest` model and `/api/documents/stamp-preview` endpoint in `server.py`
-  - Updated `DocumentStampPage.jsx` to fetch stamp preview from backend
-  - Removed ~300 lines of CSS-based stamp preview code
-  - Added debounced preview fetching (300ms) for smooth UX
-- **Architecture**: Backend PIL → Base64 PNG → Frontend displays same image → PDF embeds same image
+### Feb 25, 2026 - Stamp Preview Single Source of Truth - COMPLETE ✅
+**Achieved pixel-perfect stamp preview by unifying rendering engines:**
+- **Problem**: Frontend CSS preview didn't match backend PIL stamp - two different rendering engines
+- **Root Cause Found**: Template loading was resetting stamp size to 150x150 instead of 350x310
+- **Solution**:
+  1. Created `/api/documents/stamp-preview` endpoint that generates stamp using PIL (same as PDF)
+  2. Frontend fetches and displays this backend image - no more CSS-based preview
+  3. Fixed stamp size reset bugs in `applyTemplate()` and `clearForm()`
+- **Result**: Preview and PDF now use IDENTICAL rendering → pixel-perfect match
+- **Test Verified**: Stamp visible on PDF at 350x340px, backend-generated image loads correctly
 
 ### Feb 25, 2026 - Document Stamp Size Fix COMPLETE ✅
 **Fixed stamp readability issue where text was too small:**
