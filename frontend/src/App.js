@@ -21,6 +21,7 @@ import OrderHistoryPage from "./pages/OrderHistoryPage";
 import DigitalStampsPage from "./pages/DigitalStampsPage";
 import DocumentStampPage from "./pages/DocumentStampPage";
 import BatchStampPage from "./pages/BatchStampPage";
+import StampLedgerPage from "./pages/StampLedgerPage";
 import MyStampsPage from "./pages/MyStampsPage";
 import StampVerificationPage from "./pages/StampVerificationPage";
 import InstitutionalPortal from "./pages/InstitutionalPortal";
