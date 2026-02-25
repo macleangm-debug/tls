@@ -141,12 +141,33 @@ const SuperAdminDashboard = () => {
     toast.success("Logged out successfully");
   };
 
-  const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/super-admin" },
-    { icon: Package, label: "Physical Orders", path: "/super-admin/orders" },
-    { icon: DollarSign, label: "Pricing Tiers", path: "/super-admin#pricing" },
-    { icon: Settings, label: "System Settings", path: "/super-admin#settings" },
-    { icon: UserCog, label: "Manage Admins", path: "/super-admin#admins" },
+  // Grouped navigation items for super admin
+  const navGroups = [
+    {
+      label: "Overview",
+      items: [
+        { icon: LayoutDashboard, label: "Dashboard", path: "/super-admin" },
+      ]
+    },
+    {
+      label: "Order Management",
+      items: [
+        { icon: Package, label: "Physical Orders", path: "/super-admin/orders" },
+      ]
+    },
+    {
+      label: "Configuration",
+      items: [
+        { icon: DollarSign, label: "Pricing Tiers", path: "/super-admin#pricing" },
+        { icon: Settings, label: "System Settings", path: "/super-admin#settings" },
+      ]
+    },
+    {
+      label: "User Management",
+      items: [
+        { icon: UserCog, label: "Manage Admins", path: "/super-admin#admins" },
+      ]
+    }
   ];
 
   if (loading) {
