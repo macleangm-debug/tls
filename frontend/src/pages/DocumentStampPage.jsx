@@ -115,8 +115,20 @@ const DocumentStampPage = () => {
   const [previewScale, setPreviewScale] = useState(1);
   const [stampShape, setStampShape] = useState("rectangle"); // rectangle, circle, oval
   const [stampSizePercent, setStampSizePercent] = useState(100); // Size as percentage
-  const [stampMargin, setStampMargin] = useState(20); // Margin from edge in pixels
+  const [stampMargin, setStampMargin] = useState(20); // Margin from edge in preview pixels
   const [stampPositionPreset, setStampPositionPreset] = useState("bottom-right"); // Position preset
+  
+  // PDF.js render scale - stored when page is rendered
+  // This is the actual scale used to convert PDF points to preview pixels
+  const [pdfRenderScale, setPdfRenderScale] = useState(1.5);
+  
+  // FIXED stamp dimensions in PDF POINTS (not pixels)
+  // These are constant - the stamp is always this size on the final PDF
+  const STAMP_WIDTH_PT = 350;
+  const STAMP_HEIGHT_PT = 310;
+  
+  // System edge margin in PDF points (prevents clipping, not user-controlled)
+  const EDGE_MARGIN_PT = 12;
   
   // Result state
   const [stampResult, setStampResult] = useState(null);
