@@ -820,7 +820,7 @@ const DocumentStampPage = () => {
         console.log(`  - pdfRenderScale: ${pdfRenderScale}`);
         console.log(`  - Preview position (scaled pixels): (${pos.x}, ${pos.y})`);
         console.log(`  - PDF position (points): (${pdfX}, ${pdfY})`);
-        console.log(`  - Target width/height (points): ${Math.round(stampSize.width / pdfRenderScale)}x${Math.round(stampSize.height / pdfRenderScale)}`);
+        console.log(`  - Target width/height (points): ${stampSize.width}x${stampSize.height}`);
         console.log(`=== DEBUG POSITION END ===`);
         pagePositions[pageNum] = { x: pdfX, y: pdfY };
       });
