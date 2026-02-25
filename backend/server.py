@@ -699,6 +699,30 @@ def generate_stamp_hash(stamp_id: str, advocate_id: str, document_hash: str, tim
 def generate_document_hash(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
+async def log_stamp_event(
+    stamp_id: str,
+    event_type: str,
+    actor_id: Optional[str] = None,
+    actor_type: str = "system",
+    ip: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    metadata: Optional[dict] = None
+):
+    """Log an audit event for a stamp"""
+    event = {
+        "id": str(uuid.uuid4()),
+        "stamp_id": stamp_id,
+        "event_type": event_type,
+        "actor_id": actor_id,
+        "actor_type": actor_type,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "ip": ip,
+        "user_agent": user_agent,
+        "metadata": metadata or {}
+    }
+    await db.stamp_events.insert_one(event)
+    return event
+
 def generate_qr_code(data: str, size: int = 200) -> str:
     qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
     qr.add_data(data)
