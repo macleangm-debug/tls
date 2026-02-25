@@ -66,6 +66,75 @@ const AdminAdvocates = () => {
     }
   };
 
+  // Bulk revoke functions
+  const openBulkRevokeModal = async (advocate) => {
+    setBulkRevokeAdvocate(advocate);
+    setShowBulkRevokeModal(true);
+    setRevokeReason("");
+    setConfirmationText("");
+    setRevokeResult(null);
+    setLoadingSummary(true);
+    
+    try {
+      const response = await axios.get(
+        `${API}/admin/advocates/${advocate.id}/stamp-summary`,
+        getAuthHeaders()
+      );
+      setStampSummary(response.data.stamp_summary);
+    } catch (error) {
+      toast.error("Failed to load stamp summary");
+      setStampSummary(null);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  const closeBulkRevokeModal = () => {
+    setShowBulkRevokeModal(false);
+    setBulkRevokeAdvocate(null);
+    setStampSummary(null);
+    setRevokeReason("");
+    setConfirmationText("");
+    setRevokeResult(null);
+  };
+
+  const handleBulkRevoke = async () => {
+    if (!bulkRevokeAdvocate) return;
+    
+    // Validation
+    if (revokeReason.length < 10) {
+      toast.error("Reason must be at least 10 characters");
+      return;
+    }
+    
+    const validConfirmations = ["REVOKE", bulkRevokeAdvocate.full_name?.toUpperCase(), bulkRevokeAdvocate.full_name];
+    if (!validConfirmations.includes(confirmationText)) {
+      toast.error("Please type 'REVOKE' or the advocate's name to confirm");
+      return;
+    }
+    
+    setRevoking(true);
+    try {
+      const response = await axios.post(
+        `${API}/admin/advocates/${bulkRevokeAdvocate.id}/bulk-revoke`,
+        {
+          reason: revokeReason,
+          include_expired: false,
+          confirmation_text: confirmationText
+        },
+        getAuthHeaders()
+      );
+      
+      setRevokeResult(response.data);
+      toast.success(`Successfully revoked ${response.data.revoked_count} stamps`);
+    } catch (error) {
+      const message = error.response?.data?.detail || "Bulk revoke failed";
+      toast.error(message);
+    } finally {
+      setRevoking(false);
+    }
+  };
+
   const filteredAdvocates = advocates.filter(a => 
     a.full_name.toLowerCase().includes(search.toLowerCase()) ||
     a.roll_number.toLowerCase().includes(search.toLowerCase()) ||
