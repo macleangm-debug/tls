@@ -278,6 +278,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       label: "Documents & Stamps",
       items: [
         { icon: FileText, label: "Stamp Document", path: "/documents" },
+        { icon: Layers, label: "Batch Stamp", path: "/batch-stamp" },
         { icon: QrCode, label: "Stamp Verification", path: "/stamp-verification" },
         { icon: Fingerprint, label: "My Stamps", path: "/my-stamps" },
       ]
