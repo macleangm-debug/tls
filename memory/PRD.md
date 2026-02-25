@@ -19,7 +19,8 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
   - "Demo" badges for seed data documents
   - Proper error handling for demo document downloads
 - Digital signatures and QR stamping
-- **Batch Stamping** (NEW - Feb 25, 2026): Stamp up to 25 documents at once
+- **Batch Stamping** (Feb 25, 2026): Stamp up to 25 documents at once
+- **Stamp Ledger** (NEW - Feb 25, 2026): Regulatory-grade stamp management with audit trail
 
 ### Calendar & Events (Enhanced Feb 22, 2026)
 - Dual view: List and Calendar widget
@@ -27,7 +28,7 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 - Actions: View, Edit, Duplicate, Mark Complete, Set Reminder, Delete
 - Event status tracking (scheduled, completed, cancelled)
 
-### Notification System (NEW - Feb 23, 2026) ✅
+### Notification System (Feb 23, 2026) ✅
 - **In-App Notifications**: Bell icon in header, dropdown with notification list
 - **Email Notifications**: Event reminders via Resend email integration
 - **User-Configurable Preferences**: Toggle in-app/email for reminders, calendar, tasks, system
@@ -43,6 +44,25 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 - `/api/dev/seed` endpoint populates database with demo data
 
 ## Recent Changes
+
+### Feb 25, 2026 - Advocate Stamp Ledger - COMPLETE ✅
+**Regulatory-grade stamp management for compliance:**
+- **Frontend**: `/stamp-ledger` route with full management UI
+- **Features**:
+  - Paginated stamp list with filters (status, search, date range)
+  - Stats cards: Total/Valid/Revoked/Expired counts
+  - Stamp detail modal with verification URL, document hash
+  - Revoke stamp with reason (audit logged)
+  - Audit trail timeline (STAMP_ISSUED, STAMP_VERIFIED, STAMP_REVOKED)
+  - CSV export with filters applied
+- **API Endpoints**:
+  - `GET /api/stamps` - Paginated list with filters
+  - `GET /api/stamps/{id}` - Full stamp details
+  - `POST /api/stamps/{id}/revoke` - Revoke with reason
+  - `GET /api/stamps/{id}/events` - Audit trail
+  - `GET /api/stamps/export.csv` - CSV download
+  - `GET /api/admin/stamps` - Admin view (all advocates)
+- **Test Report**: `/app/test_reports/iteration_54.json` - 100% pass rate (18/18 backend, all frontend)
 
 ### Feb 25, 2026 - Batch Stamping Feature - COMPLETE ✅
 **New feature for high-volume advocates:**
