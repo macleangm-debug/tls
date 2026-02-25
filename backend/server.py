@@ -3048,7 +3048,7 @@ async def create_document_stamp(
     
     await db.document_stamps.insert_one(stamp_record)
     
-    # Log audit
+    # Log audit (legacy)
     await db.audit_logs.insert_one({
         "id": str(uuid.uuid4()),
         "action": "document_stamp_created",
@@ -3056,6 +3056,20 @@ async def create_document_stamp(
         "details": {"stamp_id": stamp_id, "type": stamp_type, "document_hash": doc_hash},
         "timestamp": now.isoformat()
     })
+    
+    # Log stamp event (new ledger audit trail)
+    await log_stamp_event(
+        stamp_id=stamp_id,
+        event_type="STAMP_ISSUED",
+        actor_id=user["id"],
+        actor_type="advocate",
+        metadata={
+            "stamp_type": stamp_type,
+            "document_type": document_type,
+            "document_pages": pages,
+            "mode": "single"
+        }
+    )
     
     # Generate stamped document
     stamped_content = await embed_stamp_in_document(content, file.content_type, stamp_record, user)
