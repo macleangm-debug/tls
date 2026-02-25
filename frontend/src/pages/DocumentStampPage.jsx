@@ -1590,6 +1590,13 @@ const DocumentStampPage = () => {
                               const showSignatureBelow = stampTypeConfig?.requiresSignature;
                               const signatureAreaHeight = showSignatureBelow ? 30 : 0; // Height for signature preview below
                               
+                              // Calculate margin bounds in preview pixels (scaled)
+                              // The pdfRenderScale is 1.5, so margin in preview = margin * pdfRenderScale / previewScale
+                              // But since we're already in the scaled coordinate space, just use stampMargin directly
+                              const marginPx = stampMargin; // Margin is already in preview pixels
+                              const maxX = pageDimensions.width - stampSize.width - marginPx;
+                              const maxY = pageDimensions.height - (stampSize.height + signatureAreaHeight) - marginPx;
+                              
                               return (
                                 <Rnd
                                   size={{ 
@@ -1598,15 +1605,22 @@ const DocumentStampPage = () => {
                                   }}
                                   position={getStampPosition()}
                                   onDragStop={(e, d) => {
-                                    // Only update state when drag stops for smooth performance
-                                    setStampPosition({ x: d.x, y: d.y });
+                                    // Clamp position to margin bounds
+                                    const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
+                                    const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
+                                    setStampPosition({ x: clampedX, y: clampedY });
                                   }}
                                   onResizeStop={(e, direction, ref, delta, position) => {
                                     setStampSize({
                                       width: parseInt(ref.style.width),
                                       height: parseInt(ref.style.height) - signatureAreaHeight
                                     });
-                                    setStampPosition(position);
+                                    // Clamp after resize
+                                    const newMaxX = pageDimensions.width - parseInt(ref.style.width) - marginPx;
+                                    const newMaxY = pageDimensions.height - parseInt(ref.style.height) - marginPx;
+                                    const clampedX = Math.max(marginPx, Math.min(position.x, newMaxX));
+                                    const clampedY = Math.max(marginPx, Math.min(position.y, newMaxY));
+                                    setStampPosition({ x: clampedX, y: clampedY });
                                   }}
                                   minWidth={80}
                                   minHeight={60}
