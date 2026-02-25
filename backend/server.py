@@ -6929,6 +6929,7 @@ CSRF_EXEMPT_PATHS = [
     "/api/documents/upload",  # Document upload - authenticated via JWT
     "/api/advocate/signature",  # Signature management - authenticated via JWT
     "/api/stamp-templates",  # Stamp templates - authenticated via JWT
+    "/api/stamps",  # Stamp ledger operations - authenticated via JWT
     "/health",
     "/docs",
     "/openapi.json",
