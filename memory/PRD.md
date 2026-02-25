@@ -63,6 +63,21 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
    - **Root Cause**: Using data URLs for large PDFs caused browser compatibility issues
    - **Fix**: Changed download functions to use Blob URLs with proper cleanup for better browser support
 
+### Feb 25, 2026 - Stamp Architecture E2E VERIFIED ✅
+**Complete stamping feature verification after SSOT architecture overhaul:**
+- **Testing Agent Results**: 10/10 backend tests passed, all frontend flows verified
+- **Verified Features**:
+  1. ✅ Upload + Preview: PDF upload works, stamp preview visible on canvas (compact card design)
+  2. ✅ Placement Coordinates: 4 corners + center tested, no Y-flip issues, no drift
+  3. ✅ Generate Stamped PDF: Stamp correctly sized (240x128 pt), not blurry, opens in browser
+  4. ✅ QR + Verification: `/api/verify/stamp/{id}` returns valid=true with full details
+  5. ✅ Digital Signature Mode: Both certification (with sig) and notarization (no sig) working
+- **Stamp Spec Locked**:
+  - Fixed size: 240x128 PDF points (compact card ratio 560:300)
+  - Only `border_color` is user-configurable (TLS green branding is fixed)
+  - One canonical template for both preview and PDF
+- **Test Report**: `/app/test_reports/pytest/stamp_ssot_arch_results.xml`
+
 ### Feb 25, 2026 - Stamp Preview Single Source of Truth - COMPLETE ✅
 **Achieved pixel-perfect stamp preview by unifying rendering engines:**
 - **Problem**: Frontend CSS preview didn't match backend PIL stamp - two different rendering engines
