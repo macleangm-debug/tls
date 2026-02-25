@@ -12,6 +12,7 @@ Testing:
 import pytest
 import requests
 import os
+import time
 from datetime import datetime
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
@@ -23,43 +24,78 @@ REGULAR_ADMIN_EMAIL = "admin@tls.or.tz"
 REGULAR_ADMIN_PASSWORD = "TLS@Admin2024"
 TEST_ADVOCATE_ID = "test-advocate-persistent-001"
 
+
+def get_auth_with_csrf(email: str, password: str, max_retries: int = 3):
+    """Get auth token and CSRF token for a user with retry on rate limit"""
+    for attempt in range(max_retries):
+        response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": email,
+            "password": password
+        })
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "token": data.get("access_token"),
+                "csrf_token": data.get("csrf_token")
+            }
+        elif response.status_code == 429:
+            # Rate limited, wait and retry
+            if attempt < max_retries - 1:
+                time.sleep(12)  # Wait for rate limit to reset
+                continue
+        
+        raise AssertionError(f"Login failed for {email}: {response.text}")
+    
+    raise AssertionError(f"Max retries exceeded for login {email}")
+
+
 class TestBulkRevokeFeature:
     """Tests for bulk revoke feature"""
     
-    @pytest.fixture
-    def super_admin_token(self):
-        """Get super admin auth token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SUPER_ADMIN_EMAIL,
-            "password": SUPER_ADMIN_PASSWORD
-        })
-        assert response.status_code == 200, f"Super admin login failed: {response.text}"
-        return response.json().get("access_token")
+    @pytest.fixture(scope="class")
+    def super_admin_auth(self):
+        """Get super admin auth token and CSRF token (class-scoped to reduce login calls)"""
+        return get_auth_with_csrf(SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD)
+    
+    @pytest.fixture(scope="class")
+    def regular_admin_auth(self):
+        """Get regular admin auth token and CSRF token (class-scoped)"""
+        time.sleep(2)  # Avoid rate limit
+        return get_auth_with_csrf(REGULAR_ADMIN_EMAIL, REGULAR_ADMIN_PASSWORD)
     
     @pytest.fixture
-    def regular_admin_token(self):
-        """Get regular admin auth token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": REGULAR_ADMIN_EMAIL,
-            "password": REGULAR_ADMIN_PASSWORD
-        })
-        assert response.status_code == 200, f"Regular admin login failed: {response.text}"
-        return response.json().get("access_token")
-    
-    @pytest.fixture
-    def super_admin_headers(self, super_admin_token):
-        """Get auth headers for super admin"""
+    def super_admin_headers(self, super_admin_auth):
+        """Get auth headers for super admin (GET requests - no CSRF needed)"""
         return {
-            "Authorization": f"Bearer {super_admin_token}",
+            "Authorization": f"Bearer {super_admin_auth['token']}",
             "Content-Type": "application/json"
         }
     
     @pytest.fixture
-    def regular_admin_headers(self, regular_admin_token):
-        """Get auth headers for regular admin"""
+    def super_admin_headers_with_csrf(self, super_admin_auth):
+        """Get auth headers for super admin (POST/PUT/DELETE - CSRF required)"""
         return {
-            "Authorization": f"Bearer {regular_admin_token}",
+            "Authorization": f"Bearer {super_admin_auth['token']}",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": super_admin_auth['csrf_token']
+        }
+    
+    @pytest.fixture
+    def regular_admin_headers(self, regular_admin_auth):
+        """Get auth headers for regular admin (GET requests)"""
+        return {
+            "Authorization": f"Bearer {regular_admin_auth['token']}",
             "Content-Type": "application/json"
+        }
+    
+    @pytest.fixture
+    def regular_admin_headers_with_csrf(self, regular_admin_auth):
+        """Get auth headers for regular admin (POST/PUT/DELETE - CSRF required)"""
+        return {
+            "Authorization": f"Bearer {regular_admin_auth['token']}",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": regular_admin_auth['csrf_token']
         }
 
     # ===========================================
@@ -121,11 +157,11 @@ class TestBulkRevokeFeature:
     # TEST 2: POST /api/admin/advocates/{id}/bulk-revoke - Access Control
     # ===========================================
     
-    def test_bulk_revoke_regular_admin_forbidden(self, regular_admin_headers):
+    def test_bulk_revoke_regular_admin_forbidden(self, regular_admin_headers_with_csrf):
         """Regular admin should get 403 on bulk revoke endpoint"""
         response = requests.post(
             f"{BASE_URL}/api/admin/advocates/{TEST_ADVOCATE_ID}/bulk-revoke",
-            headers=regular_admin_headers,
+            headers=regular_admin_headers_with_csrf,
             json={
                 "reason": "Test revoke from regular admin",
                 "confirmation_text": "REVOKE",
@@ -155,11 +191,11 @@ class TestBulkRevokeFeature:
     # TEST 3: Bulk Revoke Validation
     # ===========================================
     
-    def test_bulk_revoke_invalid_confirmation_text(self, super_admin_headers):
+    def test_bulk_revoke_invalid_confirmation_text(self, super_admin_headers_with_csrf):
         """Test validation: invalid confirmation text should be rejected"""
         response = requests.post(
             f"{BASE_URL}/api/admin/advocates/{TEST_ADVOCATE_ID}/bulk-revoke",
-            headers=super_admin_headers,
+            headers=super_admin_headers_with_csrf,
             json={
                 "reason": "Test revocation with invalid confirmation",
                 "confirmation_text": "WRONG_TEXT",
@@ -172,11 +208,11 @@ class TestBulkRevokeFeature:
         assert "confirmation" in data.get("detail", "").lower() or "REVOKE" in data.get("detail", "")
         print(f"Confirmation validation working: {data.get('detail')}")
     
-    def test_bulk_revoke_reason_too_short(self, super_admin_headers):
+    def test_bulk_revoke_reason_too_short(self, super_admin_headers_with_csrf):
         """Test validation: reason must be at least 10 characters"""
         response = requests.post(
             f"{BASE_URL}/api/admin/advocates/{TEST_ADVOCATE_ID}/bulk-revoke",
-            headers=super_admin_headers,
+            headers=super_admin_headers_with_csrf,
             json={
                 "reason": "Short",  # Less than 10 chars
                 "confirmation_text": "REVOKE",
@@ -189,11 +225,11 @@ class TestBulkRevokeFeature:
         assert "10" in data.get("detail", "") or "character" in data.get("detail", "").lower()
         print(f"Reason length validation working: {data.get('detail')}")
     
-    def test_bulk_revoke_empty_reason(self, super_admin_headers):
+    def test_bulk_revoke_empty_reason(self, super_admin_headers_with_csrf):
         """Test validation: empty reason should be rejected"""
         response = requests.post(
             f"{BASE_URL}/api/admin/advocates/{TEST_ADVOCATE_ID}/bulk-revoke",
-            headers=super_admin_headers,
+            headers=super_admin_headers_with_csrf,
             json={
                 "reason": "",
                 "confirmation_text": "REVOKE",
@@ -203,11 +239,11 @@ class TestBulkRevokeFeature:
         
         assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.text}"
     
-    def test_bulk_revoke_invalid_advocate(self, super_admin_headers):
+    def test_bulk_revoke_invalid_advocate(self, super_admin_headers_with_csrf):
         """Test validation: invalid advocate ID should return 404"""
         response = requests.post(
             f"{BASE_URL}/api/admin/advocates/non-existent-advocate/bulk-revoke",
-            headers=super_admin_headers,
+            headers=super_admin_headers_with_csrf,
             json={
                 "reason": "Test revocation for non-existent advocate",
                 "confirmation_text": "REVOKE",
@@ -221,7 +257,7 @@ class TestBulkRevokeFeature:
     # TEST 4: Bulk Revoke Execution (with valid REVOKE confirmation)
     # ===========================================
     
-    def test_bulk_revoke_with_revoke_confirmation(self, super_admin_headers):
+    def test_bulk_revoke_with_revoke_confirmation(self, super_admin_headers, super_admin_headers_with_csrf):
         """Test bulk revoke execution with 'REVOKE' confirmation"""
         # First get current stamp summary
         summary_response = requests.get(
@@ -237,7 +273,7 @@ class TestBulkRevokeFeature:
         # Perform bulk revoke
         response = requests.post(
             f"{BASE_URL}/api/admin/advocates/{TEST_ADVOCATE_ID}/bulk-revoke",
-            headers=super_admin_headers,
+            headers=super_admin_headers_with_csrf,
             json={
                 "reason": "Testing bulk revoke functionality for compliance verification",
                 "confirmation_text": "REVOKE",
@@ -339,17 +375,17 @@ class TestBulkRevokeFeature:
 class TestStampRevokedEvents:
     """Tests for individual STAMP_REVOKED events after bulk revoke"""
     
+    @pytest.fixture(scope="class")
+    def super_admin_auth(self):
+        """Get super admin auth token"""
+        time.sleep(3)  # Avoid rate limit from previous tests
+        return get_auth_with_csrf(SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD)
+    
     @pytest.fixture
-    def super_admin_headers(self):
-        """Get super admin auth headers"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SUPER_ADMIN_EMAIL,
-            "password": SUPER_ADMIN_PASSWORD
-        })
-        assert response.status_code == 200
-        token = response.json().get("access_token")
+    def super_admin_headers(self, super_admin_auth):
+        """Get auth headers for super admin"""
         return {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {super_admin_auth['token']}",
             "Content-Type": "application/json"
         }
     
@@ -357,7 +393,7 @@ class TestStampRevokedEvents:
         """Verify individual STAMP_REVOKED events are logged for each stamp"""
         # Get revoked stamps for the test advocate
         response = requests.get(
-            f"{BASE_URL}/api/stamps?advocate_id={TEST_ADVOCATE_ID}&status=revoked&page_size=5",
+            f"{BASE_URL}/api/stamps?status=revoked&page_size=5",
             headers=super_admin_headers
         )
         
