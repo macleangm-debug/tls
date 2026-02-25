@@ -2749,6 +2749,78 @@ async def upload_document(
         "document_data": base64.b64encode(pdf_content).decode()  # Return PDF for client-side preview
     }
 
+
+class StampPreviewRequest(BaseModel):
+    """Request model for stamp preview generation"""
+    stamp_type: str = "certification"
+    brand_color: str = "#10B981"
+    advocate_name: str = ""
+    show_advocate_name: bool = True
+    layout: str = "horizontal"
+    shape: str = "rectangle"
+    include_signature: bool = False
+    show_signature_placeholder: bool = False
+    width: int = 350  # Target width in PDF points
+    height: int = 310  # Target height in PDF points
+
+@api_router.post("/documents/stamp-preview")
+async def generate_stamp_preview(
+    request: StampPreviewRequest,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Generate a stamp preview image using the SAME rendering engine as the final PDF.
+    This ensures pixel-perfect match between preview and downloaded document.
+    """
+    if user.get("practicing_status") != "Active":
+        raise HTTPException(status_code=403, detail="Only active advocates can generate stamps")
+    
+    # Generate a preview stamp ID
+    preview_stamp_id = f"TLS-{datetime.now().strftime('%Y%m%d')}-PREVIEW"
+    preview_url = f"https://stamp-manager-1.preview.emergentagent.com/verify?id={preview_stamp_id}"
+    
+    # Use advocate name from request or user profile
+    advocate_name = request.advocate_name if request.advocate_name else user.get("full_name", "Advocate")
+    
+    # Determine scale based on target dimensions
+    # Base width is 500px, so scale = target_width / 500
+    base_width = 500
+    scale = max(request.width / base_width, 1.0)  # Minimum scale of 1.0
+    
+    # Generate the stamp image using the SAME function as PDF embedding
+    stamp_img = generate_branded_stamp_image(
+        stamp_id=preview_stamp_id,
+        advocate_name=advocate_name,
+        verification_url=preview_url,
+        brand_color=request.brand_color,
+        layout=request.layout,
+        shape=request.shape,
+        show_advocate_name=request.show_advocate_name,
+        show_tls_logo=True,
+        include_signature=request.include_signature,
+        signature_data=None,  # No signature for preview
+        show_signature_placeholder=request.show_signature_placeholder,
+        scale=scale,
+        transparent_background=True
+    )
+    
+    # Convert to base64 PNG
+    img_buffer = BytesIO()
+    stamp_img.save(img_buffer, format='PNG', optimize=True)
+    img_buffer.seek(0)
+    img_base64 = base64.b64encode(img_buffer.read()).decode()
+    
+    return {
+        "preview_image": f"data:image/png;base64,{img_base64}",
+        "width": stamp_img.width,
+        "height": stamp_img.height,
+        "target_width": request.width,
+        "target_height": request.height,
+        "scale": scale
+    }
+
+
+
 @api_router.post("/documents/stamp")
 async def create_document_stamp(
     file: UploadFile = File(...),
