@@ -529,6 +529,30 @@ class InstitutionalSubscription(BaseModel):
     contact_email: str
     contact_phone: str
 
+# Batch Stamping Models
+class BatchStampPosition(BaseModel):
+    anchor: str = "bottom_right"  # top_left, top_center, top_right, center_left, center, center_right, bottom_left, bottom_center, bottom_right
+    offset_x_pt: float = 12
+    offset_y_pt: float = 12
+    page_mode: str = "first"  # first, all
+
+class BatchStampResult(BaseModel):
+    filename: str
+    stamp_id: Optional[str] = None
+    doc_hash: Optional[str] = None
+    issued_at: Optional[str] = None
+    pages_stamped: int = 0
+    status: str  # OK, FAILED, PENDING
+    error: Optional[str] = None
+
+class BatchStampResponse(BaseModel):
+    batch_id: str
+    total_files: int
+    success_count: int
+    failed_count: int
+    results: List[BatchStampResult]
+    download_url: str
+
 # =============== HELPER FUNCTIONS ===============
 
 def hash_password(password: str) -> str:
