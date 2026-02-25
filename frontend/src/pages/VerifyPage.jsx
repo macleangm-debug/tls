@@ -26,6 +26,7 @@ const VerifyPage = () => {
   const stampId = routeStampId || queryStampId;
   
   const fileInputRef = useRef(null);
+  const validateFileInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
@@ -40,6 +41,10 @@ const VerifyPage = () => {
   const [scanningInterval, setScanningInterval] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [autoStartCamera, setAutoStartCamera] = useState(false);
+  
+  // Document validation state
+  const [validatingDocument, setValidatingDocument] = useState(false);
+  const [documentValidation, setDocumentValidation] = useState(null);
 
   // Handle mode from URL query parameter
   useEffect(() => {
