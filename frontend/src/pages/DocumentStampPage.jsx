@@ -209,13 +209,13 @@ const DocumentStampPage = () => {
   // Set fixed stamp size based on shape (optimized for QR scanning)
   useEffect(() => {
     // These sizes should match the aspect ratios of backend-generated stamps
-    // Backend scales at 2x, so we use half the pixel dimensions as PDF points
-    // Then frontend renders at 1.5x scale for the preview
-    // NOTE: Signature is now drawn OUTSIDE the stamp, not inside
+    // LARGE stamp sizes for professional documents - readable fonts when embedded in PDF
+    // Backend generates at base width 500px * scale 2.0 = 1000px
+    // Frontend preview at 1.5x scale, then converted back to PDF points
     const fixedSizes = {
-      rectangle: { width: 200, height: 105 },   // ~1.9 aspect ratio for horizontal (400x210)
-      circle: { width: 100, height: 100 },      // 1:1 aspect ratio for circle
-      oval: { width: 160, height: 100 }         // ~1.6 aspect ratio for oval
+      rectangle: { width: 350, height: 310 },   // Large TLS stamp matching template proportions
+      circle: { width: 200, height: 200 },      // Large circle
+      oval: { width: 280, height: 175 }         // Large oval
     };
     const size = fixedSizes[stampShape] || fixedSizes.rectangle;
     setStampSize(size);
