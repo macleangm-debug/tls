@@ -371,26 +371,41 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           </div>
         )}
         
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  isActive 
-                    ? 'bg-tls-gold/20 text-tls-gold border border-tls-gold/30' 
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
-                }`}
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, "-")}`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+          {navGroups.map((group, groupIndex) => (
+            <div key={group.label}>
+              {/* Group Label */}
+              <p className="px-4 mb-2 text-[10px] uppercase tracking-wider text-white/30 font-semibold">
+                {group.label}
+              </p>
+              {/* Group Items */}
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
+                        isActive 
+                          ? 'bg-tls-gold/20 text-tls-gold border border-tls-gold/30' 
+                          : 'text-white/60 hover:bg-white/5 hover:text-white'
+                      }`}
+                      data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, "-")}`}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+              {/* Separator between groups (except last) */}
+              {groupIndex < navGroups.length - 1 && (
+                <div className="h-px bg-white/5 mt-4" />
+              )}
+            </div>
+          ))}
         </nav>
         
         <div className="p-4 border-t border-white/5">
