@@ -716,28 +716,203 @@ def generate_qr_code_image(data: str, size: int = 150, brand_color: str = "#10B9
     return img.resize((size, size), Image.Resampling.LANCZOS)
 
 
+def hex_to_rgb(hex_color: str):
+    """Convert hex color to RGB tuple"""
+    h = (hex_color or "").lstrip("#")
+    if len(h) != 6:
+        return (16, 185, 129)  # fallback TLS green
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+
 def generate_branded_stamp_image(
     stamp_id: str,
     advocate_name: str,
     verification_url: str,
-    brand_color: str = "#10B981",
-    layout: str = "horizontal",
-    shape: str = "rectangle",
+    brand_color: str = "#10B981",  # USER-CONTROLLED: only affects outer border
+    layout: str = "horizontal",     # IGNORED - fixed layout
+    shape: str = "rectangle",       # IGNORED - always rectangle
     show_advocate_name: bool = True,
     show_tls_logo: bool = True,
-    include_signature: bool = False,
-    signature_data: Optional[str] = None,
-    show_signature_placeholder: bool = False,
-    scale: float = 1.0,
-    transparent_background: bool = False
+    include_signature: bool = False,  # IGNORED - no signature in compact stamp
+    signature_data: Optional[str] = None,  # IGNORED
+    show_signature_placeholder: bool = False,  # IGNORED
+    scale: float = 2.0,
+    transparent_background: bool = True
 ) -> Image.Image:
     """
-    Generate a professional TLS Verified stamp with LARGE, readable fonts.
-    Matches the official TLS stamp template exactly.
+    TLS official COMPACT stamp card.
+    - Fixed layout matching the official template
+    - Fixed TLS brand colors for header + accents
+    - ONLY border color changes (outer border) based on user preference
+    - No signature section (compact design)
     """
     from PIL import ImageDraw, ImageFont
     import os
-    import base64
+    
+    # --- Fixed template base size (compact card like reference) ---
+    base_w, base_h = 560, 300
+    W, H = int(base_w * scale), int(base_h * scale)
+
+    # --- Colors ---
+    TLS_GREEN = (16, 185, 129)  # #10B981 FIXED for header, accents, QR
+    border_rgb = hex_to_rgb(brand_color)  # USER-CONTROLLED: only outer border
+
+    bg = (255, 255, 255, 0) if transparent_background else (255, 255, 255, 255)
+    img = Image.new("RGBA", (W, H), bg)
+    draw = ImageDraw.Draw(img)
+
+    # --- Fonts (Inter for exact match with frontend) ---
+    FONT_REG = "/app/backend/assets/fonts/Inter-Regular.ttf"
+    FONT_BOLD = "/app/backend/assets/fonts/Inter-Bold.ttf"
+    FONT_SEMIBOLD = "/app/backend/assets/fonts/Inter-SemiBold.ttf"
+
+    def load_font(path, size):
+        try:
+            if os.path.exists(path):
+                return ImageFont.truetype(path, size)
+        except:
+            pass
+        # Fallback to DejaVu if Inter not available
+        try:
+            return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size)
+        except:
+            return ImageFont.load_default()
+
+    f_title = load_font(FONT_BOLD, int(28 * scale))
+    f_sub = load_font(FONT_REG, int(16 * scale))
+    f_label = load_font(FONT_SEMIBOLD, int(11 * scale))
+    f_value_bold = load_font(FONT_BOLD, int(20 * scale))
+    f_value = load_font(FONT_REG, int(16 * scale))
+    f_footer = load_font(FONT_REG, int(13 * scale))
+
+    # --- Layout metrics ---
+    pad = int(12 * scale)
+    radius = int(12 * scale)
+    header_h = int(80 * scale)
+    footer_h = int(36 * scale)
+
+    # ============ OUTER BORDER (USER-CONTROLLED COLOR) ============
+    draw.rounded_rectangle(
+        [pad, pad, W - pad, H - pad],
+        radius=radius,
+        outline=border_rgb,
+        width=int(3 * scale)
+    )
+
+    # ============ HEADER (TLS FIXED GREEN) ============
+    draw.rounded_rectangle(
+        [pad, pad, W - pad, pad + header_h],
+        radius=radius,
+        fill=TLS_GREEN
+    )
+    # Square off bottom header corners
+    draw.rectangle(
+        [pad, pad + header_h - radius, W - pad, pad + header_h],
+        fill=TLS_GREEN
+    )
+
+    # TLS Logo in white circular badge
+    logo_d = int(50 * scale)
+    logo_x = pad + int(14 * scale)
+    logo_y = pad + (header_h - logo_d) // 2
+
+    draw.ellipse([logo_x, logo_y, logo_x + logo_d, logo_y + logo_d], fill=(255, 255, 255, 255))
+
+    if show_tls_logo:
+        try:
+            logo_path = "/app/frontend/public/assets/tls-logo.png"
+            if os.path.exists(logo_path):
+                logo_img = Image.open(logo_path).convert("RGBA")
+                inner = int(logo_d * 0.78)
+                logo_img = logo_img.resize((inner, inner), Image.Resampling.LANCZOS)
+                off = (logo_d - inner) // 2
+                img.paste(logo_img, (logo_x + off, logo_y + off), logo_img)
+        except:
+            # Draw "TLS" text if logo fails
+            draw.text((logo_x + int(10 * scale), logo_y + int(15 * scale)), "TLS", fill=TLS_GREEN, font=f_label)
+
+    # Header text
+    hx = logo_x + logo_d + int(14 * scale)
+    draw.text((hx, pad + int(14 * scale)), "TLS VERIFIED", fill=(255, 255, 255, 255), font=f_title)
+    draw.text((hx, pad + int(48 * scale)), "Tanganyika Law Society", fill=(255, 255, 255, 200), font=f_sub)
+
+    # ============ BODY (WHITE BACKGROUND) ============
+    body_top = pad + header_h
+    body_bottom = H - pad - footer_h
+    draw.rectangle([pad, body_top, W - pad, body_bottom], fill=(255, 255, 255, 255))
+
+    # ============ FOOTER (TLS TINT) ============
+    footer_top = body_bottom
+    tint = (TLS_GREEN[0], TLS_GREEN[1], TLS_GREEN[2], 35)
+    draw.rounded_rectangle(
+        [pad, footer_top, W - pad, H - pad],
+        radius=radius,
+        fill=tint
+    )
+    # Square off top footer corners
+    draw.rectangle([pad, footer_top, W - pad, footer_top + radius], fill=tint)
+
+    # Footer text
+    footer_text = "Scan QR Code to Verify Authenticity"
+    bbox = draw.textbbox((0, 0), footer_text, font=f_footer)
+    tw = bbox[2] - bbox[0]
+    draw.text(((W - tw) // 2, footer_top + int(9 * scale)), footer_text, fill=TLS_GREEN, font=f_footer)
+
+    # ============ QR CODE (LEFT SIDE) ============
+    qr_size = int(110 * scale)
+    qr_pad = int(16 * scale)
+    qr_box_pad = int(8 * scale)
+
+    qr_x = pad + qr_pad
+    qr_y = body_top + int(14 * scale)
+
+    # QR border (TLS fixed accent)
+    draw.rounded_rectangle(
+        [qr_x - qr_box_pad, qr_y - qr_box_pad, qr_x + qr_size + qr_box_pad, qr_y + qr_size + qr_box_pad],
+        radius=int(8 * scale),
+        outline=(TLS_GREEN[0], TLS_GREEN[1], TLS_GREEN[2], 120),
+        width=int(2 * scale)
+    )
+
+    # Generate QR code (TLS green)
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=0
+        )
+        qr.add_data(verification_url)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color=TLS_GREEN, back_color="white").convert("RGBA")
+        qr_img = qr_img.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
+        img.paste(qr_img, (qr_x, qr_y))
+    except:
+        draw.rectangle([qr_x, qr_y, qr_x + qr_size, qr_y + qr_size], fill=(220, 220, 220, 255))
+
+    # ============ INFO SECTION (RIGHT SIDE) ============
+    info_x = qr_x + qr_size + qr_box_pad + int(20 * scale)
+    y = body_top + int(12 * scale)
+    line_gap = int(48 * scale)
+
+    # STAMP ID
+    draw.text((info_x, y), "STAMP ID", fill=(TLS_GREEN[0], TLS_GREEN[1], TLS_GREEN[2], 160), font=f_label)
+    draw.text((info_x, y + int(16 * scale)), stamp_id, fill=(30, 30, 30, 255), font=f_value_bold)
+
+    # DATE
+    y += line_gap
+    draw.text((info_x, y), "DATE", fill=(TLS_GREEN[0], TLS_GREEN[1], TLS_GREEN[2], 160), font=f_label)
+    current_date = datetime.now().strftime("%d %b %Y")
+    draw.text((info_x, y + int(16 * scale)), current_date, fill=(80, 80, 80, 255), font=f_value)
+
+    # ADVOCATE
+    y += line_gap
+    if show_advocate_name and advocate_name:
+        draw.text((info_x, y), "ADVOCATE", fill=(TLS_GREEN[0], TLS_GREEN[1], TLS_GREEN[2], 160), font=f_label)
+        display_name = advocate_name[:28] + "…" if len(advocate_name) > 28 else advocate_name
+        draw.text((info_x, y + int(16 * scale)), display_name, fill=TLS_GREEN, font=f_value_bold)
+
+    return img
     from io import BytesIO
     
     rgb_color = hex_to_rgb(brand_color)
