@@ -43,6 +43,15 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 25, 2026 - Bug Fixes for Digital Signature & PDF Download ✅
+**Fixed two user-reported issues:**
+1. **Digital Signature Preview Issue**: When selecting "Use Digital Signature" mode without a saved signature, the stamp preview was disappearing.
+   - **Root Cause**: Logic incorrectly determined `showPlaceholder` when digital mode selected but no signature saved
+   - **Fix**: Updated `hasDigitalSignature` check to properly handle the case and show placeholder when needed
+2. **PDF Download Issue**: Downloaded PDFs couldn't be opened outside the system
+   - **Root Cause**: Using data URLs for large PDFs caused browser compatibility issues
+   - **Fix**: Changed download functions to use Blob URLs with proper cleanup for better browser support
+
 ### Feb 25, 2026 - Stamp Preview Single Source of Truth - COMPLETE ✅
 **Achieved pixel-perfect stamp preview by unifying rendering engines:**
 - **Problem**: Frontend CSS preview didn't match backend PIL stamp - two different rendering engines
