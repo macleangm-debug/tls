@@ -1607,9 +1607,8 @@ const DocumentStampPage = () => {
                               const signatureAreaHeight = showSignatureBelow ? 30 : 0; // Height for signature preview below
                               
                               // Calculate margin bounds in preview pixels (scaled)
-                              // The pdfRenderScale is 1.5, so margin in preview = margin * pdfRenderScale / previewScale
-                              // But since we're already in the scaled coordinate space, just use stampMargin directly
-                              const marginPx = stampMargin; // Margin is already in preview pixels
+                              // Edge margin in preview pixels = EDGE_MARGIN_PT * pdfRenderScale
+                              const marginPx = EDGE_MARGIN_PT * pdfRenderScale;
                               const maxX = pageDimensions.width - stampSize.width - marginPx;
                               const maxY = pageDimensions.height - (stampSize.height + signatureAreaHeight) - marginPx;
                               
@@ -1621,27 +1620,18 @@ const DocumentStampPage = () => {
                                   }}
                                   position={getStampPosition()}
                                   onDragStop={(e, d) => {
-                                    // Clamp position to margin bounds
+                                    // Clamp position to edge margin bounds
                                     const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
                                     setStampPosition({ x: clampedX, y: clampedY });
                                   }}
                                   onResizeStop={(e, direction, ref, delta, position) => {
-                                    setStampSize({
-                                      width: parseInt(ref.style.width),
-                                      height: parseInt(ref.style.height) - signatureAreaHeight
-                                    });
-                                    // Clamp after resize
-                                    const newMaxX = pageDimensions.width - parseInt(ref.style.width) - marginPx;
-                                    const newMaxY = pageDimensions.height - parseInt(ref.style.height) - marginPx;
-                                    const clampedX = Math.max(marginPx, Math.min(position.x, newMaxX));
-                                    const clampedY = Math.max(marginPx, Math.min(position.y, newMaxY));
-                                    setStampPosition({ x: clampedX, y: clampedY });
+                                    // Stamp size is now fixed - no resizing
                                   }}
-                                  minWidth={80}
-                                  minHeight={60}
-                                  maxWidth={400}
-                                  maxHeight={400}
+                                  minWidth={STAMP_WIDTH_PT * pdfRenderScale}
+                                  minHeight={STAMP_HEIGHT_PT * pdfRenderScale}
+                                  maxWidth={STAMP_WIDTH_PT * pdfRenderScale}
+                                  maxHeight={(STAMP_HEIGHT_PT + 30) * pdfRenderScale}
                                   bounds="parent"
                                   enableResizing={false}
                                   className="z-10"
