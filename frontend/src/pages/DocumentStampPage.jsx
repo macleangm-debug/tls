@@ -866,54 +866,67 @@ const DocumentStampPage = () => {
       // Handle page selection for multi-page stamping with per-page positions
       const pagesToStamp = getPagesToStamp();
       
-      // PDF rendering scale used in renderPage function
-      const pdfRenderScale = 1.5;
+      // Use the ACTUAL render scale from PDF.js (stored in state)
+      // This is the pixels-per-PDF-point ratio
+      const scale = pdfRenderScale; // Actual scale from renderPage()
       
-      // Convert stampMargin from preview pixels to PDF points
-      const marginPt = Math.round(stampMargin / pdfRenderScale);
+      // Page dimensions in PDF POINTS
+      const pageWidthPt = Math.round(pageDimensions.width / scale);
+      const pageHeightPt = Math.round(pageDimensions.height / scale);
       
-      // Get page dimensions in PDF points
-      const pageWidthPt = Math.round(pageDimensions.width / pdfRenderScale);
-      const pageHeightPt = Math.round(pageDimensions.height / pdfRenderScale);
-      
-      // Build positions per page - convert from preview pixels to PDF points
-      // Apply margin clamping to ensure stamp stays in safe area
+      // Build positions per page with BULLETPROOF coordinate conversion
+      // 1. Convert preview pixels → PDF points
+      // 2. Convert top-left origin → bottom-left origin (PDF standard)
+      // 3. Clamp to safe area (in points)
       const pagePositions = {};
       pagesToStamp.forEach(pageNum => {
         const pos = getStampPosition(pageNum);
-        // Convert from scaled pixels to PDF points
-        let pdfX = Math.round(pos.x / pdfRenderScale);
-        let pdfY = Math.round(pos.y / pdfRenderScale);
         
-        // Apply margin clamping - ensure stamp stays within safe area
-        // Safe area = margin from each edge
-        const maxX = pageWidthPt - marginPt - stampSize.width;
-        const maxY = pageHeightPt - marginPt - stampSize.height;
+        // Step 1: Convert from preview pixels to PDF points
+        const rawX_pt = pos.x / scale;
+        const rawY_pt = pos.y / scale;
         
-        pdfX = Math.max(marginPt, Math.min(pdfX, maxX));
-        pdfY = Math.max(marginPt, Math.min(pdfY, maxY));
+        // Step 2: Convert Y from top-left to bottom-left origin
+        // Formula: y_pt_bottomLeft = pageHeight_pt - y_pt_topLeft - stampHeight_pt
+        // NOTE: We send top-left Y to backend, backend does the conversion
+        // This keeps the coordinate system consistent with pdf.js
         
-        console.log(`=== DEBUG POSITION START ===`);
-        console.log(`Page ${pageNum}`);
-        console.log(`  - Page size (pt): ${pageWidthPt}x${pageHeightPt}`);
-        console.log(`  - Stamp size (pt): ${stampSize.width}x${stampSize.height}`);
-        console.log(`  - Margin (pt): ${marginPt}`);
-        console.log(`  - Safe area: x=[${marginPt}, ${maxX}], y=[${marginPt}, ${maxY}]`);
-        console.log(`  - Raw position (pt): (${Math.round(pos.x / pdfRenderScale)}, ${Math.round(pos.y / pdfRenderScale)})`);
-        console.log(`  - Clamped position (pt): (${pdfX}, ${pdfY})`);
-        console.log(`=== DEBUG POSITION END ===`);
-        pagePositions[pageNum] = { x: pdfX, y: pdfY };
+        // Step 3: Clamp to safe area (EDGE_MARGIN_PT from each edge)
+        // x_pt in [EDGE_MARGIN_PT, pageWidth_pt - STAMP_WIDTH_PT - EDGE_MARGIN_PT]
+        // y_pt in [EDGE_MARGIN_PT, pageHeight_pt - STAMP_HEIGHT_PT - EDGE_MARGIN_PT]
+        const maxX_pt = pageWidthPt - STAMP_WIDTH_PT - EDGE_MARGIN_PT;
+        const maxY_pt = pageHeightPt - STAMP_HEIGHT_PT - EDGE_MARGIN_PT;
+        
+        const x_pt = Math.max(EDGE_MARGIN_PT, Math.min(rawX_pt, maxX_pt));
+        const y_pt = Math.max(EDGE_MARGIN_PT, Math.min(rawY_pt, maxY_pt));
+        
+        console.log(`=== COORDINATE CONVERSION (Page ${pageNum}) ===`);
+        console.log(`  Scale (px/pt): ${scale}`);
+        console.log(`  Page size (pt): ${pageWidthPt} x ${pageHeightPt}`);
+        console.log(`  Stamp size (pt): ${STAMP_WIDTH_PT} x ${STAMP_HEIGHT_PT}`);
+        console.log(`  Edge margin (pt): ${EDGE_MARGIN_PT}`);
+        console.log(`  Safe area X: [${EDGE_MARGIN_PT}, ${maxX_pt}]`);
+        console.log(`  Safe area Y: [${EDGE_MARGIN_PT}, ${maxY_pt}]`);
+        console.log(`  Preview pos (px): (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`);
+        console.log(`  Raw pos (pt): (${rawX_pt.toFixed(1)}, ${rawY_pt.toFixed(1)})`);
+        console.log(`  Clamped pos (pt): (${x_pt.toFixed(1)}, ${y_pt.toFixed(1)})`);
+        console.log(`=== END ===`);
+        
+        pagePositions[pageNum] = { x: x_pt, y: y_pt };
       });
       
+      // Golden contract: send exact PDF points to backend
       const stampPosition = {
-        page: pagesToStamp[0], // Primary page
-        pages: pagesToStamp, // All pages to stamp
-        positions: pagePositions, // Per-page positions in PDF points (already clamped)
-        width: stampSize.width,
-        height: stampSize.height,
-        margin: marginPt, // Send margin to backend for verification
-        frontendPageWidth: pageWidthPt,
-        frontendPageHeight: pageHeightPt
+        page: pagesToStamp[0],
+        pages: pagesToStamp,
+        positions: pagePositions, // All positions in PDF POINTS (top-left origin)
+        stamp_width_pt: STAMP_WIDTH_PT,  // Fixed stamp width in points
+        stamp_height_pt: STAMP_HEIGHT_PT, // Fixed stamp height in points
+        edge_margin_pt: EDGE_MARGIN_PT,   // System edge margin
+        page_width_pt: pageWidthPt,
+        page_height_pt: pageHeightPt,
+        scale: scale, // Include scale for debugging
+        stamp_version: "tls_standard_v1"
       };
       
       formData.append('stamp_position', JSON.stringify(stampPosition));
