@@ -259,18 +259,22 @@ backend/
 | `/api/practice/documents/{id}/download` | GET | Download document |
 | `/api/documents/batch-stamp` | POST | Batch stamp multiple PDFs |
 | `/api/documents/batch-stamps` | GET | Get batch stamping history |
-| `/api/stamps` | GET | Paginated stamp ledger with filters (NEW) |
-| `/api/stamps/{id}` | GET | Stamp detail with verification URL (NEW) |
-| `/api/stamps/{id}/revoke` | POST | Revoke stamp with reason (NEW) |
-| `/api/stamps/{id}/events` | GET | Audit trail for stamp (NEW) |
-| `/api/stamps/export.csv` | GET | Export stamps as CSV (NEW) |
-| `/api/admin/stamps` | GET | Admin view of all stamps (NEW) |
+| `/api/stamps` | GET | Paginated stamp ledger with filters |
+| `/api/stamps/{id}` | GET | Stamp detail with verification URL |
+| `/api/stamps/{id}/revoke` | POST | Revoke stamp with reason |
+| `/api/stamps/{id}/events` | GET | Audit trail for stamp |
+| `/api/stamps/export.csv` | GET | Export stamps as CSV |
+| `/api/admin/stamps` | GET | Admin view of all stamps |
+| `/api/admin/advocates/{id}/stamp-summary` | GET | Stamp counts for advocate (NEW) |
+| `/api/admin/advocates/{id}/bulk-revoke` | POST | Bulk revoke all active stamps (NEW) |
+| `/api/admin/bulk-revoke-history` | GET | Bulk revoke audit history (NEW) |
 
 ## Test Credentials
 | Role | Email | Password |
 |---|---|---|
 | Test Advocate | test@tls.or.tz | Test@12345678! |
 | TLS Admin | admin@tls.or.tz | TLS@Admin2024 |
+| Super Admin | superadmin@idc.co.tz | IDC@SuperAdmin2024 |
 
 ## Tech Stack
 - Frontend: React 18, Shadcn UI, TailwindCSS
@@ -288,3 +292,4 @@ backend/
 - P2: Connect "Set Reminder" calendar action to notification backend
 - P2: Clean up dead code from server.py (commented auth routes)
 - P3: Performance optimization for large datasets
+- P3: Cryptographic signature layer (beyond visual stamp overlay)
