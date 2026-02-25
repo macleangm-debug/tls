@@ -939,14 +939,7 @@ def generate_branded_stamp_image(
     return img
 
 
-
-    
-    # ============ CIRCLE STAMP - EXACT match to frontend preview ============
-    if shape == "circle":
-        # Match preview dimensions exactly
-        diameter = int(200 * scale)
-        img = Image.new('RGBA', (diameter, diameter), transparent_bg)
-        draw = ImageDraw.Draw(img)
+async def get_system_settings() -> dict:
         
         center = diameter // 2
         
