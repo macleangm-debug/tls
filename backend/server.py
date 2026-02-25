@@ -3032,29 +3032,32 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
         stamp_img.save(stamp_buffer, format='PNG')
         stamp_buffer.seek(0)
         
-        # FIXED stamp dimensions in PDF POINTS - from golden contract
-        # These are constant regardless of the generated image size
-        STAMP_WIDTH_PT = position.get("stamp_width_pt", 350)
-        STAMP_HEIGHT_PT = position.get("stamp_height_pt", 310)
-        EDGE_MARGIN_PT = position.get("edge_margin_pt", 12)
+        # TLS FIXED stamp dimensions in PDF POINTS
+        # These are CONSTANT - do not accept width/height from frontend
+        # This ensures consistent, professional stamp size across all documents
+        STAMP_WIDTH_PT = 240   # Fixed TLS official stamp width
+        STAMP_HEIGHT_PT = 128  # Fixed TLS official stamp height (compact card ratio 560:300)
+        EDGE_MARGIN_PT = 12    # System safety margin from page edges
+        
+        # NOTE: Intentionally ignoring position.get("stamp_width_pt") and position.get("stamp_height_pt")
+        # TLS requirement: stamp size must be fixed for consistency
         
         # Frontend page dimensions in PDF points (for verification)
         frontend_page_width_pt = position.get("page_width_pt", 0)
         frontend_page_height_pt = position.get("page_height_pt", 0)
         frontend_scale = position.get("scale", 1.5)
-        stamp_version = position.get("stamp_version", "unknown")
+        stamp_version = position.get("stamp_version", "tls_standard_v1")
         
         # Generated image dimensions (for scaling to PDF points)
         stamp_img_width = stamp_img.width
         stamp_img_height = stamp_img.height
         
-        print(f"=== BACKEND STAMP CONTRACT ===")
+        print(f"=== TLS STAMP CONTRACT (FIXED SIZE) ===")
         print(f"  Stamp version: {stamp_version}")
         print(f"  Generated image: {stamp_img_width}x{stamp_img_height}px")
-        print(f"  Target size (pt): {STAMP_WIDTH_PT}x{STAMP_HEIGHT_PT}")
-        print(f"  Edge margin (pt): {EDGE_MARGIN_PT}")
-        print(f"  Frontend page (pt): {frontend_page_width_pt}x{frontend_page_height_pt}")
-        print(f"  Frontend scale: {frontend_scale}")
+        print(f"  PDF stamp size (FIXED): {STAMP_WIDTH_PT}x{STAMP_HEIGHT_PT}pt")
+        print(f"  Edge margin: {EDGE_MARGIN_PT}pt")
+        print(f"  Frontend page: {frontend_page_width_pt}x{frontend_page_height_pt}pt")
         print(f"=== END CONTRACT ===")
         
         # Get pages to stamp - support multi-page stamping
