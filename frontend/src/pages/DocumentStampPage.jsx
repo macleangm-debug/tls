@@ -1081,82 +1081,92 @@ const DocumentStampPage = () => {
     <DashboardLayout title="Document Verification" subtitle="Upload, stamp, and secure your legal documents">
       {/* STAMP DOCUMENT - Single view, no tabs */}
       <div className="space-y-6">
-        {/* STICKY SECTION: Shape Selector + Progress Bar - sticks below the dashboard header */}
+        {/* STICKY SECTION: Stamp Preview + Color Picker - sticks below the dashboard header */}
         <div className="sticky top-16 z-40 -mx-6 lg:-mx-8 px-6 lg:px-8 pt-4 pb-4 bg-[#0a0f1a] border-b border-white/10">
-          {/* Stamp Shape Selector */}
-          <div className="flex items-center justify-center gap-4 md:gap-6">
-            {[
-              { id: "rectangle", label: "Rectangle" },
-              { id: "circle", label: "Circle" },
-              { id: "oval", label: "Oval" }
-            ].map((shape) => {
-              const template = templates.find(t => t.shape === shape.id);
-              const isConfigured = !!template;
-              const isSelected = stampShape === shape.id;
-              const color = template?.brand_color || "#10B981";
-              
-              return (
-                <button
-                  key={shape.id}
-                  onClick={() => {
-                    if (isConfigured) {
-                      setStampShape(shape.id);
-                      applyTemplate(template);
-                    } else {
-                      // Auto-configure with default settings
-                      setStampShape(shape.id);
-                    }
-                  }}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all min-w-[90px] md:min-w-[100px] ${
-                    isSelected
-                      ? "bg-emerald-500/20 border-emerald-500 ring-2 ring-emerald-500/30" 
-                      : isConfigured
-                        ? "bg-white/5 border-white/20 hover:border-emerald-500/50"
-                        : "bg-white/5 border-white/20 hover:border-emerald-500/50"
-                  }`}
-                  data-testid={`stamp-shape-${shape.id}`}
+          {/* Stamp Style - Simplified to show only the TLS Verified stamp */}
+          <div className="flex items-center justify-center gap-4 md:gap-8">
+            {/* Stamp Preview */}
+            <div className="flex flex-col items-center gap-2">
+              <div 
+                className="w-24 h-16 md:w-28 md:h-[72px] rounded-lg border-2 overflow-hidden flex flex-col shadow-lg"
+                style={{ borderColor: stampColor }}
+              >
+                {/* Header */}
+                <div 
+                  className="flex-shrink-0 h-[28%] flex items-center justify-center px-1"
+                  style={{ backgroundColor: stampColor }}
                 >
-                  {/* Visual Stamp Icon */}
-                  <div className="relative">
-                    {shape.id === "rectangle" && (
-                      <div 
-                        className="w-14 h-9 md:w-16 md:h-10 rounded border-2 flex items-center justify-center"
-                        style={{ borderColor: isSelected ? color : isConfigured ? color : '#4B5563' }}
-                      >
-                        <span className="text-[8px] font-bold" style={{ color: isSelected ? color : isConfigured ? color : '#4B5563' }}>TLS</span>
-                      </div>
-                    )}
-                    {shape.id === "circle" && (
-                      <div 
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 flex items-center justify-center"
-                        style={{ borderColor: isSelected ? color : isConfigured ? color : '#4B5563' }}
-                      >
-                        <span className="text-[8px] font-bold" style={{ color: isSelected ? color : isConfigured ? color : '#4B5563' }}>TLS</span>
-                      </div>
-                    )}
-                    {shape.id === "oval" && (
-                      <div 
-                        className="w-14 h-9 md:w-16 md:h-10 rounded-full border-2 flex items-center justify-center"
-                        style={{ borderColor: isSelected ? color : isConfigured ? color : '#4B5563' }}
-                      >
-                        <span className="text-[8px] font-bold" style={{ color: isSelected ? color : isConfigured ? color : '#4B5563' }}>TLS</span>
-                      </div>
-                    )}
-                    {isSelected && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
-                    )}
+                  <span className="text-[7px] md:text-[8px] font-bold text-white">TLS VERIFIED</span>
+                </div>
+                {/* Body */}
+                <div className="flex-1 bg-white flex items-center justify-center gap-1 px-1">
+                  <div 
+                    className="w-5 h-5 md:w-6 md:h-6 border rounded flex items-center justify-center"
+                    style={{ borderColor: stampColor }}
+                  >
+                    <span className="text-[5px]" style={{ color: stampColor }}>QR</span>
                   </div>
-                  <span className={`text-xs font-medium ${
-                    isSelected ? "text-emerald-400" : "text-white/70"
-                  }`}>
-                    {shape.label}
-                  </span>
-                </button>
-              );
-            })}
+                  <div className="text-left">
+                    <div className="text-[5px] font-bold text-gray-800">STAMP ID</div>
+                    <div className="text-[4px] text-gray-500">Date</div>
+                  </div>
+                </div>
+                {/* Footer */}
+                <div 
+                  className="flex-shrink-0 h-[18%] flex items-center justify-center"
+                  style={{ backgroundColor: `${stampColor}20` }}
+                >
+                  <span className="text-[4px]" style={{ color: stampColor }}>Scan to Verify</span>
+                </div>
+              </div>
+              <span className="text-xs text-emerald-400 font-medium">TLS Verified Stamp</span>
             </div>
+            
+            {/* Divider */}
+            <div className="h-16 w-px bg-white/10" />
+            
+            {/* Customization Options */}
+            <div className="flex flex-col gap-3">
+              {/* Color Picker */}
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-white/60">Color:</label>
+                <div className="flex gap-2">
+                  {["#10B981", "#3B82F6", "#8B5CF6", "#EF4444", "#F59E0B", "#06B6D4"].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setStampColor(color)}
+                      className={`w-6 h-6 rounded-full border-2 transition-all ${
+                        stampColor === color ? "border-white scale-110" : "border-transparent hover:scale-105"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      data-testid={`color-${color}`}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={stampColor}
+                    onChange={(e) => setStampColor(e.target.value)}
+                    className="w-6 h-6 rounded cursor-pointer"
+                    title="Custom color"
+                  />
+                </div>
+              </div>
+              
+              {/* Margin Control */}
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-white/60">Margin:</label>
+                <input
+                  type="range"
+                  min="10"
+                  max="50"
+                  value={stampMargin}
+                  onChange={(e) => setStampMargin(parseInt(e.target.value))}
+                  className="w-24 accent-emerald-500"
+                />
+                <span className="text-xs text-white/40">{stampMargin}px</span>
+              </div>
+            </div>
+          </div>
 
             {/* Progress Bar - STICKY with shape selector */}
             <div className="pt-4">
