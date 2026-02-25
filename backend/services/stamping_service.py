@@ -17,6 +17,7 @@ import logging
 
 from .stamp_image_service import StampImageService
 from .pdf_overlay_service import PDFOverlayService
+from .crypto_signing_service import crypto_service
 
 logger = logging.getLogger(__name__)
 
