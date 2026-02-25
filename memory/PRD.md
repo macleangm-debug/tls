@@ -43,6 +43,15 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 25, 2026 - Document Stamp Size Fix COMPLETE ✅
+**Fixed stamp readability issue where text was too small:**
+- **Root Cause**: Frontend was dividing stamp dimensions by `pdfRenderScale` (1.5x) before sending to backend
+- **Result**: Stamps were 233x207 points instead of intended 350x310 points
+- **Fix**: Modified `DocumentStampPage.jsx` lines 834-835 to send `stampSize.width` and `stampSize.height` directly
+- **Verification**: Backend logs confirm "Generated 1000x1060, Target 350x310"
+- **Testing**: 100% pass rate on both frontend and backend tests
+- **Test Report**: `/app/test_reports/iteration_52.json`
+
 ### Feb 23, 2026 - Notification Settings UI COMPLETE ✅
 **User-configurable notification preferences:**
 - Created `ReminderSettings.jsx` component with comprehensive UI
@@ -160,6 +169,8 @@ backend/
 
 ## Backlog
 - P1: Backend Profile Module - Extract profile routes to backend/routes/profile.py
-- P2: Real file upload testing flow
+- P1: Real file upload testing flow
 - P2: Continue backend modularization (Stamps, Orders, Admin routes)
+- P2: Connect "Set Reminder" calendar action to notification backend
+- P2: Clean up dead code from server.py (commented auth routes)
 - P3: Performance optimization for large datasets
