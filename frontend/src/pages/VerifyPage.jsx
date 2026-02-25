@@ -778,6 +778,78 @@ const VerifyPage = () => {
                           </div>
                         )}
 
+                        {/* Document Validation Section */}
+                        {result.valid && result.document_hash && (
+                          <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+                            <div className="flex items-center gap-2 mb-3">
+                              <FileCheck className="w-5 h-5 text-blue-400" />
+                              <h4 className="text-white font-medium">Verify Document Authenticity</h4>
+                            </div>
+                            <p className="text-white/50 text-sm mb-4">
+                              Upload the document to confirm it hasn&apos;t been modified since stamping.
+                            </p>
+                            
+                            {/* Validation Result */}
+                            {documentValidation && (
+                              <div className={`p-4 rounded-lg mb-4 ${
+                                documentValidation.hash_match 
+                                  ? "bg-emerald-500/20 border border-emerald-500/30" 
+                                  : "bg-red-500/20 border border-red-500/30"
+                              }`}>
+                                <div className="flex items-center gap-2 mb-2">
+                                  {documentValidation.hash_match ? (
+                                    <>
+                                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                      <span className="text-emerald-400 font-semibold">Document Verified</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertTriangle className="w-5 h-5 text-red-400" />
+                                      <span className="text-red-400 font-semibold">Document Tampered</span>
+                                    </>
+                                  )}
+                                </div>
+                                <p className={`text-sm ${documentValidation.hash_match ? "text-emerald-300/80" : "text-red-300/80"}`}>
+                                  {documentValidation.message}
+                                </p>
+                                {!documentValidation.hash_match && (
+                                  <p className="text-red-300/60 text-xs mt-2">
+                                    The document has been modified after the TLS stamp was applied. This may indicate tampering.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            
+                            <label className="block">
+                              <input
+                                ref={validateFileInputRef}
+                                type="file"
+                                accept=".pdf"
+                                onChange={handleValidateDocument}
+                                className="hidden"
+                                disabled={validatingDocument}
+                              />
+                              <Button 
+                                onClick={() => validateFileInputRef.current?.click()}
+                                disabled={validatingDocument}
+                                className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 rounded-xl h-11"
+                              >
+                                {validatingDocument ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Validating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Upload Document to Verify
+                                  </>
+                                )}
+                              </Button>
+                            </label>
+                          </div>
+                        )}
+
                         {/* Verification Count */}
                         {result.verification_count !== undefined && (
                           <div className="flex items-center justify-center gap-2 py-3 sm:py-4">
