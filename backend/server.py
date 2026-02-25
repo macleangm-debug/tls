@@ -3390,6 +3390,142 @@ async def revoke_document_stamp(stamp_id: str, user: dict = Depends(get_current_
     
     return {"message": "Document stamp revoked successfully"}
 
+# =============== BATCH STAMPING ===============
+
+@api_router.post("/documents/batch-stamp")
+async def batch_stamp_documents(
+    files: List[UploadFile] = File(...),
+    anchor: str = Form("bottom_right"),
+    offset_x_pt: float = Form(12),
+    offset_y_pt: float = Form(12),
+    page_mode: str = Form("first"),  # first, all
+    document_type: str = Form("contract"),
+    recipient_name: str = Form(""),
+    recipient_org: str = Form(""),
+    description: str = Form(""),
+    border_color: str = Form("#10B981"),
+    stamp_type: str = Form("certification"),
+    batch_request_id: Optional[str] = Form(None),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Batch stamp multiple PDF documents.
+    
+    Limits:
+    - Max 25 files per batch
+    - Max 10MB per file
+    - Max 200MB total batch size
+    - Max 50 pages per PDF
+    
+    Each document receives:
+    - Unique stamp_id
+    - Own QR code and verification record
+    - SHA256 document hash binding
+    
+    Returns:
+    - ZIP file containing stamped PDFs and batch_summary.csv
+    """
+    from services.stamping_service import StampingService
+    
+    if user.get("practicing_status") != "Active":
+        raise HTTPException(status_code=403, detail="Only active advocates can stamp documents")
+    
+    # Validate limits
+    MAX_FILES = 25
+    MAX_FILE_SIZE_MB = 10
+    MAX_TOTAL_SIZE_MB = 200
+    
+    if len(files) > MAX_FILES:
+        raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES} files allowed per batch")
+    
+    if len(files) == 0:
+        raise HTTPException(status_code=400, detail="No files provided")
+    
+    # Read all files and validate
+    file_contents = []
+    total_size = 0
+    
+    for file in files:
+        # Validate file type
+        if file.content_type != "application/pdf":
+            raise HTTPException(status_code=400, detail=f"Only PDF files allowed. '{file.filename}' is {file.content_type}")
+        
+        content = await file.read()
+        file_size = len(content)
+        
+        # Check individual file size
+        if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
+            raise HTTPException(status_code=400, detail=f"File '{file.filename}' exceeds {MAX_FILE_SIZE_MB}MB limit")
+        
+        total_size += file_size
+        file_contents.append((file.filename, content))
+    
+    # Check total batch size
+    if total_size > MAX_TOTAL_SIZE_MB * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"Total batch size exceeds {MAX_TOTAL_SIZE_MB}MB limit")
+    
+    # Initialize stamping service
+    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://advocate-stamp-fix.preview.emergentagent.com')
+    stamping_service = StampingService(db, frontend_url)
+    
+    # Build position config
+    position = {
+        "anchor": anchor,
+        "offset_x_pt": offset_x_pt,
+        "offset_y_pt": offset_y_pt,
+        "page_mode": page_mode
+    }
+    
+    try:
+        # Perform batch stamping
+        zip_bytes, results = await stamping_service.stamp_batch_documents(
+            files=file_contents,
+            user=user,
+            position=position,
+            document_type=document_type,
+            recipient_name=recipient_name,
+            recipient_org=recipient_org,
+            description=description,
+            border_color=border_color,
+            stamp_type=stamp_type,
+            batch_request_id=batch_request_id
+        )
+        
+        # Generate batch ID for response
+        batch_id = f"BATCH-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+        
+        # Return ZIP as streaming response
+        return StreamingResponse(
+            BytesIO(zip_bytes),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename=stamped_documents_{batch_id}.zip",
+                "X-Batch-ID": batch_id,
+                "X-Total-Files": str(len(files)),
+                "X-Success-Count": str(sum(1 for r in results if r["status"] == "OK")),
+                "X-Failed-Count": str(sum(1 for r in results if r["status"] == "FAILED"))
+            }
+        )
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Batch stamping error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Batch stamping failed")
+
+
+@api_router.get("/documents/batch-stamps")
+async def get_batch_stamps(user: dict = Depends(get_current_user)):
+    """Get batch stamping history for current user"""
+    query = {"advocate_id": str(user.get("_id", user.get("id", "")))}
+    if user.get("role") in ["admin", "super_admin"]:
+        query = {}
+    
+    batches = await db.batch_stamps.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return batches
+
 # =============== LEGACY DIGITAL STAMP ROUTES (Keep for compatibility) ===============
 
 class DigitalStampCreate(BaseModel):
