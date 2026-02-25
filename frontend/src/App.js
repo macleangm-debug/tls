@@ -132,6 +132,7 @@ function App() {
           <Route path="/documents" element={<ProtectedRoute><DocumentStampPage /></ProtectedRoute>} />
           <Route path="/stamp-document" element={<ProtectedRoute><DocumentStampPage /></ProtectedRoute>} />
           <Route path="/batch-stamp" element={<ProtectedRoute><BatchStampPage /></ProtectedRoute>} />
+          <Route path="/stamp-ledger" element={<ProtectedRoute><StampLedgerPage /></ProtectedRoute>} />
           <Route path="/stamp-settings" element={<ProtectedRoute><MyStampsPage /></ProtectedRoute>} />
           <Route path="/my-stamps" element={<ProtectedRoute><MyStampsPage /></ProtectedRoute>} />
           <Route path="/stamp-verification" element={<ProtectedRoute><StampVerificationPage /></ProtectedRoute>} />
