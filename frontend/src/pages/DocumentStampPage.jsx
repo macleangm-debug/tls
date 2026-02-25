@@ -519,13 +519,16 @@ const DocumentStampPage = () => {
       setLocalRecipientOrg(template.default_recipient_org);
     }
     
-    // Apply stamp size from template
-    if (template.stamp_size) {
-      const scale = template.stamp_size / 100;
-      const baseSize = 150;
-      setStampSize({ width: Math.round(baseSize * scale), height: Math.round(baseSize * scale) });
-      setStampSizePercent(template.stamp_size);
-    }
+    // Stamp size is now fixed based on shape - ignore template stamp_size
+    // The sizes are optimized for professional document stamps with readable fonts
+    // Backend generates at base width 500px * scale 2.0 = 1000px
+    const fixedSizes = {
+      rectangle: { width: 350, height: 310 },
+      circle: { width: 200, height: 200 },
+      oval: { width: 280, height: 175 }
+    };
+    const currentShape = template.shape || stampShape;
+    setStampSize(fixedSizes[currentShape] || fixedSizes.rectangle);
     
     // Apply default position from template
     if (template.default_position) {
