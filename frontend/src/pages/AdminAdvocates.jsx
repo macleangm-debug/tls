@@ -322,6 +322,32 @@ const AdminAdvocates = () => {
                   </Button>
                 </div>
               </div>
+              
+              {/* Bulk Revoke Section - Super Admin Only */}
+              {isSuperAdmin && (
+                <div className="space-y-3 pt-4 border-t border-red-200 bg-red-50 -mx-6 px-6 pb-4 -mb-6 rounded-b-lg">
+                  <div className="flex items-center gap-2 text-red-700">
+                    <Shield className="w-4 h-4" />
+                    <p className="text-sm font-medium">Super Admin Actions</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-red-300 text-red-700 hover:bg-red-100"
+                    onClick={() => {
+                      setSelectedAdvocate(null);
+                      openBulkRevokeModal(selectedAdvocate);
+                    }}
+                    data-testid="bulk-revoke-btn"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Revoke All Active Stamps
+                  </Button>
+                  <p className="text-xs text-red-600">
+                    This will permanently invalidate all active stamps issued by this advocate.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           
