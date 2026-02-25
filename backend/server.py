@@ -3049,6 +3049,19 @@ async def create_document_stamp(
         "expires_at": expires_at
     }
     
+    # Add cryptographic signature (ECDSA P-256 + SHA-256)
+    if crypto_service.is_signing_available():
+        crypto_sig = crypto_service.sign_stamp(
+            stamp_id=stamp_id,
+            doc_hash=doc_hash,
+            issued_at=now.isoformat(),
+            advocate_id=user["id"],
+            expires_at=expires_at
+        )
+        if crypto_sig:
+            stamp_record["crypto_signature"] = crypto_sig
+            logger.info(f"Cryptographically signed stamp: {stamp_id}")
+    
     await db.document_stamps.insert_one(stamp_record)
     
     # Log audit (legacy)
