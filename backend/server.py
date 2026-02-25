@@ -4414,7 +4414,7 @@ async def verify_stamp(stamp_id: str, request: Request):
     )
 
 @api_router.post("/verify/document")
-async def verify_document_by_hash(file: UploadFile = File(...)):
+async def verify_document_by_hash(file: UploadFile = File(...), request: Request = None):
     """Verify document by uploading and checking hash"""
     content = await file.read()
     doc_hash = generate_document_hash(content)
@@ -4429,7 +4429,63 @@ async def verify_document_by_hash(file: UploadFile = File(...)):
         )
     
     # Use the stamp verification logic
-    return await verify_stamp(stamp["stamp_id"])
+    return await verify_stamp(stamp["stamp_id"], request)
+
+
+@api_router.post("/verify/stamp/{stamp_id}/validate-document")
+async def validate_document_against_stamp(
+    stamp_id: str,
+    file: UploadFile = File(...),
+    request: Request = None
+):
+    """
+    Validate an uploaded document matches the stored hash for a specific stamp.
+    This is the tamper-proof verification - proves the document hasn't been modified.
+    """
+    # Get the stamp
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id}, {"_id": 0})
+    
+    if not stamp:
+        return {
+            "valid": False,
+            "hash_match": False,
+            "message": "Stamp not found",
+            "stamp_id": stamp_id
+        }
+    
+    # Calculate hash of uploaded document
+    content = await file.read()
+    uploaded_hash = generate_document_hash(content)
+    stored_hash = stamp.get("document_hash", "")
+    
+    # Compare hashes
+    hash_match = uploaded_hash == stored_hash
+    
+    # Log verification attempt
+    await log_stamp_event(
+        stamp_id=stamp_id,
+        event_type="STAMP_VERIFIED",
+        actor_type="public",
+        ip=request.client.host if request and request.client else None,
+        user_agent=request.headers.get("user-agent") if request else None,
+        metadata={
+            "result": "hash_match" if hash_match else "hash_mismatch",
+            "validation_type": "document_upload"
+        }
+    )
+    
+    return {
+        "valid": hash_match,
+        "hash_match": hash_match,
+        "stamp_id": stamp_id,
+        "stamp_status": stamp.get("status", "unknown"),
+        "stored_hash": stored_hash[:16] + "..." if stored_hash else None,
+        "uploaded_hash": uploaded_hash[:16] + "...",
+        "message": "Document matches stamp - authentic and unmodified" if hash_match else "Document does NOT match stamp - may have been tampered with",
+        "advocate_name": stamp.get("advocate_name"),
+        "issued_at": stamp.get("created_at")
+    }
+
 
 @api_router.get("/verify/advocate/{roll_number}", response_model=VerificationResult)
 async def verify_advocate(roll_number: str):
