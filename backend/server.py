@@ -6733,7 +6733,7 @@ async def startup_db_client():
             "role": "super_admin",
             "verified": True,
             "total_earnings": 0.0,
-            "force_password_reset": True,  # Force password change on first login
+            "force_password_reset": False,  # Allow direct login for demo
             "created_at": now,
             "updated_at": now
         })
@@ -6761,7 +6761,7 @@ async def startup_db_client():
             "role": "admin",
             "verified": True,
             "total_earnings": 0.0,
-            "force_password_reset": True,  # Force password change on first login
+            "force_password_reset": False,  # Allow direct login for demo
             "created_at": now,
             "updated_at": now
         })
