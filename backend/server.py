@@ -4049,7 +4049,7 @@ async def revoke_stamp(stamp_id: str, user: dict = Depends(get_current_user)):
 # =============== PUBLIC VERIFICATION ROUTES ===============
 
 @api_router.get("/verify/stamp/{stamp_id}", response_model=VerificationResult)
-async def verify_stamp(stamp_id: str):
+async def verify_stamp(stamp_id: str, request: Request):
     """Public verification endpoint - checks both document stamps and digital stamps"""
     
     # First check document stamps
@@ -4062,6 +4062,15 @@ async def verify_stamp(stamp_id: str):
         is_document_stamp = False
     
     if not stamp:
+        # Log failed verification attempt
+        await log_stamp_event(
+            stamp_id=stamp_id,
+            event_type="STAMP_VERIFIED",
+            actor_type="public",
+            ip=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"result": "not_found"}
+        )
         return VerificationResult(valid=False, message="Stamp not found. This may be a fraudulent stamp.")
     
     advocate = await db.advocates.find_one({"id": stamp["advocate_id"]}, {"_id": 0})
@@ -4113,13 +4122,26 @@ async def verify_stamp(stamp_id: str):
             "verified_at": datetime.now(timezone.utc).isoformat()
         })
     
-    # Log verification
+    # Log verification (legacy)
     await db.verification_logs.insert_one({
         "id": str(uuid.uuid4()),
         "stamp_id": stamp_id,
         "verified_at": datetime.now(timezone.utc).isoformat(),
         "result": "valid" if not warning else "warning"
     })
+    
+    # Log stamp event (new ledger audit trail)
+    await log_stamp_event(
+        stamp_id=stamp_id,
+        event_type="STAMP_VERIFIED",
+        actor_type="public",
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "result": "valid" if not warning else ("revoked" if "revoked" in (warning or "") else "warning"),
+            "is_document_stamp": is_document_stamp
+        }
+    )
     
     return VerificationResult(
         valid=stamp["status"] == "active" and not warning,
