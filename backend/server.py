@@ -38,9 +38,6 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 import resend
 
-# Import crypto signing service
-from services.crypto_signing_service import crypto_service
-
 # Try to import docx for DOCX support
 try:
     from docx import Document as DocxDocument
