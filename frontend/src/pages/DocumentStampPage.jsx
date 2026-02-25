@@ -485,7 +485,7 @@ const DocumentStampPage = () => {
     setSelectedType(normalizedType);
     
     setBrandColor(template.brand_color || "#10B981");
-    setShowAdvocateName(template.show_advocate_name !== undefined ? template.show_advocate_name : true);
+    // showAdvocateName is always true (not configurable) - TLS requirement
     // TLS logo is always shown - no toggle needed
     
     // Signature settings
