@@ -1089,12 +1089,12 @@ const DocumentStampPage = () => {
             <div className="flex flex-col items-center gap-2">
               <div 
                 className="w-24 h-16 md:w-28 md:h-[72px] rounded-lg border-2 overflow-hidden flex flex-col shadow-lg"
-                style={{ borderColor: stampColor }}
+                style={{ borderColor: brandColor }}
               >
                 {/* Header */}
                 <div 
                   className="flex-shrink-0 h-[28%] flex items-center justify-center px-1"
-                  style={{ backgroundColor: stampColor }}
+                  style={{ backgroundColor: brandColor }}
                 >
                   <span className="text-[7px] md:text-[8px] font-bold text-white">TLS VERIFIED</span>
                 </div>
@@ -1102,9 +1102,9 @@ const DocumentStampPage = () => {
                 <div className="flex-1 bg-white flex items-center justify-center gap-1 px-1">
                   <div 
                     className="w-5 h-5 md:w-6 md:h-6 border rounded flex items-center justify-center"
-                    style={{ borderColor: stampColor }}
+                    style={{ borderColor: brandColor }}
                   >
-                    <span className="text-[5px]" style={{ color: stampColor }}>QR</span>
+                    <span className="text-[5px]" style={{ color: brandColor }}>QR</span>
                   </div>
                   <div className="text-left">
                     <div className="text-[5px] font-bold text-gray-800">STAMP ID</div>
@@ -1114,9 +1114,9 @@ const DocumentStampPage = () => {
                 {/* Footer */}
                 <div 
                   className="flex-shrink-0 h-[18%] flex items-center justify-center"
-                  style={{ backgroundColor: `${stampColor}20` }}
+                  style={{ backgroundColor: `${brandColor}20` }}
                 >
-                  <span className="text-[4px]" style={{ color: stampColor }}>Scan to Verify</span>
+                  <span className="text-[4px]" style={{ color: brandColor }}>Scan to Verify</span>
                 </div>
               </div>
               <span className="text-xs text-emerald-400 font-medium">TLS Verified Stamp</span>
@@ -1134,9 +1134,9 @@ const DocumentStampPage = () => {
                   {["#10B981", "#3B82F6", "#8B5CF6", "#EF4444", "#F59E0B", "#06B6D4"].map((color) => (
                     <button
                       key={color}
-                      onClick={() => setStampColor(color)}
+                      onClick={() => setBrandColor(color)}
                       className={`w-6 h-6 rounded-full border-2 transition-all ${
-                        stampColor === color ? "border-white scale-110" : "border-transparent hover:scale-105"
+                        brandColor === color ? "border-white scale-110" : "border-transparent hover:scale-105"
                       }`}
                       style={{ backgroundColor: color }}
                       data-testid={`color-${color}`}
@@ -1144,8 +1144,8 @@ const DocumentStampPage = () => {
                   ))}
                   <input
                     type="color"
-                    value={stampColor}
-                    onChange={(e) => setStampColor(e.target.value)}
+                    value={brandColor}
+                    onChange={(e) => setBrandColor(e.target.value)}
                     className="w-6 h-6 rounded cursor-pointer"
                     title="Custom color"
                   />
