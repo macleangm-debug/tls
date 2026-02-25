@@ -2340,39 +2340,6 @@ const DocumentStampPage = () => {
                     </div>
                   )}
 
-                  {/* Layout Selection - Only show for Rectangle */}
-                  {stampShape === "rectangle" && selectedTemplate && (
-                    <div className="space-y-2">
-                      <Label className="text-white/70">Rectangle Layout</Label>
-                      <div className="grid grid-cols-5 gap-2">
-                        {[
-                          { id: "horizontal", label: "Wide", icon: "═══" },
-                          { id: "vertical", label: "Tall", icon: "║" },
-                          { id: "compact", label: "Mini", icon: "□" },
-                          { id: "logo_left", label: "QR Left", icon: "◧" },
-                          { id: "logo_right", label: "QR Right", icon: "◨" }
-                        ].map((layout) => (
-                          <div
-                            key={layout.id}
-                            onClick={() => setStampLayout(layout.id)}
-                            className={`p-2 rounded-lg border cursor-pointer transition-all text-center ${
-                              stampLayout === layout.id 
-                                ? "bg-emerald-500/20 border-emerald-500/50 ring-1 ring-emerald-500/30" 
-                                : "bg-white/5 border-white/10 hover:border-white/30"
-                            }`}
-                          >
-                            <div className={`text-lg mb-1 ${stampLayout === layout.id ? "text-emerald-400" : "text-white/50"}`}>
-                              {layout.icon}
-                            </div>
-                            <p className={`text-[10px] font-medium ${stampLayout === layout.id ? "text-emerald-400" : "text-white/50"}`}>
-                              {layout.label}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Advanced Options - Collapsible */}
                   {showAdvancedOptions && (
                     <>
