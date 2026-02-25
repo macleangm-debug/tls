@@ -22,19 +22,26 @@ class TestBatchStamping:
     """Batch stamping API endpoint tests"""
     
     @pytest.fixture(scope="class")
-    def auth_token(self):
-        """Get authentication token for test user"""
+    def login_data(self):
+        """Get authentication token and CSRF token for test user"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={"email": TEST_EMAIL, "password": TEST_PASSWORD}
         )
         assert response.status_code == 200, f"Login failed: {response.text}"
-        return response.json()["access_token"]
+        data = response.json()
+        return {
+            "access_token": data["access_token"],
+            "csrf_token": data.get("csrf_token", "")
+        }
     
     @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        """Get auth headers"""
-        return {"Authorization": f"Bearer {auth_token}"}
+    def headers(self, login_data):
+        """Get auth headers with CSRF token"""
+        return {
+            "Authorization": f"Bearer {login_data['access_token']}",
+            "X-CSRF-Token": login_data['csrf_token']
+        }
     
     @pytest.fixture
     def sample_pdf(self):
@@ -86,8 +93,9 @@ startxref
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
+        assert "csrf_token" in data
         assert data["user"]["practicing_status"] == "Active"
-        print(f"✓ Login successful for {TEST_EMAIL}")
+        print(f"✓ Login successful for {TEST_EMAIL} - CSRF token received")
     
     # ===== BATCH STAMPING API TESTS =====
     
@@ -153,7 +161,7 @@ startxref
             data=data
         )
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Batch stamp failed: {response.text}"
         assert response.headers.get('X-Total-Files') == '2'
         assert response.headers.get('X-Success-Count') == '2'
         
@@ -185,7 +193,7 @@ startxref
             data=data
         )
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Batch stamp failed: {response.text}"
         
         # Parse ZIP file
         zip_buffer = io.BytesIO(response.content)
@@ -249,7 +257,7 @@ startxref
             data=data
         )
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Batch stamp failed: {response.text}"
         
         zip_buffer = io.BytesIO(response.content)
         with zipfile.ZipFile(zip_buffer, 'r') as zf:
@@ -335,7 +343,7 @@ startxref
             data=data
         )
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Page mode all failed: {response.text}"
         print("✓ Page mode 'all' test passed")
     
     # ===== ERROR HANDLING TESTS =====
@@ -420,16 +428,20 @@ startxref
             data=data
         )
         
-        assert response.status_code == 401
+        # Without auth, should fail (401 or 403)
+        assert response.status_code in [401, 403]
         print("✓ Authentication correctly required for batch stamping")
     
     # ===== BATCH HISTORY API TEST =====
     
     def test_get_batch_history(self, headers):
         """Test retrieving batch stamping history"""
+        # Remove CSRF token for GET request (not needed)
+        get_headers = {"Authorization": headers["Authorization"]}
+        
         response = requests.get(
             f"{BASE_URL}/api/documents/batch-stamps",
-            headers=headers
+            headers=get_headers
         )
         
         assert response.status_code == 200
