@@ -60,14 +60,17 @@ const StampEditor = ({ shape, existingStamp, onSave, onCancel }) => {
   const previewRef = useRef(null);
   
   const [formData, setFormData] = useState({
-    name: existingStamp?.name || `My ${shape.charAt(0).toUpperCase() + shape.slice(1)} Stamp`,
+    name: existingStamp?.name || "My TLS Stamp",
     brand_color: existingStamp?.brand_color || "#10B981",
-    layout: existingStamp?.layout || "horizontal",
+    layout: "tls_standard", // Fixed - TLS uses single standard design
     show_advocate_name: true, // Always show advocate name
     show_tls_logo: true, // TLS logo is always required
-    stamp_size: 100, // Fixed size - not user configurable
+    stamp_size_preset: existingStamp?.stamp_size_preset || "medium", // Size preset
     opacity: existingStamp?.opacity || 90
   });
+
+  // Get current size from preset
+  const currentSizePreset = STAMP_SIZE_PRESETS.find(s => s.id === formData.stamp_size_preset) || STAMP_SIZE_PRESETS[1];
 
   // Calculate completion progress
   const completedSteps = COMPLETION_STEPS.filter(step => step.check(formData)).length;
@@ -80,7 +83,9 @@ const StampEditor = ({ shape, existingStamp, onSave, onCancel }) => {
     try {
       await onSave({
         ...formData,
-        shape
+        shape: "rectangle", // TLS always uses rectangle
+        stamp_width: currentSizePreset.width,
+        stamp_height: currentSizePreset.height
       });
     } finally {
       setSaving(false);
@@ -91,11 +96,11 @@ const StampEditor = ({ shape, existingStamp, onSave, onCancel }) => {
   const previewDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const previewStampId = `TLS-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-XXXX`;
 
-  // Render realistic stamp preview based on shape and settings
+  // Render realistic stamp preview - TLS Standard design only
   const renderStampPreview = () => {
     const color = formData.brand_color;
     const opacity = formData.opacity / 100;
-    const scale = formData.stamp_size / 100;
+    const scale = currentSizePreset.width / 350; // Scale based on size preset
     
     // CIRCLE STAMP - Matches DocumentStampPage: no logo, bigger QR, curved text appearance
     if (shape === "circle") {
