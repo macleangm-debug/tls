@@ -12,7 +12,7 @@ import {
   Scale, LogOut, User, FileText, QrCode, ShoppingCart, History, 
   Plus, ShieldCheck, Clock, CheckCircle2, AlertCircle,
   LayoutDashboard, Users, Menu, X, Download, Eye, Copy,
-  Stamp, CreditCard, Truck, Award, Lock, Fingerprint,
+  Stamp, CreditCard, Truck, Award, Lock, Fingerprint, Layers,
   Sparkles, ArrowRight, Globe, TrendingUp, Share2, BookOpen,
   Play, ChevronRight, ExternalLink, Zap, Target, BarChart3,
   Info, HelpCircle, MousePointer, Upload, Scan, LinkIcon, DollarSign
