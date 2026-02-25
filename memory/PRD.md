@@ -19,6 +19,7 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
   - "Demo" badges for seed data documents
   - Proper error handling for demo document downloads
 - Digital signatures and QR stamping
+- **Batch Stamping** (NEW - Feb 25, 2026): Stamp up to 25 documents at once
 
 ### Calendar & Events (Enhanced Feb 22, 2026)
 - Dual view: List and Calendar widget
@@ -42,6 +43,27 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 - `/api/dev/seed` endpoint populates database with demo data
 
 ## Recent Changes
+
+### Feb 25, 2026 - Batch Stamping Feature - COMPLETE ✅
+**New feature for high-volume advocates:**
+- **Endpoint**: `POST /api/documents/batch-stamp`
+- **Limits**: 25 files max, 10MB each, 200MB total, 50 pages per PDF
+- **Features**:
+  - Each document gets unique stamp_id, QR code, SHA256 hash binding
+  - Anchor-based positioning (7 options: bottom_right default)
+  - Page mode: First page only OR all pages
+  - Returns ZIP with stamped PDFs + batch_summary.csv
+- **Frontend**: New `/batch-stamp` route with drag-drop upload
+- **Test Report**: `/app/test_reports/iteration_53.json` - 100% pass rate
+
+**Backend Services Refactored:**
+```
+backend/services/
+├── __init__.py
+├── stamp_image_service.py    # PIL stamp image generation
+├── pdf_overlay_service.py    # PDF embedding with anchor positioning
+└── stamping_service.py       # Orchestration for single & batch stamping
+```
 
 ### Feb 25, 2026 - Layout & Margin Fixes ✅
 **Fixed two user-reported issues:**
