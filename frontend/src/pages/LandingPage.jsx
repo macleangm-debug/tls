@@ -339,6 +339,163 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Digital Certification Platform - NEW HIGHLIGHT SECTION */}
+      <section className="py-16 md:py-24 relative overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-tls-blue-electric/5 via-transparent to-tls-gold/5" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-tls-blue-electric/10 rounded-full blur-3xl" />
+        
+        <div className="max-w-7xl mx-auto px-6 md:px-12 relative">
+          {/* Section Header */}
+          <div className="text-center mb-12">
+            <Badge className="bg-gradient-to-r from-tls-blue-electric/20 to-emerald-500/20 text-white border-0 rounded-full px-4 py-1.5 mb-4">
+              <Sparkles className="w-3 h-3 mr-1 inline" />
+              Tanzania&apos;s First Cryptographically Signed Legal Certification
+            </Badge>
+            <h2 className="font-heading text-3xl md:text-5xl font-bold tracking-tight text-white mb-4">
+              Digital Certification
+              <span className="text-gradient-gold"> Platform</span>
+            </h2>
+            <p className="text-lg text-white/60 max-w-2xl mx-auto">
+              The most advanced legal document verification system in East Africa, 
+              built for courts, banks, and international institutions.
+            </p>
+          </div>
+          
+          {/* Feature Cards Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Cryptographic Signing */}
+            <Card className="glass-card rounded-2xl border-blue-500/20 hover:border-blue-500/40 transition-all group">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
+                  <Lock className="w-6 h-6 text-blue-400" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
+                  Cryptographic Signing
+                </h3>
+                <p className="text-sm text-white/50 mb-4">
+                  ECDSA P-256 + SHA-256 digital signatures. Non-forgeable, independently verifiable by any institution.
+                </p>
+                <div className="flex items-center gap-2 text-blue-400 text-xs font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Public key available at /.well-known/tls-stamp-keys
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tamper Detection */}
+            <Card className="glass-card rounded-2xl border-emerald-500/20 hover:border-emerald-500/40 transition-all group">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
+                  <FileCheck className="w-6 h-6 text-emerald-400" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
+                  Tamper Detection
+                </h3>
+                <p className="text-sm text-white/50 mb-4">
+                  SHA-256 document fingerprinting. Upload any document to verify it hasn&apos;t been modified.
+                </p>
+                <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium">
+                  <Fingerprint className="w-3.5 h-3.5" />
+                  Instant hash validation
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Batch Stamping */}
+            <Card className="glass-card rounded-2xl border-purple-500/20 hover:border-purple-500/40 transition-all group">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
+                  <FileText className="w-6 h-6 text-purple-400" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
+                  Batch Stamping
+                </h3>
+                <p className="text-sm text-white/50 mb-4">
+                  Stamp up to 25 documents at once. Each gets unique ID, QR code, and hash binding.
+                </p>
+                <div className="flex items-center gap-2 text-purple-400 text-xs font-medium">
+                  <Zap className="w-3.5 h-3.5" />
+                  Perfect for high-volume practices
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Compliance Ledger */}
+            <Card className="glass-card rounded-2xl border-amber-500/20 hover:border-amber-500/40 transition-all group">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow-gold transition-all">
+                  <BookOpen className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
+                  Compliance Ledger
+                </h3>
+                <p className="text-sm text-white/50 mb-4">
+                  Complete audit trail for every stamp. Filter, search, export CSV, revoke with reason.
+                </p>
+                <div className="flex items-center gap-2 text-amber-400 text-xs font-medium">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Regulatory-grade audit logging
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* QR Verification */}
+            <Card className="glass-card rounded-2xl border-cyan-500/20 hover:border-cyan-500/40 transition-all group">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
+                  <QrCode className="w-6 h-6 text-cyan-400" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
+                  Instant QR Verification
+                </h3>
+                <p className="text-sm text-white/50 mb-4">
+                  Scan any TLS stamp with your phone. Get instant VALID/REVOKED/EXPIRED status.
+                </p>
+                <Link to="/verify" className="flex items-center gap-2 text-cyan-400 text-xs font-medium hover:text-cyan-300 transition-colors">
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  Try verification now
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Admin Controls */}
+            <Card className="glass-card rounded-2xl border-red-500/20 hover:border-red-500/40 transition-all group">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
+                  <Scale className="w-6 h-6 text-red-400" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
+                  Regulatory Controls
+                </h3>
+                <p className="text-sm text-white/50 mb-4">
+                  Bulk revoke for suspended advocates. Super admin safety controls with confirmation.
+                </p>
+                <div className="flex items-center gap-2 text-red-400 text-xs font-medium">
+                  <Lock className="w-3.5 h-3.5" />
+                  Institutional-grade security
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="mt-12 flex flex-wrap justify-center gap-4">
+            {[
+              { icon: ShieldCheck, text: "Cryptographically Signed", color: "text-blue-400" },
+              { icon: Fingerprint, text: "SHA-256 Hash Binding", color: "text-emerald-400" },
+              { icon: Globe, text: "Public Key Verification", color: "text-purple-400" },
+              { icon: Lock, text: "Non-Forgeable", color: "text-amber-400" }
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                <item.icon className={`w-4 h-4 ${item.color}`} />
+                <span className="text-sm text-white/70">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* About TLS Section */}
       <section id="about" className="py-24 md:py-32 relative">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
