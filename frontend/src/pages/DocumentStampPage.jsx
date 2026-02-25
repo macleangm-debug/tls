@@ -1131,39 +1131,24 @@ const DocumentStampPage = () => {
         <div className="sticky top-16 z-40 -mx-6 lg:-mx-8 px-6 lg:px-8 pt-4 pb-4 bg-[#0a0f1a] border-b border-white/10">
           {/* Stamp Style - Simplified to show only the TLS Verified stamp */}
           <div className="flex items-center justify-center gap-4 md:gap-8">
-            {/* Stamp Preview */}
+            {/* Stamp Preview - Uses backend-generated image for pixel-perfect accuracy */}
             <div className="flex flex-col items-center gap-2">
               <div 
-                className="w-24 h-16 md:w-28 md:h-[72px] rounded-lg border-2 overflow-hidden flex flex-col shadow-lg"
-                style={{ borderColor: brandColor }}
+                className="w-24 h-16 md:w-28 md:h-[72px] rounded-lg border-2 overflow-hidden shadow-lg flex items-center justify-center"
+                style={{ borderColor: brandColor, backgroundColor: '#fff' }}
               >
-                {/* Header */}
-                <div 
-                  className="flex-shrink-0 h-[28%] flex items-center justify-center px-1"
-                  style={{ backgroundColor: brandColor }}
-                >
-                  <span className="text-[7px] md:text-[8px] font-bold text-white">TLS VERIFIED</span>
-                </div>
-                {/* Body */}
-                <div className="flex-1 bg-white flex items-center justify-center gap-1 px-1">
-                  <div 
-                    className="w-5 h-5 md:w-6 md:h-6 border rounded flex items-center justify-center"
-                    style={{ borderColor: brandColor }}
-                  >
-                    <span className="text-[5px]" style={{ color: brandColor }}>QR</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-[5px] font-bold text-gray-800">STAMP ID</div>
-                    <div className="text-[4px] text-gray-500">Date</div>
-                  </div>
-                </div>
-                {/* Footer */}
-                <div 
-                  className="flex-shrink-0 h-[18%] flex items-center justify-center"
-                  style={{ backgroundColor: `${brandColor}20` }}
-                >
-                  <span className="text-[4px]" style={{ color: brandColor }}>Scan to Verify</span>
-                </div>
+                {loadingStampPreview ? (
+                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: brandColor }} />
+                ) : stampPreviewImage ? (
+                  <img 
+                    src={stampPreviewImage} 
+                    alt="TLS Verified Stamp"
+                    className="w-full h-full object-contain"
+                    draggable={false}
+                  />
+                ) : (
+                  <span className="text-[7px] md:text-[8px] font-bold" style={{ color: brandColor }}>TLS VERIFIED</span>
+                )}
               </div>
               <span className="text-xs text-emerald-400 font-medium">TLS Verified Stamp</span>
             </div>
