@@ -733,208 +733,178 @@ def generate_branded_stamp_image(
 ) -> Image.Image:
     """
     Generate a clean, professional TLS Verified stamp image.
-    
-    Design matches the official TLS stamp format:
-    - Green header with TLS logo and "TLS VERIFIED"
-    - White body with QR code on left, stamp details on right
-    - Light green footer with "Scan QR Code to Verify Authenticity"
-    - Rounded corners with green border
-    
-    Customizable:
-    - brand_color: Color of header, QR code, and accents
-    - scale: Size multiplier
+    Matches the official TLS stamp format with signature section for certification stamps.
     """
     from PIL import ImageDraw, ImageFont
     import os
+    import base64
+    from io import BytesIO
     
     # Convert hex color to RGB
     rgb_color = hex_to_rgb(brand_color)
     
     # Define colors
     white = (255, 255, 255)
-    dark_text = (30, 30, 30)
-    light_gray_text = (120, 120, 120)
+    dark_text = (50, 50, 50)
     
     # Lighter version of brand color for footer background
     footer_bg = (
-        min(255, rgb_color[0] + int((255 - rgb_color[0]) * 0.85)),
-        min(255, rgb_color[1] + int((255 - rgb_color[1]) * 0.85)),
-        min(255, rgb_color[2] + int((255 - rgb_color[2]) * 0.85))
+        min(255, rgb_color[0] + int((255 - rgb_color[0]) * 0.88)),
+        min(255, rgb_color[1] + int((255 - rgb_color[1]) * 0.90)),
+        min(255, rgb_color[2] + int((255 - rgb_color[2]) * 0.92))
     )
     
-    # Dimensions (matching the reference image proportions)
-    base_width = 320
-    header_height = 60
-    body_height = 140
-    footer_height = 35
-    total_height = header_height + body_height + footer_height
+    # Dimensions - larger for better readability
+    base_width = 420
+    header_height = 90
+    body_height = 220
+    signature_height = 80 if include_signature or show_signature_placeholder else 0
+    footer_height = 50
+    total_height = header_height + body_height + signature_height + footer_height
     
     # Apply scale
     width = int(base_width * scale)
     header_h = int(header_height * scale)
     body_h = int(body_height * scale)
+    sig_h = int(signature_height * scale)
     footer_h = int(footer_height * scale)
     height = int(total_height * scale)
     
     border_width = int(3 * scale)
     corner_radius = int(12 * scale)
-    padding = int(15 * scale)
+    padding = int(20 * scale)
     
     # Create image with white background
     img = Image.new('RGBA', (width, height), white)
     draw = ImageDraw.Draw(img)
     
-    # Load fonts
+    # Load fonts - larger sizes for readability
     try:
-        font_header_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(18 * scale))
-        font_header_subtitle = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(11 * scale))
-        font_label = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(9 * scale))
-        font_stamp_id = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(14 * scale))
-        font_date = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(12 * scale))
-        font_advocate = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(13 * scale))
-        font_footer = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(10 * scale))
+        font_header_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(22 * scale))
+        font_header_subtitle = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(14 * scale))
+        font_label = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(12 * scale))
+        font_value = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(16 * scale))
+        font_advocate = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(15 * scale))
+        font_footer = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(13 * scale))
+        font_sig_label = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(11 * scale))
     except (OSError, IOError):
-        font_header_title = font_header_subtitle = font_label = font_stamp_id = font_date = font_advocate = font_footer = ImageFont.load_default()
+        font_header_title = font_header_subtitle = font_label = font_value = font_advocate = font_footer = font_sig_label = ImageFont.load_default()
     
     # Draw outer border (rounded rectangle)
-    draw.rounded_rectangle(
-        [0, 0, width - 1, height - 1],
-        radius=corner_radius,
-        outline=rgb_color,
-        width=border_width
-    )
+    draw.rounded_rectangle([0, 0, width - 1, height - 1], radius=corner_radius, outline=rgb_color, width=border_width)
     
     # ============ HEADER SECTION ============
-    # Green header background with rounded top corners
-    draw.rounded_rectangle(
-        [border_width, border_width, width - border_width, header_h + corner_radius],
-        radius=corner_radius,
-        fill=rgb_color
-    )
-    # Square off bottom of header
-    draw.rectangle(
-        [border_width, header_h - corner_radius, width - border_width, header_h],
-        fill=rgb_color
-    )
+    draw.rounded_rectangle([border_width, border_width, width - border_width, header_h + corner_radius], radius=corner_radius, fill=rgb_color)
+    draw.rectangle([border_width, header_h - corner_radius, width - border_width, header_h], fill=rgb_color)
     
-    # Load and place TLS logo
+    # Load TLS logo
     tls_logo = None
-    logo_paths = [
-        os.path.join(os.path.dirname(__file__), 'assets', 'tls-logo.png'),
-        "/app/frontend/public/assets/tls-logo.png",
-        "/app/backend/assets/tls-logo.png"
-    ]
-    for logo_path in logo_paths:
+    for logo_path in ["/app/backend/assets/tls-logo.png", "/app/frontend/public/assets/tls-logo.png"]:
         if os.path.exists(logo_path):
             try:
                 tls_logo = Image.open(logo_path).convert('RGBA')
                 break
-            except Exception:
+            except:
                 continue
     
-    logo_size = int(40 * scale)
-    logo_x = padding
-    logo_y = border_width + (header_h - border_width - logo_size) // 2
+    # Logo in white rounded-square badge
+    badge_size = int(70 * scale)
+    badge_x = padding
+    badge_y = border_width + (header_h - border_width - badge_size) // 2
+    badge_radius = int(10 * scale)
     
-    if tls_logo and show_tls_logo:
-        # Create circular white background for logo
-        logo_bg_size = logo_size + int(4 * scale)
-        logo_bg_x = logo_x - int(2 * scale)
-        logo_bg_y = logo_y - int(2 * scale)
-        draw.ellipse(
-            [logo_bg_x, logo_bg_y, logo_bg_x + logo_bg_size, logo_bg_y + logo_bg_size],
-            fill=white
-        )
-        # Resize and paste logo
-        logo_resized = tls_logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-        img.paste(logo_resized, (logo_x, logo_y), logo_resized)
+    if show_tls_logo:
+        # Draw white rounded-square badge background
+        draw.rounded_rectangle([badge_x, badge_y, badge_x + badge_size, badge_y + badge_size], radius=badge_radius, fill=white)
+        
+        if tls_logo:
+            logo_inner_size = int(badge_size * 0.85)
+            logo_resized = tls_logo.resize((logo_inner_size, logo_inner_size), Image.Resampling.LANCZOS)
+            logo_offset = (badge_size - logo_inner_size) // 2
+            img.paste(logo_resized, (badge_x + logo_offset, badge_y + logo_offset), logo_resized)
     
-    # Header text - "TLS VERIFIED" and "Tanganyika Law Society"
-    text_x = logo_x + logo_size + int(15 * scale)
+    # Header text
+    text_x = badge_x + badge_size + int(20 * scale)
     header_center_y = border_width + (header_h - border_width) // 2
-    
-    draw.text(
-        (text_x, header_center_y - int(8 * scale)),
-        "TLS VERIFIED",
-        fill=white,
-        font=font_header_title
-    )
-    draw.text(
-        (text_x, header_center_y + int(10 * scale)),
-        "Tanganyika Law Society",
-        fill=white,
-        font=font_header_subtitle
-    )
+    draw.text((text_x, header_center_y - int(14 * scale)), "TLS VERIFIED", fill=white, font=font_header_title)
+    draw.text((text_x, header_center_y + int(14 * scale)), "Tanganyika Law Society", fill=white, font=font_header_subtitle)
     
     # ============ BODY SECTION ============
     body_top = header_h
-    body_bottom = header_h + body_h
     
-    # QR Code section (left side)
-    qr_box_size = int(80 * scale)
-    qr_padding = int(8 * scale)
+    # QR Code - larger for better scanning
+    qr_box_size = int(130 * scale)
+    qr_padding = int(10 * scale)
     qr_x = padding
-    qr_y = body_top + (body_h - qr_box_size) // 2
+    qr_y = body_top + int(25 * scale)
     
-    # QR code container with rounded border
-    draw.rounded_rectangle(
-        [qr_x, qr_y, qr_x + qr_box_size, qr_y + qr_box_size],
-        radius=int(8 * scale),
-        outline=rgb_color,
-        width=int(2 * scale)
-    )
+    draw.rounded_rectangle([qr_x, qr_y, qr_x + qr_box_size, qr_y + qr_box_size], radius=int(10 * scale), outline=rgb_color, width=int(2 * scale))
     
-    # Generate and place QR code
     qr_inner_size = qr_box_size - (qr_padding * 2)
     qr_img = generate_qr_code_image(verification_url, qr_inner_size, brand_color)
     qr_img = qr_img.convert('RGBA')
     img.paste(qr_img, (qr_x + qr_padding, qr_y + qr_padding), qr_img)
     
-    # Info section (right side)
-    info_x = qr_x + qr_box_size + int(20 * scale)
-    info_y = body_top + int(15 * scale)
+    # Info section
+    info_x = qr_x + qr_box_size + int(25 * scale)
+    info_y = body_top + int(25 * scale)
+    line_spacing = int(55 * scale)
     
-    # STAMP ID label and value
+    # STAMP ID
     draw.text((info_x, info_y), "STAMP ID", fill=rgb_color, font=font_label)
-    draw.text((info_x, info_y + int(14 * scale)), stamp_id, fill=dark_text, font=font_stamp_id)
+    draw.text((info_x, info_y + int(18 * scale)), stamp_id, fill=dark_text, font=font_value)
     
-    # DATE label and value
+    # DATE
     current_date = datetime.now().strftime("%d %b %Y")
-    date_y = info_y + int(45 * scale)
+    date_y = info_y + line_spacing
     draw.text((info_x, date_y), "DATE", fill=rgb_color, font=font_label)
-    draw.text((info_x, date_y + int(14 * scale)), current_date, fill=dark_text, font=font_date)
+    draw.text((info_x, date_y + int(18 * scale)), current_date, fill=dark_text, font=font_value)
     
-    # ADVOCATE label and value
+    # ADVOCATE
     if show_advocate_name and advocate_name:
-        advocate_y = date_y + int(40 * scale)
+        advocate_y = date_y + line_spacing
         draw.text((info_x, advocate_y), "ADVOCATE", fill=rgb_color, font=font_label)
-        draw.text((info_x, advocate_y + int(14 * scale)), advocate_name, fill=rgb_color, font=font_advocate)
+        draw.text((info_x, advocate_y + int(18 * scale)), advocate_name, fill=rgb_color, font=font_advocate)
+    
+    # ============ SIGNATURE SECTION ============
+    body_bottom = header_h + body_h
+    if include_signature or show_signature_placeholder:
+        sig_top = body_bottom
+        sig_line_y = sig_top + int(45 * scale)
+        sig_line_start = padding + int(20 * scale)
+        sig_line_end = width - padding - int(20 * scale)
+        
+        draw.line([(sig_line_start, sig_line_y), (sig_line_end, sig_line_y)], fill=rgb_color, width=int(1 * scale))
+        draw.text((width // 2, sig_line_y + int(15 * scale)), "Advocate's Signature", fill=rgb_color, font=font_sig_label, anchor="mm")
+        
+        if signature_data:
+            try:
+                if signature_data.startswith('data:'):
+                    signature_data = signature_data.split(',')[1]
+                sig_bytes = base64.b64decode(signature_data)
+                sig_img = Image.open(BytesIO(sig_bytes)).convert('RGBA')
+                
+                max_sig_width = sig_line_end - sig_line_start - int(40 * scale)
+                max_sig_height = int(35 * scale)
+                sig_ratio = min(max_sig_width / sig_img.width, max_sig_height / sig_img.height)
+                new_sig_width = int(sig_img.width * sig_ratio)
+                new_sig_height = int(sig_img.height * sig_ratio)
+                sig_img = sig_img.resize((new_sig_width, new_sig_height), Image.Resampling.LANCZOS)
+                
+                sig_paste_x = (width - new_sig_width) // 2
+                sig_paste_y = sig_line_y - new_sig_height - int(5 * scale)
+                img.paste(sig_img, (sig_paste_x, sig_paste_y), sig_img)
+            except Exception as e:
+                print(f"Failed to add signature: {e}")
     
     # ============ FOOTER SECTION ============
-    footer_top = body_bottom
+    footer_top = body_bottom + sig_h
     footer_bottom = height - border_width
     
-    # Light green footer background with rounded bottom corners
-    draw.rounded_rectangle(
-        [border_width, footer_top - corner_radius, width - border_width, footer_bottom],
-        radius=corner_radius,
-        fill=footer_bg
-    )
-    # Square off top of footer
-    draw.rectangle(
-        [border_width, footer_top, width - border_width, footer_top + corner_radius],
-        fill=footer_bg
-    )
+    draw.rounded_rectangle([border_width, footer_top - corner_radius, width - border_width, footer_bottom], radius=corner_radius, fill=footer_bg)
+    draw.rectangle([border_width, footer_top, width - border_width, footer_top + corner_radius], fill=footer_bg)
     
-    # Footer text
-    footer_text = "Scan QR Code to Verify Authenticity"
-    draw.text(
-        (width // 2, footer_top + footer_h // 2),
-        footer_text,
-        fill=rgb_color,
-        font=font_footer,
-        anchor="mm"
-    )
+    draw.text((width // 2, footer_top + footer_h // 2), "Scan QR Code to Verify Authenticity", fill=rgb_color, font=font_footer, anchor="mm")
     
     return img
 
