@@ -643,6 +643,9 @@ const DocumentStampPage = () => {
       const scale = 1.5; // Render at higher resolution for clarity
       const viewport = page.getViewport({ scale });
       
+      // Store the actual render scale for coordinate conversion
+      setPdfRenderScale(scale);
+      
       // Create off-screen canvas
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
