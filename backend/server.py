@@ -3147,55 +3147,44 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
                 
                 if page_rotation in [90, -270]:
                     # Page rotated 90° clockwise
-                    # Visual coordinate system is rotated: visual X maps to mediabox Y (inverted), visual Y maps to mediabox X
-                    # Visual (vx, vy) with stamp of visual size (sw, sh) maps to:
-                    # mediabox_x = vy
-                    # mediabox_y = mediabox_height - vx - sw (because visual X runs along negative mediabox Y direction)
+                    # Visual X → mediabox Y (inverted), Visual Y → mediabox X
                     pdf_x = pos_y
                     pdf_y = orig_height - pos_x - target_width
-                    draw_width = target_height  # Stamp appears rotated, so swap
+                    draw_width = target_height  # Swap for rotation
                     draw_height = target_width
                 elif page_rotation in [180, -180]:
-                    # Page rotated 180°: visual (x,y) -> mediabox (width-x-w, height-y-h)
+                    # Page rotated 180°
                     pdf_x = orig_width - pos_x - target_width
-                    pdf_y = pos_y  # Y coordinate stays similar but from bottom
+                    pdf_y = pos_y
                     draw_width = target_width
                     draw_height = target_height
                 elif page_rotation in [270, -90]:
-                    # Page rotated 270° clockwise (90° counter-clockwise)
-                    # Visual (x,y) -> mediabox (height-y-h, x)
+                    # Page rotated 270° clockwise
                     pdf_x = orig_height - pos_y - target_height
                     pdf_y = pos_x
                     draw_width = target_height
                     draw_height = target_width
                 else:
-                    # No rotation (0°): just convert Y from top-left to bottom-left origin
+                    # No rotation (0°): convert Y from top-left to bottom-left
+                    # Formula: y_pdf = pageHeight - y_topLeft - stampHeight
                     pdf_x = pos_x
                     pdf_y = orig_height - pos_y - target_height
                     draw_width = target_width
                     draw_height = target_height
                 
-                # DEBUG: Log all coordinate info
-                print(f"DEBUG COORDS: Page {page_num+1}")
-                print(f"  - Page rotation: {page_rotation}")
-                print(f"  - Mediabox: {orig_width}x{orig_height}")
-                print(f"  - Visual size: {visual_width}x{visual_height}")
-                print(f"  - Frontend page size: {frontend_page_width}x{frontend_page_height}")
-                print(f"  - Frontend visual pos: ({pos_x}, {pos_y})")
-                print(f"  - Target size: {target_width}x{target_height}")
-                print(f"  - PDF coords BEFORE bounds: pdf_x={pdf_x}, pdf_y={pdf_y}, draw={draw_width}x{draw_height}")
+                print(f"=== COORDINATE CONVERSION (Page {page_num+1}) ===")
+                print(f"  Page rotation: {page_rotation}°")
+                print(f"  Mediabox: {orig_width:.0f}x{orig_height:.0f}")
+                print(f"  Input pos (top-left, pt): ({pos_x:.1f}, {pos_y:.1f})")
+                print(f"  Output pos (bottom-left, pt): ({pdf_x:.1f}, {pdf_y:.1f})")
+                print(f"  Draw size: {draw_width}x{draw_height}")
                 
-                # Get margin from position data (default to 10pt if not provided)
-                margin_pt = position.get("margin", 10)
+                # Apply edge margin clamping (safety net - frontend already clamps)
+                pdf_x = max(EDGE_MARGIN_PT, min(pdf_x, orig_width - draw_width - EDGE_MARGIN_PT))
+                pdf_y = max(EDGE_MARGIN_PT, min(pdf_y, orig_height - draw_height - EDGE_MARGIN_PT))
                 
-                # Ensure stamp stays within page bounds with margin (safe area)
-                # Clamp: x in [margin, pageWidth - stampWidth - margin]
-                # Clamp: y in [margin, pageHeight - stampHeight - margin]
-                pdf_x = max(margin_pt, min(pdf_x, orig_width - draw_width - margin_pt))
-                pdf_y = max(margin_pt, min(pdf_y, orig_height - draw_height - margin_pt))
-                
-                print(f"  - Margin: {margin_pt}pt")
-                print(f"  - PDF coords AFTER bounds: pdf_x={pdf_x}, pdf_y={pdf_y}")
+                print(f"  Final pos (clamped): ({pdf_x:.1f}, {pdf_y:.1f})")
+                print(f"=== END ===")
                 
                 # Draw the branded stamp image - reset buffer for each page
                 stamp_buffer.seek(0)
