@@ -508,30 +508,37 @@ const StampEditor = ({ shape, existingStamp, onSave, onCancel }) => {
               </div>
 
 
-              {/* Layout Options (Rectangle only) */}
-              {shape === "rectangle" && (
-                <div className="space-y-3">
-                  <Label className="text-white/70">Layout Style</Label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {RECTANGLE_LAYOUTS.map((layout) => (
-                      <button
-                        key={layout.id}
-                        onClick={() => setFormData(f => ({ ...f, layout: layout.id }))}
-                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
-                          formData.layout === layout.id 
-                            ? 'border-emerald-500 bg-emerald-500/20' 
-                            : 'border-white/10 hover:border-white/30 bg-white/5'
-                        }`}
-                      >
-                        <layout.icon className={`w-5 h-5 ${formData.layout === layout.id ? 'text-emerald-400' : 'text-white/50'}`} />
-                        <span className={`text-[10px] ${formData.layout === layout.id ? 'text-emerald-400' : 'text-white/50'}`}>
-                          {layout.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+              {/* Size Selection - replaces old layout options */}
+              <div className="space-y-3">
+                <Label className="text-white/70">Stamp Size</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {STAMP_SIZE_PRESETS.map((size) => (
+                    <button
+                      key={size.id}
+                      onClick={() => setFormData(f => ({ ...f, stamp_size_preset: size.id }))}
+                      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                        formData.stamp_size_preset === size.id 
+                          ? 'border-emerald-500 bg-emerald-500/20' 
+                          : 'border-white/10 hover:border-white/30 bg-white/5'
+                      }`}
+                    >
+                      <div 
+                        className={`rounded border-2 ${formData.stamp_size_preset === size.id ? 'border-emerald-400' : 'border-white/30'}`}
+                        style={{ 
+                          width: size.id === 'small' ? 30 : size.id === 'medium' ? 40 : 50,
+                          height: size.id === 'small' ? 26 : size.id === 'medium' ? 35 : 44
+                        }}
+                      />
+                      <span className={`text-sm font-medium ${formData.stamp_size_preset === size.id ? 'text-emerald-400' : 'text-white/70'}`}>
+                        {size.name}
+                      </span>
+                      <span className={`text-[10px] ${formData.stamp_size_preset === size.id ? 'text-emerald-400/70' : 'text-white/40'}`}>
+                        {size.desc}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-            )}
+              </div>
 
             {/* Color Selection */}
             <div className="space-y-3">
