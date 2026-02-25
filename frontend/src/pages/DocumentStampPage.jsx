@@ -829,8 +829,10 @@ const DocumentStampPage = () => {
         page: pagesToStamp[0], // Primary page
         pages: pagesToStamp, // All pages to stamp
         positions: pagePositions, // Per-page positions in PDF points
-        width: Math.round(stampSize.width / pdfRenderScale),
-        height: Math.round(stampSize.height / pdfRenderScale),
+        // Send stamp size directly as desired PDF points - NOT divided by pdfRenderScale
+        // This ensures the stamp appears at a readable size on the final PDF
+        width: stampSize.width,
+        height: stampSize.height,
         // Send page dimensions from frontend for verification
         frontendPageWidth: Math.round(pageDimensions.width / pdfRenderScale),
         frontendPageHeight: Math.round(pageDimensions.height / pdfRenderScale)
