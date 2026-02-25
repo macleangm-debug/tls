@@ -1007,26 +1007,69 @@ const DocumentStampPage = () => {
   };
 
   const autoDownloadStampedDocument = (result) => {
-    if (!result) return;
+    if (!result || !result.stamped_document) return;
 
-    const link = document.createElement('a');
-    const contentType = result.content_type || 'application/pdf';
-    
-    link.href = `data:${contentType};base64,${result.stamped_document}`;
-    link.download = `TLS_Verified_${result.document_name || 'document'}.pdf`;
-    link.click();
+    try {
+      // Convert base64 to blob for better browser compatibility with large files
+      const byteCharacters = atob(result.stamped_document);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const contentType = result.content_type || 'application/pdf';
+      const blob = new Blob([byteArray], { type: contentType });
+      
+      // Create blob URL and download
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `TLS_Verified_${result.document_name || 'document'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up blob URL after download
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast.error("Failed to download document");
+    }
   };
 
   const downloadStampedDocument = () => {
-    if (!stampResult) return;
+    if (!stampResult || !stampResult.stamped_document) {
+      toast.error("No document available to download");
+      return;
+    }
 
-    const link = document.createElement('a');
-    const contentType = stampResult.content_type || 'application/pdf';
-    
-    link.href = `data:${contentType};base64,${stampResult.stamped_document}`;
-    link.download = `TLS_Verified_${stampResult.document_name || 'document'}.pdf`;
-    link.click();
-    toast.success("Stamped document downloaded");
+    try {
+      // Convert base64 to blob for better browser compatibility
+      const byteCharacters = atob(stampResult.stamped_document);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const contentType = stampResult.content_type || 'application/pdf';
+      const blob = new Blob([byteArray], { type: contentType });
+      
+      // Create blob URL and download
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `TLS_Verified_${stampResult.document_name || 'document'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up blob URL
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      toast.success("Stamped document downloaded");
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast.error("Failed to download document");
+    }
   };
 
   const shareDocument = async () => {
