@@ -300,9 +300,14 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
   const adminNavGroups = [
     {
-      label: "Administration",
+      label: "Overview",
       items: [
         { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
+      ]
+    },
+    {
+      label: "Management",
+      items: [
         { icon: Users, label: "Advocates", path: "/admin/advocates" },
         { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
       ]
