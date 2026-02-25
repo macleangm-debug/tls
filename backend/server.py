@@ -3470,6 +3470,348 @@ async def revoke_document_stamp(stamp_id: str, user: dict = Depends(get_current_
     
     return {"message": "Document stamp revoked successfully"}
 
+# =============== STAMP LEDGER API ===============
+
+@api_router.get("/stamps", response_model=StampLedgerListResponse)
+async def get_stamps_ledger(
+    request: Request,
+    status: Optional[str] = Query(None, description="Filter by status: active, revoked, expired"),
+    from_date: Optional[str] = Query(None, alias="from", description="Filter from date (ISO format)"),
+    to_date: Optional[str] = Query(None, alias="to", description="Filter to date (ISO format)"),
+    q: Optional[str] = Query(None, description="Search by stamp_id or doc_hash"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    user: dict = Depends(get_current_user)
+):
+    """Get paginated stamp ledger for advocate"""
+    # Build query
+    query = {"advocate_id": user["id"]}
+    
+    # Admin can see all
+    if user.get("role") in ["admin", "super_admin"]:
+        query = {}
+    
+    # Status filter
+    if status:
+        query["status"] = status
+    
+    # Date range filter
+    if from_date:
+        query["created_at"] = {"$gte": from_date}
+    if to_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = to_date
+        else:
+            query["created_at"] = {"$lte": to_date}
+    
+    # Search filter
+    if q:
+        query["$or"] = [
+            {"stamp_id": {"$regex": q, "$options": "i"}},
+            {"document_hash": {"$regex": q, "$options": "i"}}
+        ]
+    
+    # Get total count
+    total = await db.document_stamps.count_documents(query)
+    
+    # Get paginated results
+    skip = (page - 1) * page_size
+    stamps = await db.document_stamps.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(page_size).to_list(page_size)
+    
+    # Check for expired stamps and update status dynamically
+    now = datetime.now(timezone.utc)
+    items = []
+    for s in stamps:
+        # Compute effective status
+        effective_status = s.get("status", "active")
+        if effective_status == "active" and s.get("expires_at"):
+            try:
+                expires = datetime.fromisoformat(s["expires_at"].replace("Z", "+00:00"))
+                if now > expires:
+                    effective_status = "expired"
+            except:
+                pass
+        
+        items.append(StampLedgerItem(
+            stamp_id=s["stamp_id"],
+            advocate_id=s["advocate_id"],
+            advocate_name=s.get("advocate_name", ""),
+            issued_at=s.get("created_at", ""),
+            status=effective_status,
+            doc_hash=s.get("document_hash", ""),
+            doc_filename=s.get("document_name"),
+            document_type=s.get("document_type"),
+            recipient_name=s.get("recipient_name"),
+            border_color=s.get("branding", {}).get("color"),
+            pages_stamped=s.get("document_pages"),
+            verification_count=s.get("verification_count", 0),
+            expires_at=s.get("expires_at"),
+            revoked_at=s.get("revoked_at"),
+            revoke_reason=s.get("revoke_reason")
+        ))
+    
+    return StampLedgerListResponse(
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total
+    )
+
+
+@api_router.get("/stamps/{stamp_id}", response_model=StampLedgerDetail)
+async def get_stamp_detail(stamp_id: str, user: dict = Depends(get_current_user)):
+    """Get detailed stamp information"""
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id}, {"_id": 0})
+    if not stamp:
+        raise HTTPException(status_code=404, detail="Stamp not found")
+    
+    # Check access
+    if user.get("role") not in ["admin", "super_admin"] and stamp["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Compute effective status
+    effective_status = stamp.get("status", "active")
+    now = datetime.now(timezone.utc)
+    if effective_status == "active" and stamp.get("expires_at"):
+        try:
+            expires = datetime.fromisoformat(stamp["expires_at"].replace("Z", "+00:00"))
+            if now > expires:
+                effective_status = "expired"
+        except:
+            pass
+    
+    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://advocate-stamp-fix.preview.emergentagent.com')
+    
+    return StampLedgerDetail(
+        stamp_id=stamp["stamp_id"],
+        advocate_id=stamp["advocate_id"],
+        advocate_name=stamp.get("advocate_name", ""),
+        advocate_roll_number=stamp.get("advocate_roll_number"),
+        advocate_tls_number=stamp.get("advocate_tls_number"),
+        issued_at=stamp.get("created_at", ""),
+        status=effective_status,
+        doc_hash=stamp.get("document_hash", ""),
+        doc_filename=stamp.get("document_name"),
+        document_type=stamp.get("document_type"),
+        recipient_name=stamp.get("recipient_name"),
+        recipient_org=stamp.get("recipient_org"),
+        description=stamp.get("description"),
+        border_color=stamp.get("branding", {}).get("color"),
+        pages_stamped=stamp.get("document_pages"),
+        verification_count=stamp.get("verification_count", 0),
+        verification_url=f"{frontend_url}/verify?id={stamp_id}",
+        qr_code_data=stamp.get("qr_code_data"),
+        hash_value=stamp.get("hash_value"),
+        total_earnings=stamp.get("total_earnings", 0.0),
+        expires_at=stamp.get("expires_at"),
+        revoked_at=stamp.get("revoked_at"),
+        revoke_reason=stamp.get("revoke_reason"),
+        batch_id=stamp.get("batch_id")
+    )
+
+
+@api_router.post("/stamps/{stamp_id}/revoke")
+async def revoke_stamp_with_reason(
+    stamp_id: str,
+    request: Request,
+    body: RevokeStampRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Revoke a stamp with reason (audit logged)"""
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id})
+    if not stamp:
+        raise HTTPException(status_code=404, detail="Stamp not found")
+    
+    # Check access
+    if user.get("role") not in ["admin", "super_admin"] and stamp["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Check if already revoked (idempotent)
+    if stamp.get("status") == "revoked":
+        return {"message": "Stamp already revoked", "revoked_at": stamp.get("revoked_at")}
+    
+    now = datetime.now(timezone.utc)
+    
+    # Update stamp status
+    await db.document_stamps.update_one(
+        {"stamp_id": stamp_id},
+        {"$set": {
+            "status": "revoked",
+            "revoked_at": now.isoformat(),
+            "revoked_by": user["id"],
+            "revoke_reason": body.reason
+        }}
+    )
+    
+    # Log audit event
+    await log_stamp_event(
+        stamp_id=stamp_id,
+        event_type="STAMP_REVOKED",
+        actor_id=user["id"],
+        actor_type="admin" if user.get("role") in ["admin", "super_admin"] else "advocate",
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"reason": body.reason}
+    )
+    
+    return {"message": "Stamp revoked successfully", "revoked_at": now.isoformat()}
+
+
+@api_router.get("/stamps/{stamp_id}/events", response_model=List[StampEvent])
+async def get_stamp_events(
+    stamp_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    user: dict = Depends(get_current_user)
+):
+    """Get audit events for a stamp"""
+    # Verify stamp exists and user has access
+    stamp = await db.document_stamps.find_one({"stamp_id": stamp_id})
+    if not stamp:
+        raise HTTPException(status_code=404, detail="Stamp not found")
+    
+    if user.get("role") not in ["admin", "super_admin"] and stamp["advocate_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get events
+    skip = (page - 1) * page_size
+    events = await db.stamp_events.find(
+        {"stamp_id": stamp_id},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(page_size).to_list(page_size)
+    
+    return [StampEvent(**e) for e in events]
+
+
+@api_router.get("/stamps/export.csv")
+async def export_stamps_csv(
+    request: Request,
+    status: Optional[str] = Query(None),
+    from_date: Optional[str] = Query(None, alias="from"),
+    to_date: Optional[str] = Query(None, alias="to"),
+    q: Optional[str] = Query(None),
+    user: dict = Depends(get_current_user)
+):
+    """Export stamps as CSV"""
+    # Build query (same as list endpoint)
+    query = {"advocate_id": user["id"]}
+    if user.get("role") in ["admin", "super_admin"]:
+        query = {}
+    
+    if status:
+        query["status"] = status
+    if from_date:
+        query["created_at"] = {"$gte": from_date}
+    if to_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = to_date
+        else:
+            query["created_at"] = {"$lte": to_date}
+    if q:
+        query["$or"] = [
+            {"stamp_id": {"$regex": q, "$options": "i"}},
+            {"document_hash": {"$regex": q, "$options": "i"}}
+        ]
+    
+    # Get all matching stamps
+    stamps = await db.document_stamps.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+    
+    # Build CSV
+    csv_content = "stamp_id,advocate_name,issued_at,status,document_name,document_type,recipient_name,doc_hash,verification_count,expires_at\n"
+    
+    now = datetime.now(timezone.utc)
+    for s in stamps:
+        # Compute effective status
+        effective_status = s.get("status", "active")
+        if effective_status == "active" and s.get("expires_at"):
+            try:
+                expires = datetime.fromisoformat(s["expires_at"].replace("Z", "+00:00"))
+                if now > expires:
+                    effective_status = "expired"
+            except:
+                pass
+        
+        csv_content += f"{s['stamp_id']},{s.get('advocate_name', '')},{s.get('created_at', '')},{effective_status},{s.get('document_name', '')},{s.get('document_type', '')},{s.get('recipient_name', '')},{s.get('document_hash', '')},{s.get('verification_count', 0)},{s.get('expires_at', '')}\n"
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=stamps_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        }
+    )
+
+
+# Admin-only ledger view
+@api_router.get("/admin/stamps", response_model=StampLedgerListResponse)
+async def get_admin_stamps_ledger(
+    request: Request,
+    advocate_id: Optional[str] = Query(None, description="Filter by advocate ID"),
+    status: Optional[str] = Query(None),
+    from_date: Optional[str] = Query(None, alias="from"),
+    to_date: Optional[str] = Query(None, alias="to"),
+    q: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    user: dict = Depends(require_admin)
+):
+    """Admin view of all stamps across advocates"""
+    query = {}
+    
+    if advocate_id:
+        query["advocate_id"] = advocate_id
+    if status:
+        query["status"] = status
+    if from_date:
+        query["created_at"] = {"$gte": from_date}
+    if to_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = to_date
+        else:
+            query["created_at"] = {"$lte": to_date}
+    if q:
+        query["$or"] = [
+            {"stamp_id": {"$regex": q, "$options": "i"}},
+            {"document_hash": {"$regex": q, "$options": "i"}},
+            {"advocate_name": {"$regex": q, "$options": "i"}}
+        ]
+    
+    total = await db.document_stamps.count_documents(query)
+    skip = (page - 1) * page_size
+    stamps = await db.document_stamps.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(page_size).to_list(page_size)
+    
+    now = datetime.now(timezone.utc)
+    items = []
+    for s in stamps:
+        effective_status = s.get("status", "active")
+        if effective_status == "active" and s.get("expires_at"):
+            try:
+                expires = datetime.fromisoformat(s["expires_at"].replace("Z", "+00:00"))
+                if now > expires:
+                    effective_status = "expired"
+            except:
+                pass
+        
+        items.append(StampLedgerItem(
+            stamp_id=s["stamp_id"],
+            advocate_id=s["advocate_id"],
+            advocate_name=s.get("advocate_name", ""),
+            issued_at=s.get("created_at", ""),
+            status=effective_status,
+            doc_hash=s.get("document_hash", ""),
+            doc_filename=s.get("document_name"),
+            document_type=s.get("document_type"),
+            recipient_name=s.get("recipient_name"),
+            border_color=s.get("branding", {}).get("color"),
+            pages_stamped=s.get("document_pages"),
+            verification_count=s.get("verification_count", 0),
+            expires_at=s.get("expires_at"),
+            revoked_at=s.get("revoked_at"),
+            revoke_reason=s.get("revoke_reason")
+        ))
+    
+    return StampLedgerListResponse(items=items, page=page, page_size=page_size, total=total)
+
 # =============== BATCH STAMPING ===============
 
 @api_router.post("/documents/batch-stamp")
