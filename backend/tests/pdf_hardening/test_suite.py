@@ -87,7 +87,7 @@ class PDFHardeningTestSuite:
         """Generate synthetic test PDFs"""
         print("\n[1/4] Generating synthetic test PDFs...")
         
-        from synthetic_pdf_generator import SyntheticPDFGenerator
+        from tests.pdf_hardening.synthetic_pdf_generator import SyntheticPDFGenerator
         
         valid_pdfs = SyntheticPDFGenerator.generate_all()
         invalid_pdfs = SyntheticPDFGenerator.create_invalid_pdfs()
