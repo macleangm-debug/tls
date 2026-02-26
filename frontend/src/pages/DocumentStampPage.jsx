@@ -2340,14 +2340,19 @@ const DocumentStampPage = () => {
                       <div className="space-y-2">
                         {/* Digital Signature - Use saved signature */}
                         <button
-                          onClick={() => setSignatureMode("digital")}
-                          disabled={!savedSignature}
+                          onClick={() => {
+                            if (!savedSignature) {
+                              toast.error("Upload your signature first to use digital signing");
+                              return;
+                            }
+                            setSignatureMode("digital");
+                          }}
                           className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
                             signatureMode === "digital"
                               ? "border-emerald-500 bg-emerald-500/10"
                               : savedSignature 
                                 ? "border-white/10 bg-white/5 hover:border-white/20"
-                                : "border-white/5 bg-white/[0.02] opacity-60 cursor-not-allowed"
+                                : "border-white/5 bg-white/[0.02] opacity-60"
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -2356,7 +2361,7 @@ const DocumentStampPage = () => {
                               <div>
                                 <span className="text-white font-medium text-sm">Use Digital Signature</span>
                                 <p className="text-white/40 text-xs">
-                                  {savedSignature ? `${signatureSource === "drawn" ? "Drawn" : "Uploaded"} signature will be embedded` : "No signature saved yet"}
+                                  {savedSignature ? `${signatureSource === "drawn" ? "Drawn" : "Uploaded"} signature will be embedded` : "Upload signature first"}
                                 </p>
                               </div>
                             </div>
@@ -2374,9 +2379,9 @@ const DocumentStampPage = () => {
                         
                         {/* Signature Placeholder - Sign after printing */}
                         <button
-                          onClick={() => setSignatureMode("placeholder")}
+                          onClick={() => setSignatureMode("print")}
                           className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
-                            signatureMode === "placeholder"
+                            signatureMode === "print"
                               ? "border-blue-500 bg-blue-500/10"
                               : "border-white/10 bg-white/5 hover:border-white/20"
                           }`}
