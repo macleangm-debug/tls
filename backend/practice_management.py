@@ -106,9 +106,11 @@ class EventCreate(BaseModel):
     end_datetime: Optional[str] = None
     all_day: bool = False
     location: Optional[str] = None
+    court: Optional[str] = None  # Court name/registry for hearings
     description: Optional[str] = ""
     client_id: Optional[str] = None
     case_id: Optional[str] = None
+    priority: str = "medium"  # low, medium, high
     reminder_minutes: List[int] = [30, 1440]  # 30 mins, 1 day before
     recurring: Optional[str] = None  # daily, weekly, monthly, yearly
     color: Optional[str] = "#3B82F6"
@@ -120,16 +122,36 @@ class EventUpdate(BaseModel):
     end_datetime: Optional[str] = None
     all_day: Optional[bool] = None
     location: Optional[str] = None
+    court: Optional[str] = None
     description: Optional[str] = None
     client_id: Optional[str] = None
     case_id: Optional[str] = None
+    priority: Optional[str] = None
     reminder_minutes: Optional[List[int]] = None
     recurring: Optional[str] = None
     color: Optional[str] = None
-    status: Optional[str] = None  # scheduled, completed, cancelled
+    status: Optional[str] = None  # scheduled, completed, cancelled, rescheduled
 
 class EventStatusUpdate(BaseModel):
     status: str  # scheduled, completed, cancelled
+
+class EventCompleteRequest(BaseModel):
+    outcome: Optional[str] = None  # Notes on completion/outcome
+    completed_at: Optional[str] = None
+
+class EventCancelRequest(BaseModel):
+    reason: str  # Required - why was it cancelled
+
+class EventRescheduleRequest(BaseModel):
+    new_start_datetime: str
+    new_end_datetime: Optional[str] = None
+    reason: Optional[str] = None  # Why rescheduled
+
+class EventToTaskRequest(BaseModel):
+    task_title: Optional[str] = None  # Defaults to "Follow up: {event_title}"
+    due_date: Optional[str] = None  # Defaults to +7 days
+    priority: str = "high"
+    description: Optional[str] = None
 
 class EventReminderUpdate(BaseModel):
     reminder_minutes: List[int]  # e.g., [15, 30, 60, 1440] for 15min, 30min, 1hr, 1day
