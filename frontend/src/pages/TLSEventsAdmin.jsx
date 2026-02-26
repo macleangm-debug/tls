@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -14,7 +15,8 @@ import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function TLSEventsAdmin({ token }) {
+export default function TLSEventsAdmin() {
+  const { getAuthHeaders } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -39,16 +41,10 @@ export default function TLSEventsAdmin({ token }) {
     recurrence_count: 12
   });
 
-  const csrfToken = localStorage.getItem("csrf_token");
-  const headers = { 
-    Authorization: `Bearer ${token}`,
-    "X-CSRF-Token": csrfToken
-  };
-
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/api/tls/events`, { headers });
+      const res = await axios.get(`${API}/api/tls/events`, getAuthHeaders());
       setEvents(res.data.events || []);
     } catch (error) {
       toast.error("Failed to fetch TLS events");
