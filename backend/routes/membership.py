@@ -181,7 +181,7 @@ def create_membership_routes(db, get_current_user, require_admin, require_super_
         })
         
         # Count total advocates
-        total_advocates = await db.users.count_documents({"role": "advocate"})
+        total_advocates = await db.advocates.count_documents({"role": "advocate"})
         
         # Count expiring soon (within 30 days)
         thirty_days = (datetime.now(timezone.utc) + __import__("datetime").timedelta(days=30)).isoformat()
