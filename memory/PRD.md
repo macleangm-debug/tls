@@ -45,6 +45,30 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 26, 2026 - PDF Hardening & Validation Layer - COMPLETE ✅
+**Production-grade PDF input validation:**
+- **PDFValidationService** (`/app/backend/services/pdf_validation_service.py`):
+  - PDF header validation (%PDF- magic bytes)
+  - Encryption detection (rejects password-protected PDFs)
+  - Corruption/malformed PDF detection
+  - File size limits (max 10MB)
+  - Page count limits (max 200 pages)
+  - Page size validation (min 72pt, max 14400pt)
+  - Form/annotation detection
+  - Linearization detection
+- **Error Code Taxonomy**:
+  - `PDF_VALID`, `PDF_NOT_PDF`, `PDF_ENCRYPTED`, `PDF_CORRUPT`
+  - `PDF_TOO_LARGE`, `PDF_TOO_MANY_PAGES`, `PDF_EMPTY`
+  - `PDF_PAGE_TOO_SMALL`, `PDF_PAGE_TOO_LARGE`, `PDF_READ_ERROR`
+- **Stress Test Suite** (`/app/backend/tests/pdf_hardening/`):
+  - Synthetic PDF generator (23 valid + 4 invalid test files)
+  - Validation tests (26 tests)
+  - Stamping tests (12 tests)  
+  - Positioning tests (9 anchors)
+  - Real-world sample harness
+- **Test Report**: 47/47 tests passed (100%)
+- **Integration**: Validation now runs before every stamp operation
+
 ### Feb 26, 2026 - Landing Page Digital Certification Section - COMPLETE ✅
 **Marketing-ready showcase of platform capabilities:**
 - **Location**: LandingPage.jsx, positioned after Hero and Stats sections
@@ -60,6 +84,7 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
   - Compliance-friendly copy (no blockchain buzzwords)
   - Trust indicators: "Cryptographically Signed", "SHA-256 Hash Binding", "Public Key Verification", "Non-Forgeable"
   - CTAs: "Verify a Stamp" (primary), "Explore the Platform" (secondary)
+  - **Hover Animation**: Subtle lift effect (`hover:-translate-y-1`) with color-matched shadows
 - **No backend changes required**
 
 ### Feb 25, 2026 - Cryptographic Signing Layer - COMPLETE ✅
