@@ -254,19 +254,21 @@ const DocumentStampPage = () => {
       // Convert blob to object URL for <img src=...>
       const imgUrl = URL.createObjectURL(response.data);
       
-      // Revoke old URL to prevent memory leaks
-      if (stampPreviewImage && stampPreviewImage.startsWith('blob:')) {
-        URL.revokeObjectURL(stampPreviewImage);
-      }
-      
-      setStampPreviewImage(imgUrl);
+      setStampPreviewImage(prev => {
+        // Revoke old URL to prevent memory leaks
+        if (prev && prev.startsWith('blob:')) {
+          URL.revokeObjectURL(prev);
+        }
+        return imgUrl;
+      });
     } catch (error) {
       console.error("Stamp render-image preview failed:", error);
       setStampPreviewImage(null);
     } finally {
       setLoadingStampPreview(false);
     }
-  }, [user, selectedType, brandColor, signatureMode, savedSignature, getAuthHeaders, stampPreviewImage]);
+  }, [user, selectedType, brandColor, signatureMode, savedSignature, getAuthHeaders]);
+  // NOTE: stampPreviewImage REMOVED from dependencies to prevent re-render loop
 
   // Debounced stamp preview fetch to avoid excessive API calls
   useEffect(() => {
