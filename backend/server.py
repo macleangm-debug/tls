@@ -3129,6 +3129,269 @@ async def generate_stamp_preview(
 
 
 
+# =============== PREVIEW STAMPED PDF (NO PERSISTENCE) ===============
+@api_router.post("/documents/stamp-preview-pdf")
+async def stamp_preview_pdf(
+    file: UploadFile = File(...),
+    stamp_type: str = Form("certification"),
+    stamp_position: str = Form('{"page": 1, "x": 400, "y": 50}'),
+    document_name: str = Form(None),
+    document_type: str = Form("contract"),
+    description: str = Form(""),
+    recipient_name: str = Form(""),
+    recipient_org: str = Form(""),
+    brand_color: str = Form("#10B981"),
+    show_advocate_name: str = Form("true"),
+    show_tls_logo: str = Form("true"),
+    layout: str = Form("horizontal"),
+    shape: str = Form("rectangle"),
+    include_signature: str = Form("false"),
+    show_signature_placeholder: str = Form("false"),
+    stamp_size: int = Form(100),
+    opacity: int = Form(90),
+    transparent_background: str = Form("false"),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Generate a preview of the stamped PDF WITHOUT persisting anything.
+    - Same payload as /documents/stamp
+    - Returns PDF with watermark "PREVIEW ONLY - NOT VALID"
+    - Does NOT create stamp records, events, or billing charges
+    - Uses TLS-PREVIEW-* stamp ID format
+    """
+    if user.get("practicing_status") != "Active":
+        raise HTTPException(status_code=403, detail="Only active advocates can preview stamps")
+    
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+    
+    # Validate file type
+    if file.content_type not in ["application/pdf", "image/png", "image/jpeg", "image/jpg"]:
+        raise HTTPException(status_code=400, detail="Only PDF and image files are allowed")
+    
+    # Parse stamp position
+    try:
+        position = json.loads(stamp_position)
+    except (json.JSONDecodeError, TypeError):
+        position = {"page": 1, "x": 400, "y": 50}
+    
+    # Generate document hash
+    doc_hash = generate_document_hash(content)
+    
+    # Generate PREVIEW stamp ID (clearly marked as preview)
+    preview_stamp_id = f"TLS-PREVIEW-{datetime.now().strftime('%Y%m%d%H%M%S')}-{secrets.token_hex(2).upper()}"
+    
+    # Get user's signature if they want to include it
+    signature_data = None
+    if include_signature.lower() == "true":
+        user_full = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1})
+        if user_full:
+            signature_data = user_full.get("signature_data")
+    
+    # Build branding options (same as real stamp)
+    branding = {
+        "color": brand_color,
+        "show_advocate_name": show_advocate_name.lower() == "true",
+        "show_tls_logo": True,
+        "layout": layout,
+        "shape": shape,
+        "include_signature": include_signature.lower() == "true",
+        "show_signature_placeholder": show_signature_placeholder.lower() == "true",
+        "stamp_size": stamp_size,
+        "opacity": opacity,
+        "transparent_background": transparent_background.lower() == "true"
+    }
+    
+    # Create preview stamp record (NOT persisted to DB)
+    preview_stamp_record = {
+        "id": str(uuid.uuid4()),
+        "stamp_id": preview_stamp_id,
+        "advocate_id": user["id"],
+        "advocate_name": user["full_name"],
+        "advocate_roll_number": user["roll_number"],
+        "advocate_tls_number": user.get("tls_member_number", ""),
+        "document_name": document_name or file.filename,
+        "document_type": document_type,
+        "description": description,
+        "recipient_name": recipient_name,
+        "recipient_org": recipient_org,
+        "document_hash": doc_hash,
+        "stamp_type": stamp_type,
+        "stamp_position": position,
+        "branding": branding,
+        "signature_data": signature_data,
+        "status": "preview",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Generate preview PDF with watermark
+    try:
+        stamped_pdf = await embed_stamp_in_pdf_preview(
+            content, 
+            preview_stamp_record, 
+            user, 
+            position
+        )
+        
+        # Return PDF blob with preview headers
+        headers = {
+            "X-Stamp-ID": preview_stamp_id,
+            "X-Preview": "true",
+            "X-Document-Hash": doc_hash,
+            "Cache-Control": "no-store",
+            "Content-Disposition": f'inline; filename="preview_{document_name or file.filename}"'
+        }
+        
+        return Response(
+            content=stamped_pdf,
+            media_type="application/pdf",
+            headers=headers
+        )
+        
+    except Exception as e:
+        logger.error(f"Preview generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Preview generation failed: {str(e)}")
+
+
+async def embed_stamp_in_pdf_preview(content: bytes, stamp_record: dict, user: dict, position: dict) -> bytes:
+    """
+    Embed stamp into PDF for PREVIEW purposes.
+    Same as embed_stamp_in_pdf but adds watermark and uses preview stamp ID.
+    """
+    try:
+        from reportlab.lib.colors import Color
+        
+        pdf_reader = PdfReader(BytesIO(content))
+        pdf_writer = PdfWriter()
+        
+        target_page = position.get("page", 1) - 1
+        x = position.get("x", 400)
+        y = position.get("y", 50)
+        
+        # Get branding options
+        branding = stamp_record.get("branding", {})
+        brand_color = branding.get("color", "#10B981")
+        layout = branding.get("layout", "horizontal")
+        show_advocate_name = branding.get("show_advocate_name", True)
+        show_tls_logo = branding.get("show_tls_logo", True)
+        include_signature = branding.get("include_signature", False)
+        show_sig_placeholder = branding.get("show_signature_placeholder", False)
+        transparent_bg = branding.get("transparent_background", False)
+        
+        signature_data = stamp_record.get("signature_data")
+        shape = branding.get("shape", "rectangle")
+        
+        # Generate stamp at higher resolution
+        scale = 2.0
+        
+        # Generate the branded stamp image (same as real stamp)
+        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://billing-dashboard-45.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
+        stamp_img = generate_branded_stamp_image(
+            stamp_id=stamp_record['stamp_id'],
+            advocate_name=user['full_name'],
+            verification_url=verification_url,
+            brand_color=brand_color,
+            layout=layout,
+            shape=shape,
+            show_advocate_name=show_advocate_name,
+            show_tls_logo=show_tls_logo,
+            include_signature=include_signature,
+            signature_data=signature_data,
+            show_signature_placeholder=show_sig_placeholder,
+            scale=scale,
+            transparent_background=transparent_bg
+        )
+        
+        stamp_buffer = BytesIO()
+        stamp_img.save(stamp_buffer, format='PNG')
+        stamp_buffer.seek(0)
+        
+        # Select dimensions based on signature requirements (same logic as real stamp)
+        needs_signature_section = include_signature or show_sig_placeholder
+        if needs_signature_section:
+            STAMP_WIDTH_PT = 200
+            STAMP_HEIGHT_PT = 150
+        else:
+            STAMP_WIDTH_PT = 240
+            STAMP_HEIGHT_PT = 128
+        
+        EDGE_MARGIN_PT = 12
+        
+        # Get pages to stamp
+        pages_to_stamp = position.get("pages", [target_page + 1])
+        pages_to_stamp_0indexed = [p - 1 for p in pages_to_stamp]
+        per_page_positions = position.get("positions", {})
+        
+        for page_num, page in enumerate(pdf_reader.pages):
+            if page_num in pages_to_stamp_0indexed:
+                packet = BytesIO()
+                
+                mediabox = page.mediabox
+                orig_width = float(mediabox.width)
+                orig_height = float(mediabox.height)
+                
+                c = canvas.Canvas(packet, pagesize=(orig_width, orig_height))
+                
+                # ========== WATERMARK: PREVIEW ONLY ==========
+                c.saveState()
+                c.setFillColor(Color(0, 0, 0, alpha=0.06))
+                c.setFont("Helvetica-Bold", 48)
+                c.translate(orig_width / 2, orig_height / 2)
+                c.rotate(35)
+                c.drawCentredString(0, 0, "PREVIEW ONLY - NOT VALID")
+                c.restoreState()
+                
+                # Get position for this page
+                page_key = str(page_num + 1)
+                if page_key in per_page_positions:
+                    page_pos = per_page_positions[page_key]
+                    pos_x = page_pos.get("x", x)
+                    pos_y = page_pos.get("y", y)
+                else:
+                    pos_x = x
+                    pos_y = y
+                
+                # Coordinate conversion (top-left to bottom-left)
+                pdf_x = pos_x
+                pdf_y = orig_height - pos_y - STAMP_HEIGHT_PT
+                
+                # Clamp to safe area
+                pdf_x = max(EDGE_MARGIN_PT, min(pdf_x, orig_width - STAMP_WIDTH_PT - EDGE_MARGIN_PT))
+                pdf_y = max(EDGE_MARGIN_PT, min(pdf_y, orig_height - STAMP_HEIGHT_PT - EDGE_MARGIN_PT))
+                
+                # Draw stamp image
+                stamp_buffer.seek(0)
+                c.drawImage(
+                    ImageReader(stamp_buffer),
+                    pdf_x,
+                    pdf_y,
+                    width=STAMP_WIDTH_PT,
+                    height=STAMP_HEIGHT_PT,
+                    mask='auto'
+                )
+                
+                c.save()
+                packet.seek(0)
+                
+                # Merge overlay with page
+                overlay_pdf = PdfReader(packet)
+                page.merge_page(overlay_pdf.pages[0])
+            
+            pdf_writer.add_page(page)
+        
+        # Write final PDF
+        output = BytesIO()
+        pdf_writer.write(output)
+        output.seek(0)
+        
+        return output.getvalue()
+        
+    except Exception as e:
+        logger.error(f"Preview PDF embedding failed: {e}")
+        raise
+
+
 @api_router.post("/documents/stamp")
 async def create_document_stamp(
     file: UploadFile = File(...),
