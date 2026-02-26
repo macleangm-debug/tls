@@ -493,6 +493,22 @@ const LandingPage = () => {
               </div>
             ))}
           </div>
+
+          {/* CTA Buttons */}
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <Link to="/verify">
+              <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all" data-testid="cert-verify-cta">
+                Verify a Stamp
+                <ShieldCheck className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/5 rounded-xl px-8 py-6 text-base font-medium" data-testid="cert-explore-cta">
+                Explore the Platform
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
