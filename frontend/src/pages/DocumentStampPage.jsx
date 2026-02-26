@@ -116,7 +116,7 @@ const DocumentStampPage = () => {
   const showAdvocateName = true; // Always show advocate name on stamp
   
   // Stamp positioning (using react-rnd) - Per-page positions
-  const [stampSize, setStampSize] = useState({ width: 350, height: 310 }); // Large TLS stamp size
+  const [stampSize, setStampSize] = useState({ width: 255, height: 135 }); // Default: 170pt * 1.5 scale
   const [stampPositions, setStampPositions] = useState({}); // {1: {x, y}, 2: {x, y}, ...} per page
   const [currentPage, setCurrentPage] = useState(1);
   const [previewScale, setPreviewScale] = useState(1);
