@@ -14,8 +14,9 @@ import { toast } from "sonner";
 import { 
   Upload, FileText, Download, CheckCircle2, AlertTriangle, 
   X, File, Loader2, Layers, Trash2, Archive, FileCheck,
-  Grid3X3, CornerRightDown, Move
+  Grid3X3, CornerRightDown, Move, Lock
 } from "lucide-react";
+import { MembershipInlineWarning, useMembershipStatus } from "../components/MembershipStatusBanner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
