@@ -860,75 +860,8 @@ const AdvocateDashboard = () => {
           )}
         </div>
       </details>
-                          {v.institution || "Document verified"}
-                        </p>
-                        <p className="text-[10px] text-white/40">{v.stamp_id}</p>
-                      </div>
-                      <span className="text-[10px] text-white/30">
-                        {new Date(v.verified_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Recent Stamps */}
-          <Card className="glass-card rounded-2xl border-white/10" data-testid="recent-stamps-card">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <QrCode className="w-4 h-4 text-emerald-400" />
-                  Recent Stamps
-                </h3>
-                <Link to="/stamp-verification" className="text-emerald-400 text-xs hover:underline">
-                  View All →
-                </Link>
-              </div>
-              {recentStamps.length === 0 ? (
-                <div className="text-center py-4">
-                  <QrCode className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                  <p className="text-white/40 text-xs">No stamps yet</p>
-                  <Link to="/documents">
-                    <Button size="sm" className="mt-2 bg-emerald-500 hover:bg-emerald-600 text-xs h-8">
-                      Create First Stamp
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {recentStamps.slice(0, 4).map((stamp) => (
-                    <div key={stamp.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <QrCode className="w-4 h-4 text-emerald-400" />
-                        <span className="font-mono text-xs text-white">{stamp.stamp_id}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => copyVerifyLink(stamp.stamp_id)}
-                          className="h-6 w-6 p-0 text-white/40 hover:text-white"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
-                        <Link to={`/verify?id=${stamp.stamp_id}`}>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-emerald-400">
-                            <Eye className="w-3 h-3" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* ========== SECTION 4: Quick Actions Bar ========== */}
+      {/* ========== SECTION 6: Quick Actions Bar ========== */}
       <Card className="glass-card rounded-2xl border-white/10 mb-6">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
