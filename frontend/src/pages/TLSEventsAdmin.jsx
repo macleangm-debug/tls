@@ -161,7 +161,13 @@ export default function TLSEventsAdmin() {
         enabled: true,
         rule: formData.recurrence_rule,
         count: formData.recurrence_count
-      } : { enabled: false }
+      } : { enabled: false },
+      attendance: formData.attendance_enabled ? {
+        enabled: true,
+        mode: formData.attendance_mode,
+        cpd_points: formData.cpd_points ? parseInt(formData.cpd_points) : null,
+        certificate_enabled: false
+      } : { enabled: false, mode: "admin", cpd_points: null, certificate_enabled: false }
     };
 
     try {
