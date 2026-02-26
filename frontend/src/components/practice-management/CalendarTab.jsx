@@ -17,7 +17,7 @@ import {
   Calendar, Plus, Edit, Trash2, Eye, Copy, MoreVertical,
   AlertTriangle, Clock, CheckSquare, Bell, MapPin, Building,
   Gavel, UserCheck, CalendarIcon, ClockIcon, ChevronRight,
-  Check, X, ArrowRight, ListTodo, GripVertical
+  Check, X, ArrowRight, ListTodo, GripVertical, CheckCircle2, UserPlus
 } from "lucide-react";
 import axios from "axios";
 import { API, ConfirmDialog, DateTimePicker } from "./shared";
