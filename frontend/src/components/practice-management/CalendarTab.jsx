@@ -83,6 +83,8 @@ export const CalendarTab = ({ token }) => {
   const [editEvent, setEditEvent] = useState(null);
   const [viewEvent, setViewEvent] = useState(null);
   const [viewTlsEvent, setViewTlsEvent] = useState(null);
+  const [tlsAckStatus, setTlsAckStatus] = useState(null);
+  const [tlsAttendanceStatus, setTlsAttendanceStatus] = useState(null);
   const [deleteEvent, setDeleteEvent] = useState(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
