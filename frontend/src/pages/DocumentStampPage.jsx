@@ -193,7 +193,7 @@ const DocumentStampPage = () => {
   // Backend-generated stamp preview (SINGLE SOURCE OF TRUTH)
   const [stampPreviewImage, setStampPreviewImage] = useState(null);
   const [loadingStampPreview, setLoadingStampPreview] = useState(false);
-  const [stampPdfDimensions, setStampPdfDimensions] = useState({ width: 240, height: 128 }); // PDF points
+  const [stampPdfDimensions, setStampPdfDimensions] = useState({ width: 170, height: 90 }); // PDF points
 
   // PDF Preview Modal state
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -202,12 +202,21 @@ const DocumentStampPage = () => {
   const [previewDocHash, setPreviewDocHash] = useState(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
 
+  // ========== RACE CONDITION GUARDS ==========
+  // Request ID ref to ignore stale responses when toggling quickly
+  const previewReqIdRef = useRef(0);
+  // Blob URL ref for safe lifecycle management (revoke only when replaced)
+  const stampBlobUrlRef = useRef(null);
+
   // Fetch stamp preview from backend using /stamps/render-image (SINGLE SOURCE OF TRUTH)
   // This returns the exact PNG that will be embedded into the PDF
   const fetchStampPreview = useCallback(async () => {
     if (!user) return;
     
+    // Increment request ID to track this specific request
+    const reqId = ++previewReqIdRef.current;
     setLoadingStampPreview(true);
+    
     try {
       const isNotarization = selectedType === "notarization";
       
@@ -245,39 +254,69 @@ const DocumentStampPage = () => {
         responseType: "blob"
       });
       
-      // Get dimensions from response headers
-      const wPt = Number(response.headers["x-stamp-width-pt"]) || 170;
-      const hPt = Number(response.headers["x-stamp-height-pt"]) || 90;
+      // ========== IGNORE STALE RESPONSES ==========
+      // If another request was fired while this one was in flight, ignore this response
+      if (reqId !== previewReqIdRef.current) {
+        console.log(`[fetchStampPreview] Ignoring stale response (reqId=${reqId}, current=${previewReqIdRef.current})`);
+        return;
+      }
       
-      setStampPdfDimensions({ width: wPt, height: hPt });
+      // Get dimensions from response headers (with fallback defaults)
+      const wPt = Number(response.headers["x-stamp-width-pt"]);
+      const hPt = Number(response.headers["x-stamp-height-pt"]);
       
-      // Convert blob to object URL for <img src=...>
+      if (Number.isFinite(wPt) && Number.isFinite(hPt) && wPt > 0 && hPt > 0) {
+        setStampPdfDimensions({ width: wPt, height: hPt });
+      }
+      
+      // ========== SAFE BLOB URL MANAGEMENT ==========
+      // Revoke previous blob URL BEFORE creating new one
+      if (stampBlobUrlRef.current) {
+        URL.revokeObjectURL(stampBlobUrlRef.current);
+        stampBlobUrlRef.current = null;
+      }
+      
+      // Create new blob URL and store in ref
       const imgUrl = URL.createObjectURL(response.data);
+      stampBlobUrlRef.current = imgUrl;
       
-      setStampPreviewImage(prev => {
-        // Revoke old URL to prevent memory leaks
-        if (prev && prev.startsWith('blob:')) {
-          URL.revokeObjectURL(prev);
-        }
-        return imgUrl;
-      });
+      // Update state (this is safe, blob URL is stored in ref)
+      setStampPreviewImage(imgUrl);
+      
     } catch (error) {
-      console.error("Stamp render-image preview failed:", error);
-      setStampPreviewImage(null);
+      // Only handle error if this is still the current request
+      if (reqId === previewReqIdRef.current) {
+        console.error("Stamp render-image preview failed:", error);
+        // IMPORTANT: Do NOT set stampPreviewImage to null on error
+        // Keep the last good preview visible while showing error state
+      }
     } finally {
-      setLoadingStampPreview(false);
+      // Only update loading state if this is still the current request
+      if (reqId === previewReqIdRef.current) {
+        setLoadingStampPreview(false);
+      }
     }
   }, [user, selectedType, brandColor, signatureMode, savedSignature, getAuthHeaders]);
-  // NOTE: stampPreviewImage REMOVED from dependencies to prevent re-render loop
+
+  // ========== CLEANUP BLOB URL ON UNMOUNT ==========
+  useEffect(() => {
+    return () => {
+      if (stampBlobUrlRef.current) {
+        URL.revokeObjectURL(stampBlobUrlRef.current);
+        stampBlobUrlRef.current = null;
+      }
+    };
+  }, []);
 
   // Debounced stamp preview fetch to avoid excessive API calls
+  // Dependencies are the actual inputs, not the callback identity
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchStampPreview();
-    }, 300); // 300ms debounce
+    }, 250); // 250ms debounce
     
     return () => clearTimeout(timeoutId);
-  }, [fetchStampPreview]);
+  }, [user, selectedType, brandColor, signatureMode, savedSignature]);
 
   // Helper to get stamp position for current page (CENTER by default)
   const getStampPosition = (pageNum = currentPage) => {
