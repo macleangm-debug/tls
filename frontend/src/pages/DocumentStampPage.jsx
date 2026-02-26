@@ -1790,7 +1790,7 @@ const DocumentStampPage = () => {
                       ref={previewContainerRef}
                       className="relative bg-gray-800 flex items-center justify-center overflow-auto"
                       style={{ 
-                        // Dynamic height based on PDF dimensions (scaled), clamped between 400-600px
+                        // Dynamic height based on scaled PDF dimensions, clamped between 400-600px
                         height: pageCanvasUrl 
                           ? `${Math.min(600, Math.max(400, pageDimensions.height * previewScale))}px`
                           : '500px',
@@ -1798,39 +1798,42 @@ const DocumentStampPage = () => {
                         maxHeight: '600px'
                       }}
                     >
-                      <div 
-                        className="relative"
-                        style={{ 
-                          transform: `scale(${previewScale})`, 
-                          transformOrigin: 'center center',
-                          maxWidth: '100%'
-                        }}
-                      >
-                        {/* PDF Preview - Now all documents are converted to PDF */}
-                        {pageCanvasUrl ? (
-                          <div 
-                            className="bg-white relative shadow-2xl mx-auto"
-                            style={{ 
-                              width: pageDimensions.width,
-                              height: pageDimensions.height,
-                              maxWidth: '100%'
-                            }}
-                          >
-                            <img 
-                              src={pageCanvasUrl}
-                              alt={`Page ${currentPage}`}
-                              className="w-full h-full object-contain"
-                            />
-                            {/* Draggable & Resizable Stamp - INSIDE document */}
+                      {/* Helper text for stamp positioning */}
+                      {pageCanvasUrl && (
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 bg-black/60 rounded-full text-white/70 text-xs">
+                          Drag the stamp to position • Use page selector below
+                        </div>
+                      )}
+                      
+                      {/* PDF Preview - NO transform wrapper, use real scaled dimensions */}
+                      {/* This ensures Rnd bounds math works correctly */}
+                      {pageCanvasUrl ? (
+                        <div 
+                          className="bg-white relative shadow-2xl mx-auto"
+                          style={{ 
+                            width: pageDimensions.width * previewScale,
+                            height: pageDimensions.height * previewScale,
+                            maxWidth: '100%'
+                          }}
+                          id="stamp-preview-area"
+                        >
+                          {/* PDF Page Image - z-0 base layer */}
+                          <img 
+                            src={pageCanvasUrl}
+                            alt={`Page ${currentPage}`}
+                            className="absolute inset-0 w-full h-full object-contain z-0"
+                          />
+                          
+                          {/* Stamp Overlay Plane - z-50 to ensure it's above the PDF */}
+                          <div className="absolute inset-0 z-50">
                             {(() => {
-                              // ========== SIGNATURE IS NOW INSIDE STAMP IMAGE ==========
-                              // The backend generates stamp PNG with signature section included
-                              // No separate signature overlay needed
-                              
-                              // Calculate margin bounds in preview pixels (scaled)
-                              const marginPx = EDGE_MARGIN_PT * pdfRenderScale;
-                              const maxX = pageDimensions.width - stampSize.width - marginPx;
-                              const maxY = pageDimensions.height - stampSize.height - marginPx;
+                              // ========== STAMP OVERLAY ==========
+                              // Uses scaled page dimensions for correct Rnd bounds
+                              const scaledPageW = pageDimensions.width * previewScale;
+                              const scaledPageH = pageDimensions.height * previewScale;
+                              const marginPx = EDGE_MARGIN_PT * pdfRenderScale * previewScale;
+                              const maxX = scaledPageW - stampSize.width - marginPx;
+                              const maxY = scaledPageH - stampSize.height - marginPx;
                               
                               return (
                                 <Rnd
@@ -1845,29 +1848,19 @@ const DocumentStampPage = () => {
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
                                     setStampPosition({ x: clampedX, y: clampedY });
                                   }}
-                                  onResizeStop={(e, direction, ref, delta, position) => {
-                                    // Stamp size is now fixed - no resizing
-                                  }}
-                                  minWidth={stampPdfDimensions.width * pdfRenderScale}
-                                  minHeight={stampPdfDimensions.height * pdfRenderScale}
-                                  maxWidth={stampPdfDimensions.width * pdfRenderScale}
-                                  maxHeight={stampPdfDimensions.height * pdfRenderScale}
                                   bounds="parent"
                                   enableResizing={false}
-                                  className="z-10"
+                                  className="z-[60]"
                                   dragHandleClassName="stamp-drag-handle"
                                 >
                                   {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
-                                  {/* This image is generated by the same engine that creates the final PDF stamp */}
-                                  {/* Signature section is included INSIDE the stamp image (no separate overlay) */}
                                   <div 
-                                    className="cursor-move stamp-drag-handle overflow-visible"
+                                    className="cursor-move stamp-drag-handle"
                                     style={{ 
                                       width: stampSize.width,
                                       height: stampSize.height,
                                       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-                                      willChange: 'transform',
-                                      touchAction: 'none'
+                                      pointerEvents: 'auto'
                                     }}
                                     data-testid="stamp-preview"
                                   >
@@ -1901,28 +1894,28 @@ const DocumentStampPage = () => {
                               );
                             })()}
                           </div>
-                        ) : pdfRendering ? (
-                          <div 
-                            className="bg-white flex items-center justify-center"
-                            style={{ width: 612, height: 792 }}
-                          >
-                            <div className="text-center">
-                              <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mx-auto mb-3" />
-                              <p className="text-gray-500">Rendering page {currentPage}...</p>
-                            </div>
+                        </div>
+                      ) : pdfRendering ? (
+                        <div 
+                          className="bg-white flex items-center justify-center"
+                          style={{ width: 612 * previewScale, height: 792 * previewScale }}
+                        >
+                          <div className="text-center">
+                            <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mx-auto mb-3" />
+                            <p className="text-gray-500">Rendering page {currentPage}...</p>
                           </div>
-                        ) : (
-                          <div 
-                            className="bg-white flex items-center justify-center"
-                            style={{ width: 612, height: 792 }}
-                          >
-                            <div className="text-center text-gray-400">
-                              <FileText className="w-20 h-20 mx-auto mb-4 text-gray-300" />
-                              <p className="text-lg font-medium">Loading document...</p>
-                            </div>
+                        </div>
+                      ) : (
+                        <div 
+                          className="bg-white flex items-center justify-center"
+                          style={{ width: 612 * previewScale, height: 792 * previewScale }}
+                        >
+                          <div className="text-center text-gray-400">
+                            <FileText className="w-20 h-20 mx-auto mb-4 text-gray-300" />
+                            <p className="text-lg font-medium">Loading document...</p>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Position Info & Page Selection */}
