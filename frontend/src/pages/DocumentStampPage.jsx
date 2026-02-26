@@ -1903,25 +1903,46 @@ const DocumentStampPage = () => {
                           <div className="absolute inset-0 z-50">
                             {(() => {
                               // ========== STAMP OVERLAY ==========
-                              // Uses scaled page dimensions for correct Rnd bounds
-                              const scaledPageW = pageDimensions.width * previewScale;
-                              const scaledPageH = pageDimensions.height * previewScale;
-                              const marginPx = EDGE_MARGIN_PT * pdfRenderScale * previewScale;
-                              const maxX = scaledPageW - stampSize.width - marginPx;
-                              const maxY = scaledPageH - stampSize.height - marginPx;
+                              // Coordinates are in the SCALED preview space (px)
+                              // Both the container and Rnd use the same coordinate system
+                              const safePdfScale = Number.isFinite(pdfRenderScale) && pdfRenderScale > 0 ? pdfRenderScale : 1.5;
+                              const safePreviewScale = Number.isFinite(previewScale) && previewScale > 0 ? previewScale : 1;
+                              
+                              const scaledPageW = pageDimensions.width * safePreviewScale;
+                              const scaledPageH = pageDimensions.height * safePreviewScale;
+                              
+                              // Stamp size in scaled coordinates
+                              const stampW = stampPdfDimensions.width * safePdfScale * safePreviewScale;
+                              const stampH = stampPdfDimensions.height * safePdfScale * safePreviewScale;
+                              
+                              // Edge margin in scaled coordinates
+                              const marginPx = EDGE_MARGIN_PT * safePdfScale * safePreviewScale;
+                              
+                              // Bounds for drag clamping
+                              const maxX = Math.max(marginPx, scaledPageW - stampW - marginPx);
+                              const maxY = Math.max(marginPx, scaledPageH - stampH - marginPx);
+                              
+                              // Get position and scale it to preview coordinates
+                              const pos = getStampPosition();
+                              const scaledPosX = pos.x * safePreviewScale;
+                              const scaledPosY = pos.y * safePreviewScale;
                               
                               return (
                                 <Rnd
                                   size={{ 
-                                    width: stampSize.width, 
-                                    height: stampSize.height
+                                    width: stampW, 
+                                    height: stampH
                                   }}
-                                  position={getStampPosition()}
+                                  position={{ x: scaledPosX, y: scaledPosY }}
                                   onDragStop={(e, d) => {
-                                    // Clamp position to edge margin bounds
+                                    // Clamp position in scaled coordinates
                                     const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
-                                    setStampPosition({ x: clampedX, y: clampedY });
+                                    // Convert back to unscaled coordinates for storage
+                                    setStampPosition({ 
+                                      x: clampedX / safePreviewScale, 
+                                      y: clampedY / safePreviewScale 
+                                    });
                                   }}
                                   bounds="parent"
                                   enableResizing={false}
@@ -1932,8 +1953,8 @@ const DocumentStampPage = () => {
                                   <div 
                                     className="cursor-move stamp-drag-handle"
                                     style={{ 
-                                      width: stampSize.width,
-                                      height: stampSize.height,
+                                      width: stampW,
+                                      height: stampH,
                                       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
                                       pointerEvents: 'auto'
                                     }}
