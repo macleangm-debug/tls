@@ -1,0 +1,933 @@
+{
+  "timestamp": "2026-02-26T06:41:37.648043",
+  "summary": {
+    "total_tests": 47,
+    "passed": 4,
+    "failed": 43,
+    "pass_rate": 8.5,
+    "total_time_seconds": 1.92
+  },
+  "by_type": {
+    "validation": {
+      "passed": 4,
+      "failed": 22,
+      "results": [
+        {
+          "filename": "standard_letter.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.3159046173095703,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "standard_a4.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.23627281188964844,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "multi_page_10.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.87738037109375,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "multi_page_50.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 3.2525062561035156,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "multi_page_100.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 6.222963333129883,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "rotated_90.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.17547607421875,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "rotated_180.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.14829635620117188,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "rotated_270.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.1461505889892578,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "mixed_rotation.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.3814697265625,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_very_small.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.25773048400878906,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_a6.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.18978118896484375,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_a5.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.18167495727539062,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_a3.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.17595291137695312,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_a2.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.16736984252929688,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_a1.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.1659393310546875,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_legal.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.16927719116210938,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_tabloid.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.1723766326904297,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "mixed_sizes.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 1.1858940124511719,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "with_annotations.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.1971721649169922,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "with_forms.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.18095970153808594,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "minimal_valid.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.17380714416503906,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "single_pixel_page.pdf",
+          "test_type": "validation",
+          "passed": false,
+          "expected_outcome": "valid=True, code=PDF_VALID",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 0.1671314239501953,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "not_a_pdf.pdf",
+          "test_type": "validation",
+          "passed": true,
+          "expected_outcome": "valid=False, code=PDF_NOT_PDF",
+          "actual_outcome": "valid=False, code=PDF_NOT_PDF",
+          "duration_ms": 0.12254714965820312,
+          "error": null,
+          "details": null
+        },
+        {
+          "filename": "empty_file.pdf",
+          "test_type": "validation",
+          "passed": true,
+          "expected_outcome": "valid=False, code=PDF_EMPTY",
+          "actual_outcome": "valid=False, code=PDF_EMPTY",
+          "duration_ms": 0.021219253540039062,
+          "error": null,
+          "details": null
+        },
+        {
+          "filename": "truncated.pdf",
+          "test_type": "validation",
+          "passed": true,
+          "expected_outcome": "valid=False, code=PDF_CORRUPT",
+          "actual_outcome": "valid=False, code=PDF_CORRUPT",
+          "duration_ms": 0.05817413330078125,
+          "error": null,
+          "details": null
+        },
+        {
+          "filename": "corrupted.pdf",
+          "test_type": "validation",
+          "passed": true,
+          "expected_outcome": "valid=False, code=PDF_CORRUPT",
+          "actual_outcome": "valid=False, code=PDF_CORRUPT",
+          "duration_ms": 0.08821487426757812,
+          "error": null,
+          "details": null
+        }
+      ]
+    },
+    "stamping": {
+      "passed": 0,
+      "failed": 12,
+      "results": [
+        {
+          "filename": "standard_letter.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 157.4268341064453,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "standard_a4.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 97.21517562866211,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "multi_page_10.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 97.55897521972656,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "rotated_90.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 95.63803672790527,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "rotated_180.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 95.49427032470703,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "rotated_270.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 96.32301330566406,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "mixed_rotation.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 96.22979164123535,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "mixed_sizes.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 96.44627571105957,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_a3.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 95.21150588989258,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "page_tabloid.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 95.2761173248291,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "with_annotations.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 94.93708610534668,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "with_forms.pdf",
+          "test_type": "stamping",
+          "passed": false,
+          "expected_outcome": "stamp_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 96.38118743896484,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        }
+      ]
+    },
+    "positioning": {
+      "passed": 0,
+      "failed": 9,
+      "results": [
+        {
+          "filename": "positioning_top_left",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 68.10569763183594,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_top_center",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 67.99793243408203,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_top_right",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 67.73972511291504,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_center_left",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 68.74728202819824,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_center",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 67.81506538391113,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_center_right",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 67.67535209655762,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_bottom_left",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 67.91830062866211,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_bottom_center",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 67.83199310302734,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        },
+        {
+          "filename": "positioning_bottom_right",
+          "test_type": "positioning",
+          "passed": false,
+          "expected_outcome": "position_success",
+          "actual_outcome": "EXCEPTION",
+          "duration_ms": 67.95477867126465,
+          "error": "argument of type 'IndirectObject' is not iterable",
+          "details": null
+        }
+      ]
+    }
+  },
+  "failures": [
+    {
+      "filename": "standard_letter.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.3159046173095703,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "standard_a4.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.23627281188964844,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "multi_page_10.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.87738037109375,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "multi_page_50.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 3.2525062561035156,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "multi_page_100.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 6.222963333129883,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "rotated_90.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.17547607421875,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "rotated_180.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.14829635620117188,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "rotated_270.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.1461505889892578,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "mixed_rotation.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.3814697265625,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_very_small.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.25773048400878906,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_a6.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.18978118896484375,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_a5.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.18167495727539062,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_a3.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.17595291137695312,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_a2.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.16736984252929688,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_a1.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.1659393310546875,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_legal.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.16927719116210938,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_tabloid.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.1723766326904297,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "mixed_sizes.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 1.1858940124511719,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "with_annotations.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.1971721649169922,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "with_forms.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.18095970153808594,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "minimal_valid.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.17380714416503906,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "single_pixel_page.pdf",
+      "test_type": "validation",
+      "passed": false,
+      "expected_outcome": "valid=True, code=PDF_VALID",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 0.1671314239501953,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "standard_letter.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 157.4268341064453,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "standard_a4.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 97.21517562866211,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "multi_page_10.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 97.55897521972656,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "rotated_90.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 95.63803672790527,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "rotated_180.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 95.49427032470703,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "rotated_270.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 96.32301330566406,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "mixed_rotation.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 96.22979164123535,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "mixed_sizes.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 96.44627571105957,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_a3.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 95.21150588989258,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "page_tabloid.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 95.2761173248291,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "with_annotations.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 94.93708610534668,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "with_forms.pdf",
+      "test_type": "stamping",
+      "passed": false,
+      "expected_outcome": "stamp_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 96.38118743896484,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_top_left",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 68.10569763183594,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_top_center",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 67.99793243408203,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_top_right",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 67.73972511291504,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_center_left",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 68.74728202819824,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_center",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 67.81506538391113,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_center_right",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 67.67535209655762,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_bottom_left",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 67.91830062866211,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_bottom_center",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 67.83199310302734,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    },
+    {
+      "filename": "positioning_bottom_right",
+      "test_type": "positioning",
+      "passed": false,
+      "expected_outcome": "position_success",
+      "actual_outcome": "EXCEPTION",
+      "duration_ms": 67.95477867126465,
+      "error": "argument of type 'IndirectObject' is not iterable",
+      "details": null
+    }
+  ],
+  "go_live_ready": false
+}
