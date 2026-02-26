@@ -204,7 +204,10 @@ export default function TLSEventsAdmin() {
       audience_regions: event.audience?.regions?.join(", ") || "",
       recurrence_enabled: event.recurrence?.enabled || false,
       recurrence_rule: event.recurrence?.rule || "",
-      recurrence_count: event.recurrence?.count || 12
+      recurrence_count: event.recurrence?.count || 12,
+      attendance_enabled: event.attendance?.enabled || false,
+      attendance_mode: event.attendance?.mode || "admin",
+      cpd_points: event.attendance?.cpd_points?.toString() || ""
     });
     setShowForm(true);
   };
