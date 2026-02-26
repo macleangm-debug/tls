@@ -326,14 +326,14 @@ export const CalendarTab = ({ token }) => {
 
   // Computed data
   const upcomingEvents = events
-    .filter(e => new Date(e.start_datetime) >= new Date() && e.status === 'scheduled')
+    .filter(e => new Date(e.start_datetime) >= new Date() && (e.status === 'scheduled' || !e.status))
     .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime))
     .slice(0, 7);
 
   const overdueDeadlines = events.filter(e => 
     e.event_type === 'deadline' && 
     new Date(e.start_datetime) < new Date() &&
-    e.status === 'scheduled'
+    (e.status === 'scheduled' || !e.status)
   );
 
   const overdueTasks = tasks.filter(t => 
