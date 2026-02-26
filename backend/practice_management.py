@@ -858,6 +858,204 @@ def create_practice_routes(db, get_current_user):
         
         return {"reminders": events}
     
+    # ===================== PROFESSIONAL CALENDAR ACTIONS =====================
+    
+    @practice_router.post("/events/{event_id}/complete")
+    async def complete_event(event_id: str, data: EventCompleteRequest, user: dict = Depends(get_current_user)):
+        """Mark an event as completed with optional outcome notes"""
+        now = datetime.now(timezone.utc).isoformat()
+        
+        event = await db.events.find_one({"id": event_id, "advocate_id": user["id"]})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        update_data = {
+            "status": "completed",
+            "completed_at": data.completed_at or now,
+            "completed_by": user["id"],
+            "outcome": data.outcome,
+            "updated_at": now
+        }
+        
+        await db.events.update_one(
+            {"id": event_id, "advocate_id": user["id"]},
+            {"$set": update_data}
+        )
+        
+        # Log audit event
+        await db.practice_audit.insert_one({
+            "id": str(uuid.uuid4()),
+            "advocate_id": user["id"],
+            "event_type": "EVENT_COMPLETED",
+            "entity_type": "event",
+            "entity_id": event_id,
+            "entity_title": event.get("title"),
+            "outcome": data.outcome,
+            "created_at": now
+        })
+        
+        return {"message": "Event marked as completed", "completed_at": update_data["completed_at"]}
+    
+    @practice_router.post("/events/{event_id}/cancel")
+    async def cancel_event(event_id: str, data: EventCancelRequest, user: dict = Depends(get_current_user)):
+        """Cancel an event with required reason"""
+        if not data.reason or len(data.reason.strip()) < 5:
+            raise HTTPException(status_code=400, detail="Cancellation reason is required (min 5 characters)")
+        
+        now = datetime.now(timezone.utc).isoformat()
+        
+        event = await db.events.find_one({"id": event_id, "advocate_id": user["id"]})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        update_data = {
+            "status": "cancelled",
+            "cancelled_at": now,
+            "cancelled_by": user["id"],
+            "cancel_reason": data.reason.strip(),
+            "updated_at": now
+        }
+        
+        await db.events.update_one(
+            {"id": event_id, "advocate_id": user["id"]},
+            {"$set": update_data}
+        )
+        
+        # Log audit event
+        await db.practice_audit.insert_one({
+            "id": str(uuid.uuid4()),
+            "advocate_id": user["id"],
+            "event_type": "EVENT_CANCELLED",
+            "entity_type": "event",
+            "entity_id": event_id,
+            "entity_title": event.get("title"),
+            "reason": data.reason.strip(),
+            "created_at": now
+        })
+        
+        return {"message": "Event cancelled", "reason": data.reason}
+    
+    @practice_router.post("/events/{event_id}/reschedule")
+    async def reschedule_event(event_id: str, data: EventRescheduleRequest, user: dict = Depends(get_current_user)):
+        """Reschedule an event to a new date/time"""
+        now = datetime.now(timezone.utc).isoformat()
+        
+        event = await db.events.find_one({"id": event_id, "advocate_id": user["id"]})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Store original schedule for audit
+        original_schedule = {
+            "start_datetime": event.get("start_datetime"),
+            "end_datetime": event.get("end_datetime")
+        }
+        
+        update_data = {
+            "status": "rescheduled",
+            "start_datetime": data.new_start_datetime,
+            "end_datetime": data.new_end_datetime,
+            "rescheduled_at": now,
+            "rescheduled_by": user["id"],
+            "reschedule_reason": data.reason,
+            "rescheduled_from": original_schedule,
+            "updated_at": now
+        }
+        
+        await db.events.update_one(
+            {"id": event_id, "advocate_id": user["id"]},
+            {"$set": update_data}
+        )
+        
+        # Log audit event
+        await db.practice_audit.insert_one({
+            "id": str(uuid.uuid4()),
+            "advocate_id": user["id"],
+            "event_type": "EVENT_RESCHEDULED",
+            "entity_type": "event",
+            "entity_id": event_id,
+            "entity_title": event.get("title"),
+            "reason": data.reason,
+            "original_schedule": original_schedule,
+            "new_schedule": {
+                "start_datetime": data.new_start_datetime,
+                "end_datetime": data.new_end_datetime
+            },
+            "created_at": now
+        })
+        
+        return {
+            "message": "Event rescheduled",
+            "original": original_schedule,
+            "new": {"start_datetime": data.new_start_datetime, "end_datetime": data.new_end_datetime}
+        }
+    
+    @practice_router.post("/events/{event_id}/convert-to-task")
+    async def convert_event_to_task(event_id: str, data: EventToTaskRequest, user: dict = Depends(get_current_user)):
+        """Create a follow-up task from an event"""
+        now = datetime.now(timezone.utc)
+        
+        event = await db.events.find_one({"id": event_id, "advocate_id": user["id"]})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Default due date is 7 days from now
+        default_due = (now + timedelta(days=7)).strftime("%Y-%m-%d")
+        
+        task = {
+            "id": str(uuid.uuid4()),
+            "advocate_id": user["id"],
+            "title": data.task_title or f"Follow up: {event.get('title')}",
+            "description": data.description or f"Follow-up task created from event: {event.get('title')}",
+            "due_date": data.due_date or default_due,
+            "priority": data.priority,
+            "status": "pending",
+            "client_id": event.get("client_id"),
+            "case_id": event.get("case_id"),
+            "source_event_id": event_id,
+            "tags": ["follow-up"],
+            "checklist": [],
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        
+        await db.tasks.insert_one(task)
+        task.pop("_id", None)
+        
+        # Log audit event
+        await db.practice_audit.insert_one({
+            "id": str(uuid.uuid4()),
+            "advocate_id": user["id"],
+            "event_type": "TASK_CREATED_FROM_EVENT",
+            "entity_type": "task",
+            "entity_id": task["id"],
+            "source_event_id": event_id,
+            "created_at": now.isoformat()
+        })
+        
+        return {"message": "Follow-up task created", "task": task}
+    
+    @practice_router.patch("/events/{event_id}/move")
+    async def move_event(event_id: str, new_start: str, new_end: Optional[str] = None, user: dict = Depends(get_current_user)):
+        """Quick move event (for drag-drop) without full reschedule audit"""
+        now = datetime.now(timezone.utc).isoformat()
+        
+        update_data = {
+            "start_datetime": new_start,
+            "updated_at": now
+        }
+        if new_end:
+            update_data["end_datetime"] = new_end
+        
+        result = await db.events.update_one(
+            {"id": event_id, "advocate_id": user["id"]},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        return {"message": "Event moved", "new_start": new_start, "new_end": new_end}
+    
     # ===================== TASK MANAGEMENT =====================
     
     @practice_router.get("/tasks")
