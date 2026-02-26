@@ -1223,6 +1223,13 @@ const DocumentStampPage = () => {
 
   return (
     <DashboardLayout title="Document Verification" subtitle="Upload, stamp, and secure your legal documents">
+      {/* Membership warning if stamping is blocked */}
+      {isStampingBlocked && (
+        <div className="mb-4">
+          <MembershipInlineWarning />
+        </div>
+      )}
+      
       {/* STAMP DOCUMENT - Single view, no tabs */}
       <div className="space-y-6">
         {/* STICKY SECTION: Stamp Preview + Color Picker - sticks below the dashboard header */}
