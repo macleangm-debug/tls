@@ -194,6 +194,7 @@ const DocumentStampPage = () => {
   // Backend-generated stamp preview (SINGLE SOURCE OF TRUTH)
   const [stampPreviewImage, setStampPreviewImage] = useState(null);
   const [loadingStampPreview, setLoadingStampPreview] = useState(false);
+  const [stampPdfDimensions, setStampPdfDimensions] = useState({ width: 240, height: 128 }); // PDF points
 
   // Fetch stamp preview from backend when stamp settings change
   const fetchStampPreview = useCallback(async () => {
@@ -222,6 +223,14 @@ const DocumentStampPage = () => {
       }, getAuthHeaders());
       
       setStampPreviewImage(response.data.preview_image);
+      
+      // Update stamp PDF dimensions from backend
+      if (response.data.pdf_width_pt && response.data.pdf_height_pt) {
+        setStampPdfDimensions({
+          width: response.data.pdf_width_pt,
+          height: response.data.pdf_height_pt
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch stamp preview:", error);
       setStampPreviewImage(null);
