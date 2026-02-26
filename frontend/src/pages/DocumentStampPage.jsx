@@ -312,12 +312,12 @@ const DocumentStampPage = () => {
     };
   }, []);
 
-  // Debounced stamp preview fetch to avoid excessive API calls
+  // Debounced stamp preview fetch - fast debounce for instant feel
   // Dependencies are the actual inputs, not the callback identity
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchStampPreview();
-    }, 250); // 250ms debounce
+    }, 80); // 80ms debounce - feels instant while preventing excessive calls
     
     return () => clearTimeout(timeoutId);
   }, [user, selectedType, brandColor, signatureMode, savedSignature]);
