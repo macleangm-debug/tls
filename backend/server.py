@@ -1088,38 +1088,43 @@ def generate_branded_stamp_image(
             font=f_label
         )
         
-        # Signature area
+        # ============ SIGNATURE BOX (SINGLE SOURCE OF TRUTH) ============
+        # Both placeholder line AND digital signature paste use the SAME box coordinates
         sig_area_y = sig_label_y + int(18 * scale)
         sig_area_height = int(50 * scale)
-        sig_area_width = W - pad * 2 - int(40 * scale)
         
+        # Define signature box horizontally to EXACTLY match placeholder line bounds
+        sig_area_x = pad + int(60 * scale)
+        sig_area_w = (W - pad - int(60 * scale)) - sig_area_x  # line_end_x - line_start_x
+        
+        # ---- DIGITAL SIGNATURE (paste inside sig_area box) ----
         if include_signature and signature_data:
-            # Render actual signature image
             try:
-                # Handle data URL format
                 sig_b64 = signature_data
-                if sig_b64.startswith('data:'):
-                    sig_b64 = re.sub(r'^data:image\/[a-zA-Z]+;base64,', '', sig_b64)
+                if sig_b64.startswith("data:"):
+                    sig_b64 = re.sub(r"^data:image\/[a-zA-Z]+;base64,", "", sig_b64)
                 
                 sig_bytes = base64.b64decode(sig_b64)
                 sig_img = Image.open(BytesIO(sig_bytes)).convert("RGBA")
                 
-                # Scale signature to fit area while maintaining aspect ratio
-                sig_aspect = sig_img.width / sig_img.height
-                target_height = sig_area_height
-                target_width = int(target_height * sig_aspect)
+                # Trim transparent margins (fixes drawn signatures looking offset)
+                bbox = sig_img.getbbox()
+                if bbox:
+                    sig_img = sig_img.crop(bbox)
                 
-                if target_width > sig_area_width:
-                    target_width = sig_area_width
-                    target_height = int(target_width / sig_aspect)
-                
-                sig_img = sig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-                
-                # Center signature in area
-                sig_x = pad + int(20 * scale) + (sig_area_width - target_width) // 2
-                sig_y = sig_area_y + (sig_area_height - target_height) // 2
-                
-                img.paste(sig_img, (sig_x, sig_y), sig_img)
+                # Fit signature inside box while preserving aspect ratio
+                sig_w, sig_h = sig_img.size
+                if sig_w > 0 and sig_h > 0:
+                    scale_factor = min(sig_area_w / sig_w, sig_area_height / sig_h)
+                    target_w = max(1, int(sig_w * scale_factor))
+                    target_h = max(1, int(sig_h * scale_factor))
+                    sig_img = sig_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                    
+                    # Center inside the SAME box as placeholder
+                    sig_x = sig_area_x + (sig_area_w - target_w) // 2
+                    sig_y = sig_area_y + (sig_area_height - target_h) // 2
+                    
+                    img.paste(sig_img, (sig_x, sig_y), sig_img)
                 
                 # Add "Digitally Signed ✓" badge
                 badge_text = "Digitally Signed"
@@ -1146,32 +1151,31 @@ def generate_branded_stamp_image(
             except Exception as e:
                 print(f"Error rendering signature: {e}")
                 # Fall back to placeholder if signature rendering fails
-                show_signature_placeholder = True
+                include_signature = False
         
+        # ---- PLACEHOLDER (draw using same box bounds) ----
         if show_signature_placeholder and not (include_signature and signature_data):
-            # Draw "Sign here" placeholder line
             line_y = sig_area_y + sig_area_height - int(8 * scale)
-            line_start_x = pad + int(60 * scale)
-            line_end_x = W - pad - int(60 * scale)
+            line_start_x = sig_area_x
+            line_end_x = sig_area_x + sig_area_w
             
             # Dashed signature line
-            dash_len = int(8 * scale)
-            gap_len = int(4 * scale)
+            dash_len = int(10 * scale)
+            gap_len = int(6 * scale)
             x = line_start_x
             while x < line_end_x:
                 draw.line(
                     [(x, line_y), (min(x + dash_len, line_end_x), line_y)],
                     fill=(180, 180, 180, 255),
-                    width=int(1 * scale)
+                    width=max(1, int(1 * scale))
                 )
                 x += dash_len + gap_len
             
-            # "Sign here" text
+            # "Sign here" text centered in the box
             sign_text = "Sign here"
-            sign_bbox = draw.textbbox((0, 0), sign_text, font=f_footer)
-            sign_w = sign_bbox[2] - sign_bbox[0]
+            sign_w = draw.textlength(sign_text, font=f_footer)
             draw.text(
-                ((W - sign_w) // 2, line_y + int(4 * scale)), 
+                (sig_area_x + (sig_area_w - sign_w) // 2, line_y + int(4 * scale)), 
                 sign_text, 
                 fill=(150, 150, 150, 255), 
                 font=f_footer
