@@ -372,9 +372,16 @@ allow_headers = ["Authorization", "Content-Type", "X-Requested-With", "X-CSRF-To
 ### 6.2 Error Tracking
 | Tool | Status |
 |------|--------|
-| Sentry | ⚠️ **NOT CONFIGURED** |
-| Error Alerting | ⚠️ **NOT CONFIGURED** |
-| Metrics | ⚠️ **NOT CONFIGURED** |
+| Sentry | ✅ **INTEGRATED** (requires SENTRY_DSN in .env) |
+| Error Alerting | ✅ Configured via Sentry |
+| Metrics | ⚠️ NOT CONFIGURED |
+
+**Sentry Integration:**
+```python
+# Backend: sentry-sdk[fastapi] v2.53.0
+# Env vars: SENTRY_DSN, ENVIRONMENT, APP_VERSION
+# Tags: feature=stamping, stamp_id, etc.
+```
 
 ### 6.3 Health Check
 ```bash
@@ -385,9 +392,21 @@ GET /api/health
 ### 6.4 Backup Plan
 | Item | Status |
 |------|--------|
-| Database Backup | ⚠️ **NOT CONFIGURED** |
-| Offsite Copy | ⚠️ **NOT CONFIGURED** |
-| Restore Test | ⚠️ **NOT PERFORMED** |
+| Database Backup | ✅ **IMPLEMENTED** (`/app/backend/backup_manager.py`) |
+| Location | `/app/backups/tls_backup_*.archive.gz` |
+| Retention | 14 days (configurable) |
+| Restore Test | ✅ **PASSED** (31 collections, 42 stamps, 2 users) |
+
+**Backup Commands:**
+```bash
+cd /app/backend
+python backup_manager.py backup       # Create backup
+python backup_manager.py list         # List backups
+python backup_manager.py restore FILE # Restore from backup
+python backup_manager.py test-restore # Verify backup integrity
+python backup_manager.py cleanup      # Remove old backups
+python backup_manager.py daily        # Full daily routine
+```
 
 ---
 
