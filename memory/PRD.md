@@ -77,6 +77,24 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ## Recent Changes
 
+### Feb 26, 2026 - TLS Global Events (Phase 1) - COMPLETE ✅
+**Organization-wide events appearing on all advocate calendars:**
+- **Backend (`/app/backend/routes/tls_events.py`)**:
+  - New `tls_global_events` MongoDB collection
+  - RRULE-based recurrence expansion with dateutil
+  - Audience scoping: nationwide or regional filtering
+  - Admin-only CRUD with system event logging
+  - Combined calendar endpoint merges personal + TLS events
+- **Frontend (`/app/frontend/src/pages/TLSEventsAdmin.jsx`)**:
+  - Admin page at `/admin/tls-events` with event management
+  - Create/Edit form with recurrence patterns, audience scope
+  - Event list with status badges (type, mandatory, recurring, region)
+- **Calendar Integration (`CalendarTab.jsx`)**:
+  - TLS events show with purple styling and [TLS] prefix
+  - Read-only modal for TLS events (no edit/delete buttons)
+  - Legend updated to show TLS event colors
+- **Test Results**: `/app/test_reports/iteration_59.json` - 16/16 backend, all frontend flows verified
+
 ### Feb 26, 2026 - Professional Calendar Feature - COMPLETE ✅
 **Interactive calendar with professional event management:**
 - **FullCalendar Integration**: Professional-grade calendar widget with month/week/day views
