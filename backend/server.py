@@ -3756,18 +3756,17 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
         # Two variants: Compact (default) and Certification (with signature)
         EDGE_MARGIN_PT = 12    # System safety margin from page edges
         
+        # ========== QUARTER-PAGE STAMP SIZES ==========
         # Select dimensions based on signature requirements
         needs_signature_section = include_signature or show_sig_placeholder
         if needs_signature_section:
             # CERTIFICATION stamp (taller - includes signature section)
-            # Ratio: 560:420 = 1.33:1
-            STAMP_WIDTH_PT = 200   # Wider for signature legibility
-            STAMP_HEIGHT_PT = 150  # Taller for signature section
+            STAMP_WIDTH_PT = 180   # Certification stamp width
+            STAMP_HEIGHT_PT = 120  # Certification stamp height (includes signature area)
         else:
             # COMPACT stamp (default - no signature)
-            # Ratio: 560:300 = 1.87:1
-            STAMP_WIDTH_PT = 240   # Fixed TLS official stamp width
-            STAMP_HEIGHT_PT = 128  # Fixed TLS official stamp height
+            STAMP_WIDTH_PT = 170   # Compact stamp width
+            STAMP_HEIGHT_PT = 90   # Compact stamp height
         
         # NOTE: Intentionally ignoring position.get("stamp_width_pt") and position.get("stamp_height_pt")
         # TLS requirement: stamp size must be fixed for consistency
