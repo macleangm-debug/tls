@@ -460,7 +460,7 @@ const LandingPage = () => {
             </Card>
 
             {/* Admin Controls */}
-            <Card className="glass-card rounded-2xl border-red-500/20 hover:border-red-500/40 transition-all group">
+            <Card className="glass-card rounded-2xl border-red-500/20 hover:border-red-500/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-500/10 group">
               <CardContent className="p-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
                   <Scale className="w-6 h-6 text-red-400" />
