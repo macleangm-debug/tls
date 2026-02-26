@@ -389,7 +389,14 @@ export const CalendarTab = ({ token }) => {
   };
 
   const handleEventClick = (info) => {
-    const { type, data } = info.event.extendedProps;
+    const { type, data, source } = info.event.extendedProps;
+    
+    // Handle TLS global events (read-only)
+    if (type === 'tls_event' || source === 'tls') {
+      setViewTlsEvent(info.event.extendedProps);
+      return;
+    }
+    
     if (type === 'event') {
       // Normalize status - default to 'scheduled' if missing
       const normalizedData = {
