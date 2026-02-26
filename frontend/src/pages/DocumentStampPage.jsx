@@ -311,33 +311,46 @@ const DocumentStampPage = () => {
     }
   }, [fileData?.pages, pageDimensions.width, pageDimensions.height, stampSize.width, stampSize.height]);
 
-  // ========== CENTER STAMP WHEN DIMENSIONS CHANGE ==========
-  // When stampPdfDimensions OR pageDimensions change, recalculate stamp size and center
+  // ========== CENTER STAMP WHEN PDF LOADS OR DIMENSIONS CHANGE ==========
+  // Uses scaled page dimensions to match the actual layout coordinate space
   useEffect(() => {
+    if (!pageCanvasUrl) return; // Wait for PDF to load
     if (!pageDimensions?.width || !pageDimensions?.height) return;
     if (!stampPdfDimensions?.width || !stampPdfDimensions?.height) return;
-    if (pageDimensions.width < 100) return; // Page not loaded yet
     
-    // Calculate stamp size in preview pixels (scaled from PDF points)
-    const stampW = stampPdfDimensions.width * pdfRenderScale;
-    const stampH = stampPdfDimensions.height * pdfRenderScale;
+    // Calculate scaled page dimensions (real layout size, no transform)
+    const scaledPageW = pageDimensions.width * previewScale;
+    const scaledPageH = pageDimensions.height * previewScale;
     
-    // Only update if dimensions actually changed
+    if (scaledPageW < 100 || scaledPageH < 100) return; // Page not ready
+    
+    // Calculate stamp size in preview pixels
+    const stampW = stampPdfDimensions.width * pdfRenderScale * previewScale;
+    const stampH = stampPdfDimensions.height * pdfRenderScale * previewScale;
+    
+    // Only update stamp size if it actually changed
     if (Math.abs(stampW - stampSize.width) > 1 || Math.abs(stampH - stampSize.height) > 1) {
       setStampSize({ width: stampW, height: stampH });
-      
-      // Recenter stamp on current page
-      const marginPx = EDGE_MARGIN_PT * pdfRenderScale;
-      const centerX = Math.max(marginPx, (pageDimensions.width - stampW) / 2);
-      const centerY = Math.max(marginPx, (pageDimensions.height - stampH) / 2);
-      
-      // Update position for current page (preserve other pages)
-      setStampPositions(prev => ({
-        ...prev,
-        [currentPage]: { x: centerX, y: centerY }
-      }));
     }
-  }, [pageDimensions, stampPdfDimensions, pdfRenderScale, currentPage]);
+    
+    // Center stamp on page using scaled coordinates
+    const marginPx = EDGE_MARGIN_PT * pdfRenderScale * previewScale;
+    const centerX = Math.max(marginPx, (scaledPageW - stampW) / 2);
+    const centerY = Math.max(marginPx, (scaledPageH - stampH) / 2);
+    
+    // Update position for current page
+    setStampPositions(prev => {
+      // Only update if position doesn't exist or stamp size changed significantly
+      const currentPos = prev[currentPage];
+      if (!currentPos || Math.abs(stampW - stampSize.width) > 1 || Math.abs(stampH - stampSize.height) > 1) {
+        return {
+          ...prev,
+          [currentPage]: { x: centerX, y: centerY }
+        };
+      }
+      return prev;
+    });
+  }, [pageCanvasUrl, pageDimensions, stampPdfDimensions, pdfRenderScale, previewScale, currentPage]);
 
   // Set fixed stamp size based on shape (FALLBACK - overridden by PDF dimensions effect above)
   useEffect(() => {
