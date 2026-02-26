@@ -1762,7 +1762,8 @@ const DocumentStampPage = () => {
                           {[
                             { id: "first", label: "First Page" },
                             { id: "last", label: "Last Page" },
-                            { id: "all", label: `All Pages (${fileData?.pages || 1})` }
+                            { id: "all", label: `All Pages (${fileData?.pages || 1})` },
+                            ...(fileData?.pages > 2 ? [{ id: "custom", label: "Custom..." }] : [])
                           ].map(opt => (
                             <Button
                               key={opt.id}
@@ -1786,8 +1787,70 @@ const DocumentStampPage = () => {
                         )}
                       </div>
                       
+                      {/* Custom Page Selection - Checkboxes */}
+                      {pageSelection === "custom" && fileData?.pages > 2 && (
+                        <div className="mb-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-purple-300 text-xs font-medium">Select pages:</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setCustomPages(Array.from({ length: fileData.pages }, (_, i) => i + 1).join(','))}
+                                className="text-xs text-purple-400 hover:text-purple-300"
+                              >
+                                Select All
+                              </button>
+                              <button
+                                onClick={() => setCustomPages('')}
+                                className="text-xs text-purple-400 hover:text-purple-300"
+                              >
+                                Clear
+                              </button>
+                              <button
+                                onClick={() => setCustomPages(Array.from({ length: fileData.pages }, (_, i) => i + 1).filter(n => n % 2 === 1).join(','))}
+                                className="text-xs text-purple-400 hover:text-purple-300"
+                              >
+                                Odd
+                              </button>
+                              <button
+                                onClick={() => setCustomPages(Array.from({ length: fileData.pages }, (_, i) => i + 1).filter(n => n % 2 === 0).join(','))}
+                                className="text-xs text-purple-400 hover:text-purple-300"
+                              >
+                                Even
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {Array.from({ length: fileData.pages }, (_, i) => i + 1).map(pageNum => {
+                              const isSelected = parseCustomPages(customPages).includes(pageNum);
+                              return (
+                                <button
+                                  key={pageNum}
+                                  onClick={() => {
+                                    const current = parseCustomPages(customPages);
+                                    const updated = isSelected 
+                                      ? current.filter(p => p !== pageNum)
+                                      : [...current, pageNum].sort((a, b) => a - b);
+                                    setCustomPages(updated.join(','));
+                                  }}
+                                  className={`w-8 h-8 rounded text-xs font-medium transition-all ${
+                                    isSelected
+                                      ? "bg-purple-500 text-white"
+                                      : "bg-white/5 text-white/50 hover:bg-white/10 border border-white/10"
+                                  }`}
+                                >
+                                  {pageNum}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-2 text-xs text-white/40">
+                            {parseCustomPages(customPages).length} page(s) selected
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Page navigation for multi-page - showing position is per page */}
-                      {fileData?.pages > 1 && pageSelection === "all" && (
+                      {fileData?.pages > 1 && (pageSelection === "all" || pageSelection === "custom") && (
                         <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
                           <span className="text-blue-300 text-xs">Page {currentPage} position:</span>
                           <div className="flex gap-1">
