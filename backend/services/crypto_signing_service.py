@@ -1,15 +1,21 @@
 """
 Cryptographic Signing Service for TLS Stamps
 Uses ECDSA P-256 with SHA-256 for non-forgeable stamp signatures
+
+Features:
+- Key rotation support (multiple keys, active key designation)
+- Historical key lookup for verification
+- Key rotation audit logging
 """
 import os
 import json
 import base64
 import hashlib
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidSignature
 import logging
 
@@ -21,35 +27,85 @@ SIGNING_VERSION = "TLS-STAMP-SIG-V1"
 
 
 class CryptoSigningService:
-    """Service for cryptographic signing and verification of TLS stamps"""
+    """
+    Service for cryptographic signing and verification of TLS stamps.
+    
+    Supports CA-style key rotation:
+    - Multiple keys can be loaded (active + historical)
+    - New stamps use the ACTIVE key
+    - Verification uses the key_id stored on the stamp
+    - Key rotation events are logged
+    """
     
     def __init__(self):
-        self.private_key = None
-        self.public_key = None
-        self.key_id = os.environ.get("TLS_SIGNING_KEY_ID", "tls-key-2026-01")
+        # Active signing key
+        self.active_key_id = None
+        self.active_private_key = None
+        self.active_public_key = None
+        
+        # Key registry: key_id -> {public_key, private_key (if available), activated_at}
+        self.keys: Dict[str, dict] = {}
+        
+        # Key rotation history
+        self.rotation_history: List[dict] = []
+        
         self._load_keys()
     
     def _load_keys(self):
         """Load signing keys from environment variables"""
         try:
-            # Load private key (for signing)
+            # Load active key ID (defaults to current key)
+            self.active_key_id = os.environ.get("TLS_ACTIVE_KEY_ID", "tls-key-2026-01")
+            
+            # Load primary private key (for signing)
             private_key_b64 = os.environ.get("TLS_PRIVATE_KEY_B64")
             if private_key_b64:
                 private_pem = base64.b64decode(private_key_b64)
-                self.private_key = serialization.load_pem_private_key(private_pem, password=None)
-                logger.info(f"Loaded TLS signing private key: {self.key_id}")
+                private_key = serialization.load_pem_private_key(private_pem, password=None)
+                public_key = private_key.public_key()
+                
+                # Get key ID from env or use default
+                key_id = os.environ.get("TLS_SIGNING_KEY_ID", self.active_key_id)
+                
+                # Register the key
+                self.keys[key_id] = {
+                    "private_key": private_key,
+                    "public_key": public_key,
+                    "activated_at": os.environ.get("TLS_KEY_ACTIVATED_AT", "2026-01-01T00:00:00Z"),
+                    "is_active": True
+                }
+                
+                # Set as active key
+                self.active_key_id = key_id
+                self.active_private_key = private_key
+                self.active_public_key = public_key
+                
+                logger.info(f"Loaded TLS signing key: {key_id} (ACTIVE)")
             else:
                 logger.warning("TLS_PRIVATE_KEY_B64 not set - signing disabled")
             
-            # Load public key (for verification)
-            public_key_b64 = os.environ.get("TLS_PUBLIC_KEY_B64")
-            if public_key_b64:
-                public_pem = base64.b64decode(public_key_b64)
-                self.public_key = serialization.load_pem_public_key(public_pem)
-                logger.info(f"Loaded TLS signing public key: {self.key_id}")
-            elif self.private_key:
-                # Derive public key from private key
-                self.public_key = self.private_key.public_key()
+            # Load additional historical public keys (for verification of old stamps)
+            # Format: TLS_HISTORICAL_KEYS_JSON = '[{"key_id": "...", "public_key_b64": "..."}]'
+            historical_keys_json = os.environ.get("TLS_HISTORICAL_KEYS_JSON")
+            if historical_keys_json:
+                try:
+                    historical_keys = json.loads(historical_keys_json)
+                    for key_data in historical_keys:
+                        kid = key_data.get("key_id")
+                        pub_b64 = key_data.get("public_key_b64")
+                        if kid and pub_b64 and kid not in self.keys:
+                            public_pem = base64.b64decode(pub_b64)
+                            public_key = serialization.load_pem_public_key(public_pem)
+                            self.keys[kid] = {
+                                "public_key": public_key,
+                                "activated_at": key_data.get("activated_at", "unknown"),
+                                "deactivated_at": key_data.get("deactivated_at"),
+                                "is_active": False
+                            }
+                            logger.info(f"Loaded historical TLS key: {kid}")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse TLS_HISTORICAL_KEYS_JSON: {e}")
+                    
         except Exception as e:
             logger.error(f"Failed to load TLS signing keys: {e}")
     
@@ -82,6 +138,30 @@ class CryptoSigningService:
         """Compute SHA-256 hash of data and return as hex string"""
         return hashlib.sha256(data).hexdigest()
     
+    @staticmethod
+    def generate_key_pair() -> Tuple[bytes, bytes]:
+        """
+        Generate a new ECDSA P-256 key pair.
+        
+        Returns:
+            Tuple of (private_key_pem, public_key_pem) as bytes
+        """
+        private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+        public_key = private_key.public_key()
+        
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        
+        public_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        
+        return private_pem, public_pem
+    
     def sign_stamp(
         self,
         stamp_id: str,
@@ -91,14 +171,14 @@ class CryptoSigningService:
         expires_at: Optional[str] = None
     ) -> Optional[dict]:
         """
-        Sign a stamp record and return signature metadata.
+        Sign a stamp record using the ACTIVE key.
         
         Returns:
             Dict with signature_b64, signature_alg, key_id, signed_payload_hash
             Or None if signing is not available
         """
-        if not self.private_key:
-            logger.warning("Cannot sign stamp - private key not loaded")
+        if not self.active_private_key:
+            logger.warning("Cannot sign stamp - no active private key")
             return None
         
         try:
@@ -111,20 +191,31 @@ class CryptoSigningService:
                 expires_at=expires_at
             )
             
-            # Sign the payload
-            signature = self.private_key.sign(payload_bytes, ec.ECDSA(hashes.SHA256()))
+            # Sign the payload with ACTIVE key
+            signature = self.active_private_key.sign(payload_bytes, ec.ECDSA(hashes.SHA256()))
             signature_b64 = base64.b64encode(signature).decode("utf-8")
             
-            # Return signature metadata
+            # Return signature metadata with key_id for verification
             return {
                 "signature_b64": signature_b64,
                 "signature_alg": SIG_ALG,
-                "key_id": self.key_id,
+                "key_id": self.active_key_id,
                 "signed_payload_hash": self.sha256_hex(payload_bytes)
             }
         except Exception as e:
             logger.error(f"Failed to sign stamp {stamp_id}: {e}")
             return None
+    
+    def get_public_key_for_key_id(self, key_id: str) -> Optional[object]:
+        """Get the public key for a specific key_id (for verification)"""
+        if key_id in self.keys:
+            return self.keys[key_id].get("public_key")
+        
+        # Fallback to active key if key_id matches
+        if key_id == self.active_key_id:
+            return self.active_public_key
+        
+        return None
     
     def verify_stamp_signature(
         self,
@@ -139,6 +230,9 @@ class CryptoSigningService:
         """
         Verify a stamp's cryptographic signature.
         
+        Uses the key_id from the stamp record to find the correct public key.
+        This allows verification of stamps signed with rotated/historical keys.
+        
         Args:
             stamp_id: The stamp ID
             doc_hash: SHA-256 hash of the document
@@ -146,18 +240,22 @@ class CryptoSigningService:
             advocate_id: ID of the issuing advocate
             expires_at: ISO8601 timestamp of expiration (or None)
             signature_b64: Base64-encoded signature
-            key_id: Key ID used for signing (for key rotation)
+            key_id: Key ID used for signing (for key rotation support)
         
         Returns:
             Tuple of (is_valid, message)
         """
-        if not self.public_key:
-            return False, "Verification unavailable - public key not loaded"
+        # Determine which public key to use
+        verification_key_id = key_id or self.active_key_id
+        public_key = self.get_public_key_for_key_id(verification_key_id)
         
-        # Check key_id if provided (for future key rotation)
-        if key_id and key_id != self.key_id:
-            logger.warning(f"Key ID mismatch: expected {self.key_id}, got {key_id}")
-            # In production with key rotation, you'd load the historical key here
+        if not public_key:
+            # Try active key as fallback
+            if self.active_public_key:
+                public_key = self.active_public_key
+                logger.warning(f"Key ID {verification_key_id} not found, using active key")
+            else:
+                return False, f"Verification unavailable - public key not found for key_id: {verification_key_id}"
         
         try:
             # Rebuild canonical payload
@@ -173,9 +271,9 @@ class CryptoSigningService:
             signature = base64.b64decode(signature_b64)
             
             # Verify signature
-            self.public_key.verify(signature, payload_bytes, ec.ECDSA(hashes.SHA256()))
+            public_key.verify(signature, payload_bytes, ec.ECDSA(hashes.SHA256()))
             
-            return True, "Signature verified - stamp is cryptographically authentic"
+            return True, f"Signature verified with key {verification_key_id} - stamp is cryptographically authentic"
             
         except InvalidSignature:
             return False, "INVALID SIGNATURE - stamp may have been tampered with"
@@ -185,37 +283,133 @@ class CryptoSigningService:
             logger.error(f"Signature verification error for {stamp_id}: {e}")
             return False, f"Verification error: {e}"
     
-    def get_public_key_pem(self) -> Optional[str]:
-        """Get the public key in PEM format for publishing"""
-        if not self.public_key:
-            return None
+    def get_public_key_pem(self, key_id: Optional[str] = None) -> Optional[str]:
+        """Get a public key in PEM format"""
+        if key_id:
+            key_data = self.keys.get(key_id)
+            if key_data and key_data.get("public_key"):
+                return key_data["public_key"].public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                ).decode("utf-8")
         
-        return self.public_key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        ).decode("utf-8")
+        if self.active_public_key:
+            return self.active_public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            ).decode("utf-8")
+        
+        return None
     
     def get_public_key_info(self) -> dict:
-        """Get public key info for the well-known endpoint"""
-        public_pem = self.get_public_key_pem()
-        return {
-            "keys": [
-                {
-                    "key_id": self.key_id,
+        """
+        Get all public keys for the well-known endpoint.
+        Returns both active and historical keys for verification.
+        """
+        keys_list = []
+        
+        for key_id, key_data in self.keys.items():
+            if key_data.get("public_key"):
+                public_pem = key_data["public_key"].public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                ).decode("utf-8")
+                
+                keys_list.append({
+                    "key_id": key_id,
                     "alg": SIG_ALG,
                     "public_key_pem": public_pem,
-                    "active": True
+                    "active": key_id == self.active_key_id,
+                    "activated_at": key_data.get("activated_at"),
+                    "deactivated_at": key_data.get("deactivated_at")
+                })
+        
+        return {
+            "keys": keys_list,
+            "active_key_id": self.active_key_id,
+            "signing_available": self.is_signing_available()
+        }
+    
+    def rotate_key(self, new_key_id: str, new_private_pem: bytes, new_public_pem: bytes) -> dict:
+        """
+        Rotate to a new signing key.
+        
+        The old key is retained for verification of existing stamps.
+        New stamps will be signed with the new key.
+        
+        Args:
+            new_key_id: Unique identifier for the new key
+            new_private_pem: PEM-encoded private key
+            new_public_pem: PEM-encoded public key
+        
+        Returns:
+            Rotation event dict
+        """
+        old_key_id = self.active_key_id
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Load new keys
+        new_private_key = serialization.load_pem_private_key(new_private_pem, password=None)
+        new_public_key = serialization.load_pem_public_key(new_public_pem)
+        
+        # Deactivate old key (keep for verification)
+        if old_key_id and old_key_id in self.keys:
+            self.keys[old_key_id]["is_active"] = False
+            self.keys[old_key_id]["deactivated_at"] = now
+        
+        # Register new key
+        self.keys[new_key_id] = {
+            "private_key": new_private_key,
+            "public_key": new_public_key,
+            "activated_at": now,
+            "is_active": True
+        }
+        
+        # Update active key
+        self.active_key_id = new_key_id
+        self.active_private_key = new_private_key
+        self.active_public_key = new_public_key
+        
+        # Record rotation event
+        rotation_event = {
+            "event_type": "KEY_ROTATED",
+            "old_key_id": old_key_id,
+            "new_key_id": new_key_id,
+            "rotated_at": now
+        }
+        self.rotation_history.append(rotation_event)
+        
+        logger.info(f"Key rotated: {old_key_id} -> {new_key_id}")
+        
+        return rotation_event
+    
+    def get_key_status(self) -> dict:
+        """Get current key status for admin monitoring"""
+        return {
+            "active_key_id": self.active_key_id,
+            "signing_available": self.is_signing_available(),
+            "verification_available": self.is_verification_available(),
+            "total_keys": len(self.keys),
+            "keys": [
+                {
+                    "key_id": kid,
+                    "active": kdata.get("is_active", False),
+                    "has_private_key": kdata.get("private_key") is not None,
+                    "activated_at": kdata.get("activated_at"),
+                    "deactivated_at": kdata.get("deactivated_at")
                 }
-            ] if public_pem else []
+                for kid, kdata in self.keys.items()
+            ],
+            "rotation_history_count": len(self.rotation_history)
         }
     
     def is_signing_available(self) -> bool:
         """Check if cryptographic signing is available"""
-        return self.private_key is not None
+        return self.active_private_key is not None
     
     def is_verification_available(self) -> bool:
         """Check if cryptographic verification is available"""
-        return self.public_key is not None
+        return len(self.keys) > 0 or self.active_public_key is not None
 
 
 # Singleton instance
