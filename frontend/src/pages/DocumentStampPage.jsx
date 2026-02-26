@@ -1857,6 +1857,17 @@ const DocumentStampPage = () => {
                             {fileData?.converted && <span className="text-emerald-400 ml-2">• Converted</span>}
                           </p>
                         </div>
+                        {/* Change Document button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={resetDocument}
+                          className="text-white/50 hover:text-white hover:bg-white/10 text-xs ml-2"
+                          data-testid="change-document-btn"
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Change
+                        </Button>
                       </div>
                       <div className="flex items-center gap-2">
                         {fileData?.pages > 1 && (
