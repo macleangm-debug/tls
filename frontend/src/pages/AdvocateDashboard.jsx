@@ -705,60 +705,119 @@ const AdvocateDashboard = () => {
 
       {/* ========== SECTION 4: Two Column - Recent Activity ========== */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
-        {/* Left Column: Progress & Achievements */}
-        <div className="space-y-4">
-          {/* Next Achievement Progress */}
-          {stats?.next_achievement && (
-            <Card className="glass-card rounded-2xl border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-orange-500/5" data-testid="next-achievement">
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-2xl">
-                    {stats.next_achievement.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-white text-sm">{stats.next_achievement.name}</h3>
-                      <span className="text-yellow-400 text-sm font-medium">
-                        {stats.next_achievement.current}/{stats.next_achievement.threshold}
-                      </span>
+        {/* Left Column: Recent Stamps */}
+        <Card className="glass-card rounded-2xl border-emerald-500/20" data-testid="recent-stamps">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                Recent Stamps
+              </h3>
+              <Link to="/stamp-ledger" className="text-xs text-emerald-400 hover:underline">View all</Link>
+            </div>
+            {recentStamps.length === 0 ? (
+              <div className="text-center py-6">
+                <FileText className="w-10 h-10 text-white/10 mx-auto mb-3" />
+                <p className="text-white/40 text-sm mb-3">No stamps yet</p>
+                <Link to="/documents">
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Stamp Your First Document
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentStamps.slice(0, 5).map((stamp) => (
+                  <div key={stamp.stamp_id} className="flex items-center gap-3 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      stamp.status === 'active' ? 'bg-emerald-500/20' : 'bg-red-500/20'
+                    }`}>
+                      {stamp.status === 'active' ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-red-400" />
+                      )}
                     </div>
-                    <p className="text-white/50 text-xs">{stats.next_achievement.description}</p>
-                  </div>
-                </div>
-                <Progress value={stats.next_achievement.progress} className="h-2 bg-white/10" />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Earned Achievements */}
-          {stats?.earned_achievements?.length > 0 && (
-            <Card className="glass-card rounded-2xl border-white/10" data-testid="earned-achievements">
-              <CardContent className="p-5">
-                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-yellow-400" />
-                  Your Achievements ({stats.earned_achievements.length})
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {stats.earned_achievements.slice(0, 6).map((ach) => (
-                    <div 
-                      key={ach.id}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg"
-                      title={ach.description}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white truncate">{stamp.doc_filename || 'Document'}</p>
+                      <p className="text-[10px] text-white/40 font-mono">{stamp.stamp_id}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyVerifyLink(stamp.stamp_id)}
+                      className="text-white/40 hover:text-white p-1 h-auto"
                     >
-                      <span className="text-lg">{ach.icon}</span>
-                      <span className="text-xs font-medium text-white">{ach.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                      <LinkIcon className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
+        {/* Right Column: Recent Verifications */}
+        <Card className="glass-card rounded-2xl border-purple-500/20" data-testid="recent-verifications">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-400" />
+                Recent Verifications
+              </h3>
+              <span className="text-xs text-white/40">{stats?.total_verifications || 0} total</span>
+            </div>
+            {recentVerifications.length === 0 ? (
+              <div className="text-center py-6">
+                <Target className="w-10 h-10 text-white/10 mx-auto mb-3" />
+                <p className="text-white/40 text-sm">Verifications will appear here</p>
+                <p className="text-white/30 text-xs mt-1">When someone scans your stamp QR code</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentVerifications.slice(0, 5).map((v, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      {v.method === 'qr' ? (
+                        <QrCode className="w-4 h-4 text-purple-400" />
+                      ) : v.method === 'upload' ? (
+                        <Upload className="w-4 h-4 text-purple-400" />
+                      ) : (
+                        <ShieldCheck className="w-4 h-4 text-purple-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white truncate">{v.stamp_id}</p>
+                      <p className="text-[10px] text-white/40">
+                        {new Date(v.verified_at).toLocaleDateString()} • {v.method || 'ID lookup'}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] ${
+                      v.result === 'valid' ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400'
+                    }`}>
+                      {v.result}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ========== SECTION 5: Collapsible Insights ========== */}
+      <details className="group mb-6">
+        <summary className="flex items-center gap-2 cursor-pointer text-white/60 hover:text-white transition-colors mb-3">
+          <ChevronRight className="w-4 h-4 group-open:rotate-90 transition-transform" />
+          <span className="text-sm font-medium">Insights & Achievements</span>
+        </summary>
+        <div className="grid lg:grid-cols-2 gap-4 pl-6">
           {/* Cost Savings */}
           <Card className="glass-card rounded-2xl border-emerald-500/20" data-testid="cost-savings">
             <CardContent className="p-5">
               <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-emerald-400" />
+                <DollarSign className="w-4 h-4 text-emerald-400" />
                 Savings vs Physical Stamps
               </h3>
               <div className="grid grid-cols-2 gap-3">
@@ -775,29 +834,32 @@ const AdvocateDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right Column: Activity Feed */}
-        <div className="space-y-4">
-          {/* Recent Verifications */}
-          <Card className="glass-card rounded-2xl border-purple-500/20" data-testid="recent-verifications">
-            <CardContent className="p-5">
-              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-purple-400" />
-                Recent Verifications
-              </h3>
-              {recentVerifications.length === 0 ? (
-                <div className="text-center py-4">
-                  <Target className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                  <p className="text-white/40 text-xs">Verifications will appear here</p>
+          {/* Achievements - Now Collapsible */}
+          {stats?.earned_achievements?.length > 0 && (
+            <Card className="glass-card rounded-2xl border-yellow-500/10" data-testid="earned-achievements">
+              <CardContent className="p-5">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-yellow-400" />
+                  Achievements ({stats.earned_achievements.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {stats.earned_achievements.slice(0, 6).map((ach) => (
+                    <div 
+                      key={ach.id}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg"
+                      title={ach.description}
+                    >
+                      <span className="text-base">{ach.icon}</span>
+                      <span className="text-xs font-medium text-white/80">{ach.name}</span>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {recentVerifications.slice(0, 4).map((v, i) => (
-                    <div key={i} className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
-                      <ShieldCheck className="w-4 h-4 text-purple-400" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white truncate">
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </details>
                           {v.institution || "Document verified"}
                         </p>
                         <p className="text-[10px] text-white/40">{v.stamp_id}</p>
