@@ -3108,14 +3108,14 @@ async def generate_stamp_preview(
     img_buffer.seek(0)
     img_base64 = base64.b64encode(img_buffer.read()).decode()
     
-    # Determine PDF stamp dimensions based on signature requirements
+    # ========== QUARTER-PAGE STAMP SIZES ==========
     needs_signature = request.include_signature or request.show_signature_placeholder
     if needs_signature:
-        pdf_width_pt = 200   # Certification stamp width
-        pdf_height_pt = 150  # Certification stamp height (with signature section)
+        pdf_width_pt = 180   # Certification stamp width
+        pdf_height_pt = 120  # Certification stamp height (with signature section)
     else:
-        pdf_width_pt = 240   # Compact stamp width
-        pdf_height_pt = 128  # Compact stamp height
+        pdf_width_pt = 170   # Compact stamp width
+        pdf_height_pt = 90   # Compact stamp height
     
     return {
         "preview_image": f"data:image/png;base64,{img_base64}",
