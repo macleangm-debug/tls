@@ -586,12 +586,15 @@ const AdvocateDashboard = () => {
                 </div>
               </div>
               <div className="hidden md:flex gap-2">
-                <div className="glass rounded-lg px-3 py-2 text-center">
-                  <p className="text-[10px] text-white/40">Ranking</p>
-                  <p className="text-sm font-bold text-yellow-400">
-                    {stats?.percentile_rank <= 10 ? "Top 10%" : `Top ${stats?.percentile_rank || 100}%`}
-                  </p>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowShareModal(true)}
+                  className="text-white/60 hover:text-white hover:bg-white/10"
+                >
+                  <Share2 className="w-4 h-4 mr-1" />
+                  Share Profile
+                </Button>
               </div>
             </div>
           </CardContent>
