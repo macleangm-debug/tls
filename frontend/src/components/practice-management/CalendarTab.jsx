@@ -60,6 +60,17 @@ const calendarStyles = `
   .fc .fc-daygrid-day-events { min-height: 1.5em; }
   .fc-event-completed { opacity: 0.5; text-decoration: line-through; }
   .fc-event-cancelled { opacity: 0.4; text-decoration: line-through; background: #6b7280 !important; border-color: #6b7280 !important; }
+  
+  /* TLS Global Event styling */
+  .fc-tls-event { 
+    border-left: 3px solid #a855f7 !important; 
+    font-weight: 500;
+  }
+  .fc-tls-event::before {
+    content: '🏛️';
+    margin-right: 2px;
+    font-size: 0.7em;
+  }
 `;
 
 export const CalendarTab = ({ token }) => {
