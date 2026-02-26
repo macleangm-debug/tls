@@ -743,6 +743,201 @@ def create_practice_routes(db, get_current_user):
         events = await db.events.find(query, {"_id": 0}).sort("start_datetime", 1).to_list(500)
         return {"events": events, "total": len(events)}
     
+    @practice_router.get("/calendar")
+    async def get_combined_calendar(
+        from_date: str = Query(..., alias="from", description="Start date (YYYY-MM-DD)"),
+        to_date: str = Query(..., alias="to", description="End date (YYYY-MM-DD)"),
+        include_tls: bool = Query(True, description="Include TLS global events"),
+        include_tasks: bool = Query(True, description="Include tasks as calendar items"),
+        user: dict = Depends(get_current_user)
+    ):
+        """
+        Get combined calendar feed with personal events + TLS global events.
+        Returns events in FullCalendar-ready format with source tags.
+        """
+        try:
+            from_dt = parse_date(from_date)
+            to_dt = parse_date(to_date)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid date format: {e}")
+        
+        all_events = []
+        
+        # 1. Get personal events
+        personal_query = {
+            "advocate_id": user["id"],
+            "start_datetime": {"$gte": from_date, "$lte": to_date}
+        }
+        personal_events = await db.events.find(personal_query, {"_id": 0}).to_list(500)
+        
+        for e in personal_events:
+            status = e.get("status", "scheduled")
+            all_events.append({
+                "id": f"event-{e['id']}",
+                "title": e["title"],
+                "start": e["start_datetime"],
+                "end": e.get("end_datetime"),
+                "allDay": e.get("all_day", False),
+                "source": "personal",
+                "readonly": False,
+                "extendedProps": {
+                    "source": "personal",
+                    "type": "event",
+                    "event_type": e.get("event_type", "meeting"),
+                    "status": status,
+                    "priority": e.get("priority", "medium"),
+                    "location": e.get("location"),
+                    "court": e.get("court"),
+                    "description": e.get("description"),
+                    "client_id": e.get("client_id"),
+                    "case_id": e.get("case_id"),
+                    "data": e
+                }
+            })
+        
+        # 2. Get tasks with due dates
+        if include_tasks:
+            task_query = {
+                "advocate_id": user["id"],
+                "due_date": {"$gte": from_date, "$lte": to_date},
+                "status": {"$ne": "completed"}
+            }
+            tasks = await db.tasks.find(task_query, {"_id": 0}).to_list(200)
+            
+            for t in tasks:
+                all_events.append({
+                    "id": f"task-{t['id']}",
+                    "title": f"📋 {t['title']}",
+                    "start": t["due_date"],
+                    "end": None,
+                    "allDay": True,
+                    "source": "personal",
+                    "readonly": False,
+                    "extendedProps": {
+                        "source": "personal",
+                        "type": "task",
+                        "status": t.get("status", "pending"),
+                        "priority": t.get("priority", "medium"),
+                        "data": t
+                    }
+                })
+        
+        # 3. Get TLS global events (if enabled)
+        if include_tls:
+            tls_query = {"status": {"$ne": "cancelled"}}
+            tls_events = await db.tls_global_events.find(tls_query, {"_id": 0}).to_list(100)
+            
+            # Filter by audience and expand recurrence
+            for event in tls_events:
+                # Check audience scope
+                audience = event.get("audience", {})
+                scope = audience.get("scope", "all")
+                
+                if scope == "region":
+                    user_region = user.get("location", "").strip().lower()
+                    event_regions = [r.lower() for r in audience.get("regions", [])]
+                    if event_regions and user_region not in event_regions:
+                        continue
+                
+                if scope == "role":
+                    user_role = user.get("role", "").strip().lower()
+                    event_roles = [r.lower() for r in audience.get("roles", [])]
+                    if event_roles and user_role not in event_roles:
+                        continue
+                
+                # Expand recurrence
+                expanded = expand_tls_recurrence(event, from_dt, to_dt)
+                all_events.extend(expanded)
+        
+        # Sort by start date
+        all_events.sort(key=lambda x: x.get("start", "") or "")
+        
+        return {
+            "events": all_events,
+            "total": len(all_events),
+            "personal_count": len([e for e in all_events if e.get("source") == "personal"]),
+            "tls_count": len([e for e in all_events if e.get("source") == "tls"]),
+            "from": from_date,
+            "to": to_date
+        }
+    
+    def expand_tls_recurrence(event: dict, from_dt: datetime, to_dt: datetime) -> list:
+        """Expand TLS event recurrence into calendar instances."""
+        recurrence = event.get("recurrence", {})
+        
+        # Single event (no recurrence)
+        if not recurrence or not recurrence.get("enabled") or not recurrence.get("rule"):
+            try:
+                event_start = parse_date(event["start_at"])
+                if from_dt <= event_start <= to_dt:
+                    return [create_tls_calendar_item(event, event["start_at"], event.get("end_at"))]
+            except:
+                pass
+            return []
+        
+        try:
+            rule_str = recurrence["rule"]
+            dtstart = parse_date(event["start_at"])
+            rr = rrulestr(rule_str, dtstart=dtstart)
+            
+            until_date = parse_date(recurrence["until"]) if recurrence.get("until") else None
+            count = recurrence.get("count") or 100
+            
+            occurrences = []
+            occurrence_count = 0
+            
+            for dt in rr:
+                if until_date and dt > until_date:
+                    break
+                if occurrence_count >= count:
+                    break
+                if dt > to_dt:
+                    break
+                if dt >= from_dt:
+                    end_at = None
+                    if event.get("end_at"):
+                        original_start = parse_date(event["start_at"])
+                        original_end = parse_date(event["end_at"])
+                        duration = original_end - original_start
+                        end_at = (dt + duration).isoformat()
+                    
+                    occurrence_id = f"TLS-OCC-{event['id']}-{dt.strftime('%Y%m%d')}"
+                    occurrences.append(create_tls_calendar_item(event, dt.isoformat(), end_at, occurrence_id))
+                occurrence_count += 1
+            
+            return occurrences
+        except Exception as e:
+            print(f"TLS recurrence expansion error: {e}")
+            return [create_tls_calendar_item(event, event["start_at"], event.get("end_at"))]
+    
+    def create_tls_calendar_item(event: dict, start: str, end: str, occurrence_id: str = None) -> dict:
+        """Create a FullCalendar-ready TLS event item."""
+        return {
+            "id": occurrence_id or f"TLS-{event['id']}",
+            "title": f"[TLS] {event['title']}",
+            "start": start,
+            "end": end,
+            "allDay": event.get("all_day", False),
+            "source": "tls",
+            "readonly": True,
+            "className": "tls-global-event",
+            "extendedProps": {
+                "source": "tls",
+                "type": "tls_event",
+                "event_type": event.get("event_type", "tls_announcement"),
+                "priority": event.get("priority", "medium"),
+                "status": event.get("status", "scheduled"),
+                "is_mandatory": event.get("is_mandatory", False),
+                "require_ack": event.get("require_ack", False),
+                "description": event.get("description", ""),
+                "links": event.get("links", []),
+                "series_id": event.get("series_id"),
+                "is_recurring": event.get("recurrence", {}).get("enabled", False),
+                "original_event_id": event["id"],
+                "data": event
+            }
+        }
+    
     @practice_router.post("/events")
     async def create_event(data: EventCreate, user: dict = Depends(get_current_user)):
         """Create a new event"""
