@@ -61,6 +61,12 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
   - Last Page
   - All Pages (shows per-page position controls)
   - Custom... (checkboxes with Select All/Clear/Odd/Even quick actions)
+- **Preview Stamped PDF** (NEW):
+  - `POST /api/documents/stamp-preview-pdf` - Same payload as final stamp
+  - Returns PDF with watermark "PREVIEW ONLY - NOT VALID"
+  - No DB records, events, or billing charges
+  - Uses `TLS-PREVIEW-*` stamp ID format
+  - Modal viewer with "Adjust Position" and "Generate Final" actions
 - **Upload Fixes**: Removed manual Content-Type header for FormData (browser handles boundary)
 - **PDF Validation on Upload**: Specific error messages for encrypted, corrupted, or invalid PDFs
 - **Test Report**: `/app/test_reports/iteration_60.json` - 100% pass rate
