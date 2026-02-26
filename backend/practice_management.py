@@ -750,6 +750,16 @@ def create_practice_routes(db, get_current_user):
             "advocate_id": user["id"],
             **data.dict(),
             "status": "scheduled",  # Default status for new events
+            "completed_at": None,
+            "completed_by": None,
+            "cancelled_at": None,
+            "cancelled_by": None,
+            "cancel_reason": None,
+            "rescheduled_at": None,
+            "rescheduled_by": None,
+            "reschedule_reason": None,
+            "rescheduled_from": None,
+            "outcome": None,
             "created_at": now,
             "updated_at": now
         }
