@@ -2869,6 +2869,31 @@ async def upload_document(
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF, DOCX, PNG, or JPG.")
     
+    # For PDFs, run validation before processing
+    if file.content_type == "application/pdf":
+        try:
+            from services.pdf_validation_service import pdf_validator, PDFErrorCode
+            validation_result, pdf_metadata = pdf_validator.validate(content, file.filename)
+            
+            if validation_result["code"] != PDFErrorCode.PDF_VALID:
+                # Return specific error messages based on validation code
+                error_messages = {
+                    PDFErrorCode.PDF_NOT_PDF: "This file is not a valid PDF document.",
+                    PDFErrorCode.PDF_ENCRYPTED: "This PDF is password-protected. Please remove the password and try again.",
+                    PDFErrorCode.PDF_CORRUPT: "This PDF appears to be corrupted or malformed.",
+                    PDFErrorCode.PDF_TOO_LARGE: f"PDF exceeds the maximum size limit ({pdf_metadata.get('file_size_mb', 0):.1f}MB).",
+                    PDFErrorCode.PDF_TOO_MANY_PAGES: f"PDF has too many pages ({pdf_metadata.get('page_count', 0)}). Maximum is 200.",
+                    PDFErrorCode.PDF_EMPTY: "This PDF has no pages.",
+                    PDFErrorCode.PDF_READ_ERROR: "Could not read this PDF file. It may be damaged.",
+                }
+                error_msg = error_messages.get(validation_result["code"], validation_result.get("message", "PDF validation failed"))
+                raise HTTPException(status_code=400, detail=error_msg)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning(f"PDF validation error (continuing): {e}")
+            # Continue even if validation service fails - basic PyPDF2 check below will catch issues
+    
     # Convert to PDF if needed
     pdf_content = content
     converted = False
