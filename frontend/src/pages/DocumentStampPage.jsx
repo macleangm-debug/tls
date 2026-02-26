@@ -908,8 +908,10 @@ const DocumentStampPage = () => {
       formData.append('shape', stampShape);
       
       const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
-      const includeSignature = stampTypeConfig?.requiresSignature && signatureMode === 'digital' && savedSignature;
-      const showSignaturePlaceholder = stampTypeConfig?.requiresSignature && !includeSignature;
+      // Normalize: Notarization stamps NEVER have signatures
+      const isNotarization = selectedType === "notarization";
+      const includeSignature = !isNotarization && stampTypeConfig?.requiresSignature && signatureMode === 'digital' && savedSignature;
+      const showSignaturePlaceholder = !isNotarization && stampTypeConfig?.requiresSignature && !includeSignature;
       
       formData.append('include_signature', includeSignature.toString());
       formData.append('show_signature_placeholder', showSignaturePlaceholder.toString());
