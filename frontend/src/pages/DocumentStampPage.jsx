@@ -222,13 +222,20 @@ const DocumentStampPage = () => {
     try {
       const isNotarization = selectedType === "notarization";
       
+      // ========== VALIDATE SIGNATURE DATA ==========
+      // Prevents "digital signature breaks preview" from invalid base64
+      const hasValidSig = 
+        typeof savedSignature === "string" &&
+        savedSignature.length > 100 && // prevents empty "data:image/png;base64,"
+        (savedSignature.includes("base64,") || /^[A-Za-z0-9+/=]+$/.test(savedSignature));
+      
       // ========== STRICT SIGNATURE RULES ==========
-      // Digital signature: certification + digital mode + has saved signature
+      // Digital signature: certification + digital mode + has VALID saved signature
       const includeSignature = 
         !isNotarization &&
         selectedType === "certification" &&
         signatureMode === "digital" &&
-        !!savedSignature;
+        hasValidSig;
       
       // Placeholder: certification + print mode (sign after printing)
       const showPlaceholder = 
