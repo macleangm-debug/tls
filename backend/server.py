@@ -8309,6 +8309,7 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"],
+    expose_headers=["X-Stamp-ID", "X-Preview", "X-Document-Hash", "X-Stamp-Width-Pt", "X-Stamp-Height-Pt", "X-Stamp-Variant", "X-Stamp-Width-Px", "X-Stamp-Height-Px"],
 )
 
 @app.on_event("startup")
