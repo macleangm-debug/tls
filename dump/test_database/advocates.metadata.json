@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"email":{"$numberInt":"1"}},"name":"email_1","unique":true},{"v":{"$numberInt":"2"},"key":{"roll_number":{"$numberInt":"1"}},"name":"roll_number_1","unique":true}],"uuid":"4d09c8aa656d4daf99cedb980c332dab","collectionName":"advocates","type":"collection"}

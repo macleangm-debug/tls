@@ -117,7 +117,7 @@ else:
     logging.warning("RESEND_API_KEY not set - email functionality disabled")
 
 # Frontend URL for email links
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://cert-platform-2.preview.emergentagent.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://legal-hub-59.preview.emergentagent.com')
 
 # VAPID configuration for push notifications
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
@@ -2933,7 +2933,7 @@ async def generate_stamp_preview(
     
     # Generate a preview stamp ID
     preview_stamp_id = f"TLS-{datetime.now().strftime('%Y%m%d')}-PREVIEW"
-    preview_url = f"https://cert-platform-2.preview.emergentagent.com/verify?id={preview_stamp_id}"
+    preview_url = f"https://legal-hub-59.preview.emergentagent.com/verify?id={preview_stamp_id}"
     
     # Use advocate name from request or user profile
     advocate_name = request.advocate_name if request.advocate_name else user.get("full_name", "Advocate")
@@ -3036,7 +3036,7 @@ async def create_document_stamp(
     hash_value = generate_stamp_hash(stamp_id, user["id"], doc_hash, now.isoformat())
     
     # Generate verification URL and branded QR code
-    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://cert-platform-2.preview.emergentagent.com')}/verify?id={stamp_id}"
+    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com')}/verify?id={stamp_id}"
     qr_data = generate_branded_qr_code(verification_url, position.get("width", 150), brand_color)
     
     expires_at = (now + timedelta(days=365)).isoformat()
@@ -3198,7 +3198,7 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
             scale = 2.0  # 800x560px - optimal for QR scanning
         
         # Generate the branded stamp image
-        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://cert-platform-2.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
+        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
         show_sig_placeholder = branding.get("show_signature_placeholder", False)
         stamp_img = generate_branded_stamp_image(
             stamp_id=stamp_record['stamp_id'],
@@ -3472,7 +3472,7 @@ async def embed_stamp_in_image(content: bytes, stamp_record: dict, user: dict, p
         scale = stamp_size / 100.0
         
         # Generate the branded stamp image
-        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://cert-platform-2.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
+        verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com')}/verify?id={stamp_record['stamp_id']}"
         shape = branding.get("shape", "rectangle")
         stamp_img = generate_branded_stamp_image(
             stamp_id=stamp_record['stamp_id'],
@@ -3711,7 +3711,7 @@ async def get_stamp_detail(stamp_id: str, user: dict = Depends(get_current_user)
         except:
             pass
     
-    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://cert-platform-2.preview.emergentagent.com')
+    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com')
     
     return StampLedgerDetail(
         stamp_id=stamp["stamp_id"],
@@ -4513,7 +4513,7 @@ async def batch_stamp_documents(
         raise HTTPException(status_code=400, detail=f"Total batch size exceeds {MAX_TOTAL_SIZE_MB}MB limit")
     
     # Initialize stamping service
-    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://cert-platform-2.preview.emergentagent.com')
+    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com')
     stamping_service = StampingService(db, frontend_url)
     
     # Build position config
@@ -4604,7 +4604,7 @@ async def create_digital_stamp(data: DigitalStampCreate, user: dict = Depends(ge
     stamp_id = generate_stamp_id()
     hash_value = generate_stamp_hash(stamp_id, user["id"], "", now.isoformat())
     
-    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://cert-platform-2.preview.emergentagent.com')}/verify?id={stamp_id}"
+    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com')}/verify?id={stamp_id}"
     qr_data = generate_qr_code(verification_url)
     
     expires_at = (now + timedelta(days=365)).isoformat()

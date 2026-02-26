@@ -15,7 +15,7 @@ import time
 import hashlib
 from io import BytesIO
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cert-platform-2.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "test@tls.or.tz"
