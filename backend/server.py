@@ -1070,7 +1070,6 @@ def generate_branded_stamp_image(
     # ============ SIGNATURE SECTION (CERTIFICATION STAMPS ONLY) ============
     if needs_signature_section:
         sig_section_top = body_bottom - int(90 * scale)  # Space for signature section
-        sig_section_height = int(80 * scale)
         
         # Signature section divider line
         draw.line(
