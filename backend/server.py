@@ -38,15 +38,32 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 import resend
 
-# Try to import docx for DOCX support
-try:
-    from docx import Document as DocxDocument
-    DOCX_SUPPORTED = True
-except ImportError:
-    DOCX_SUPPORTED = False
+# Sentry Error Monitoring
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Initialize Sentry (must be before FastAPI app creation)
+SENTRY_DSN = os.environ.get('SENTRY_DSN')
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=0.1,  # 10% of requests traced
+        profiles_sample_rate=0.0,  # Disable profiling
+        integrations=[
+            StarletteIntegration(transaction_style="endpoint"),
+            FastApiIntegration(transaction_style="endpoint"),
+        ],
+        environment=os.environ.get("ENVIRONMENT", "production"),
+        release=os.environ.get("APP_VERSION", "1.0.0"),
+        send_default_pii=False,  # Don't send personally identifiable information
+    )
+    logging.info("Sentry error monitoring initialized")
+else:
+    logging.warning("SENTRY_DSN not set - error monitoring disabled")
 
 # Import crypto signing service AFTER loading .env
 from services.crypto_signing_service import crypto_service
