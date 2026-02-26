@@ -4,7 +4,7 @@ import axios from "axios";
 import { DashboardLayout } from "./AdvocateDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { toast } from "sonner";
-import { Users, QrCode, ShoppingCart, TrendingUp, AlertTriangle, DollarSign, Activity, Clock } from "lucide-react";
+import { Users, QrCode, ShoppingCart, TrendingUp, AlertTriangle, DollarSign, Activity, Clock, Building } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
