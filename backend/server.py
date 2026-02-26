@@ -7603,6 +7603,11 @@ from routes.tls_events import tls_events_router, create_tls_events_routes
 tls_events_routes = create_tls_events_routes(db, get_current_user, require_admin, require_super_admin)
 app.include_router(tls_events_routes)
 
+# Include membership billing router
+from routes.membership import membership_router, create_membership_routes
+membership_routes = create_membership_routes(db, get_current_user, require_admin, require_super_admin)
+app.include_router(membership_routes)
+
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
