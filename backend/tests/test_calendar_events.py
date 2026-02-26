@@ -32,22 +32,31 @@ class TestCalendarEvents:
     """Test suite for Calendar Events API"""
     
     @pytest.fixture(scope="class")
-    def auth_token(self):
-        """Get authentication token"""
+    def auth_data(self):
+        """Get authentication token and CSRF token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         })
         assert response.status_code == 200, f"Login failed: {response.text}"
         data = response.json()
-        return data.get("access_token")
+        return {
+            "access_token": data.get("access_token"),
+            "csrf_token": data.get("csrf_token")
+        }
     
     @pytest.fixture(scope="class")
-    def headers(self, auth_token):
-        """Headers with authentication"""
+    def auth_token(self, auth_data):
+        """Get authentication token"""
+        return auth_data.get("access_token")
+    
+    @pytest.fixture(scope="class")
+    def headers(self, auth_data):
+        """Headers with authentication and CSRF token"""
         return {
-            "Authorization": f"Bearer {auth_token}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {auth_data['access_token']}",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": auth_data.get("csrf_token", "")
         }
     
     @pytest.fixture(scope="class")
