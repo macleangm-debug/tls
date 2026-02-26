@@ -145,6 +145,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/advocates" element={<ProtectedRoute adminOnly><AdminAdvocates /></ProtectedRoute>} />
           <Route path="/admin/orders" element={<ProtectedRoute adminOnly><AdminOrders /></ProtectedRoute>} />
+          <Route path="/admin/tls-events" element={<ProtectedRoute adminOnly><TLSEventsAdmin /></ProtectedRoute>} />
           
           {/* Super Admin Routes (IDC) */}
           <Route path="/super-admin" element={<ProtectedRoute superAdminOnly><SuperAdminDashboard /></ProtectedRoute>} />
