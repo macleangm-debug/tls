@@ -1652,10 +1652,10 @@ const DocumentStampPage = () => {
                                   onResizeStop={(e, direction, ref, delta, position) => {
                                     // Stamp size is now fixed - no resizing
                                   }}
-                                  minWidth={STAMP_WIDTH_PT * pdfRenderScale}
-                                  minHeight={STAMP_HEIGHT_PT * pdfRenderScale}
-                                  maxWidth={STAMP_WIDTH_PT * pdfRenderScale}
-                                  maxHeight={(STAMP_HEIGHT_PT + 30) * pdfRenderScale}
+                                  minWidth={stampPdfDimensions.width * pdfRenderScale}
+                                  minHeight={stampPdfDimensions.height * pdfRenderScale}
+                                  maxWidth={stampPdfDimensions.width * pdfRenderScale}
+                                  maxHeight={(stampPdfDimensions.height + 30) * pdfRenderScale}
                                   bounds="parent"
                                   enableResizing={false}
                                   className="z-10"
