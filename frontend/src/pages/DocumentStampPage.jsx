@@ -2430,14 +2430,14 @@ const DocumentStampPage = () => {
                           {/* Inline signature drawing area */}
                           {showSignatureDrawer ? (
                             <div className="space-y-3">
-                              <div className="bg-white rounded-lg overflow-hidden">
+                              <div ref={sigWrapRef} className="bg-white rounded-lg overflow-hidden">
                                 <SignatureCanvas
                                   ref={signatureCanvasRef}
                                   penColor="#1a1a1a"
                                   canvasProps={{
-                                    width: 280,
-                                    height: 100,
-                                    className: "w-full cursor-crosshair"
+                                    width: sigCanvasSize.width,
+                                    height: sigCanvasSize.height,
+                                    className: "w-full cursor-crosshair touch-none"
                                   }}
                                 />
                               </div>
