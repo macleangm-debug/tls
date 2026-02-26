@@ -109,6 +109,34 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ## Recent Changes
 
+### Feb 26, 2026 - Membership Billing System - COMPLETE ✅
+**Centralized membership billing control for IDC:**
+- **Admin Page** (`/super-admin/membership`):
+  - Stats cards: Total Advocates, Active Members, Expiring Soon, Unpaid, Total Payments
+  - Policy configuration: Enable/disable billing, mode (fixed/subscription), period (monthly/annual)
+  - Grace period setting (0-30 days)
+  - Enforcement level selection (Warn Only, Block Stamping, Block All Access)
+- **Advocate Dashboard Integration**:
+  - `MembershipStatusBanner` component shows membership status
+  - Grace period banner (amber) with days remaining and Renew/Dismiss options
+  - Blocked banner (red) when membership expired
+- **Stamping Page Integration**:
+  - Inline warning when stamping blocked
+  - "Generate Verified Stamp" button disabled with lock icon
+  - "Membership Required" text when blocked
+- **Batch Stamping Integration**:
+  - Same blocking UI as single document stamping
+- **Backend Enforcement**:
+  - Stamping endpoints check membership status via `check_enforcement()`
+  - Returns 403 with "Membership required" when blocked
+- **Files Modified**:
+  - `frontend/src/components/MembershipStatusBanner.jsx` (NEW)
+  - `frontend/src/pages/AdvocateDashboard.jsx` (MODIFIED)
+  - `frontend/src/pages/DocumentStampPage.jsx` (MODIFIED)
+  - `frontend/src/pages/BatchStampPage.jsx` (MODIFIED)
+  - `backend/routes/membership.py` (VERIFIED)
+  - `backend/services/membership_service.py` (VERIFIED)
+
 ### Feb 26, 2026 - TLS Acknowledgement & Attendance - COMPLETE ✅
 **Compliance features for TLS events:**
 - **Acknowledgement System**:
