@@ -3316,14 +3316,16 @@ async def embed_stamp_in_pdf_preview(content: bytes, stamp_record: dict, user: d
         stamp_img.save(stamp_buffer, format='PNG')
         stamp_buffer.seek(0)
         
-        # Select dimensions based on signature requirements (same logic as real stamp)
+        # ========== QUARTER-PAGE STAMP SIZES ==========
+        # Compact (notarization, verification): 170×90pt
+        # Certification with signature: 180×120pt
         needs_signature_section = include_signature or show_sig_placeholder
         if needs_signature_section:
-            STAMP_WIDTH_PT = 200
-            STAMP_HEIGHT_PT = 150
+            STAMP_WIDTH_PT = 180   # Certification stamp width
+            STAMP_HEIGHT_PT = 120  # Certification stamp height (includes signature area)
         else:
-            STAMP_WIDTH_PT = 240
-            STAMP_HEIGHT_PT = 128
+            STAMP_WIDTH_PT = 170   # Compact stamp width
+            STAMP_HEIGHT_PT = 90   # Compact stamp height
         
         EDGE_MARGIN_PT = 12
         
