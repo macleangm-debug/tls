@@ -1,7 +1,10 @@
 # TLS PDF Stamping Tool - Product Requirements Document
 
 ## Overview
-A comprehensive Practice Management Suite for advocates built with React, FastAPI, and MongoDB.
+A comprehensive Practice Management Suite and Digital Certification Platform for advocates built with React, FastAPI, and MongoDB. The platform has evolved into a certification authority-grade trust infrastructure with cryptographic signing, tamper-proof verification, and regulatory-grade audit trails.
+
+## Go-Live System Packet
+**Full documentation available at:** `/app/GO_LIVE_SYSTEM_PACKET.md`
 
 ## Core Features Implemented
 
