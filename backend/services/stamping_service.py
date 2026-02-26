@@ -30,7 +30,7 @@ class StampingService:
     MAX_BATCH_FILES = 25
     MAX_FILE_SIZE_MB = 10
     MAX_TOTAL_BATCH_SIZE_MB = 200
-    MAX_PAGES_PER_PDF = 50
+    MAX_PAGES_PER_PDF = 200  # Increased for real legal bundles
     
     # Stamp validity
     STAMP_VALIDITY_DAYS = 365
@@ -45,6 +45,11 @@ class StampingService:
         """
         self.db = db
         self.frontend_url = frontend_url
+        # Initialize PDF validator with service limits
+        self.pdf_validator = PDFValidationService(
+            max_file_size_mb=self.MAX_FILE_SIZE_MB,
+            max_pages=self.MAX_PAGES_PER_PDF
+        )
     
     @staticmethod
     def generate_stamp_id() -> str:
