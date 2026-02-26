@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
-import { Calendar as CalendarWidget } from "../ui/calendar";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -17,21 +16,59 @@ import { toast } from "sonner";
 import { 
   Calendar, Plus, Edit, Trash2, Eye, Copy, MoreVertical,
   AlertTriangle, Clock, CheckSquare, Bell, MapPin, Building,
-  List, CalendarDays, Gavel, UserCheck, CalendarIcon, ClockIcon
+  Gavel, UserCheck, CalendarIcon, ClockIcon, ChevronRight
 } from "lucide-react";
 import axios from "axios";
 import { API, ConfirmDialog, DateTimePicker } from "./shared";
 
+// FullCalendar imports
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+
+// Custom CSS for FullCalendar dark theme
+const calendarStyles = `
+  .fc {
+    --fc-border-color: rgba(255, 255, 255, 0.1);
+    --fc-button-bg-color: rgba(255, 255, 255, 0.1);
+    --fc-button-border-color: rgba(255, 255, 255, 0.2);
+    --fc-button-text-color: #fff;
+    --fc-button-hover-bg-color: rgba(255, 255, 255, 0.2);
+    --fc-button-hover-border-color: rgba(255, 255, 255, 0.3);
+    --fc-button-active-bg-color: #3b82f6;
+    --fc-button-active-border-color: #3b82f6;
+    --fc-today-bg-color: rgba(59, 130, 246, 0.15);
+    --fc-event-bg-color: #3b82f6;
+    --fc-event-border-color: #3b82f6;
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: rgba(255, 255, 255, 0.05);
+    --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.1);
+  }
+  .fc .fc-toolbar-title { color: #fff; font-size: 1.1rem; }
+  .fc .fc-col-header-cell-cushion { color: rgba(255, 255, 255, 0.6); font-weight: 500; }
+  .fc .fc-daygrid-day-number { color: rgba(255, 255, 255, 0.7); }
+  .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { color: #fff; font-weight: bold; }
+  .fc .fc-daygrid-day:hover { background: rgba(255, 255, 255, 0.05); }
+  .fc .fc-event { border-radius: 4px; font-size: 0.75rem; padding: 2px 4px; }
+  .fc .fc-event-main { padding: 1px 2px; }
+  .fc .fc-timegrid-slot-label { color: rgba(255, 255, 255, 0.5); }
+  .fc .fc-timegrid-axis { color: rgba(255, 255, 255, 0.5); }
+  .fc-theme-standard td, .fc-theme-standard th { border-color: rgba(255, 255, 255, 0.08); }
+  .fc .fc-scrollgrid { border-color: rgba(255, 255, 255, 0.08); }
+  .fc .fc-daygrid-day-events { min-height: 1.5em; }
+`;
+
 export const CalendarTab = ({ token }) => {
   const [events, setEvents] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [clients, setClients] = useState([]);
   const [cases, setCases] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editEvent, setEditEvent] = useState(null);
   const [viewEvent, setViewEvent] = useState(null);
   const [deleteEvent, setDeleteEvent] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState("list");
+  const [selectedDate, setSelectedDate] = useState(null);
   const [formData, setFormData] = useState({
     title: "", event_type: "meeting", start_datetime: "", end_datetime: "", location: "", description: "", client_id: "", case_id: ""
   });
@@ -40,20 +77,66 @@ export const CalendarTab = ({ token }) => {
 
   const fetchData = async () => {
     try {
-      const [eventsRes, clientsRes, casesRes] = await Promise.all([
+      const [eventsRes, clientsRes, casesRes, tasksRes] = await Promise.all([
         axios.get(`${API}/api/practice/events`, { headers }),
         axios.get(`${API}/api/practice/clients`, { headers }),
-        axios.get(`${API}/api/practice/cases`, { headers })
+        axios.get(`${API}/api/practice/cases`, { headers }),
+        axios.get(`${API}/api/practice/tasks`, { headers }).catch(() => ({ data: { tasks: [] } }))
       ]);
-      setEvents(eventsRes.data.events);
-      setClients(clientsRes.data.clients);
-      setCases(casesRes.data.cases);
+      setEvents(eventsRes.data.events || []);
+      setClients(clientsRes.data.clients || []);
+      setCases(casesRes.data.cases || []);
+      setTasks(tasksRes.data.tasks || []);
     } catch (error) {
       toast.error("Failed to fetch data");
     }
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  // Transform events and tasks for FullCalendar
+  const calendarEvents = useMemo(() => {
+    const eventItems = events.map(e => ({
+      id: `event-${e.id}`,
+      title: e.title,
+      start: e.start_datetime,
+      end: e.end_datetime,
+      backgroundColor: getEventColor(e.event_type),
+      borderColor: getEventColor(e.event_type),
+      extendedProps: { type: 'event', data: e }
+    }));
+    
+    // Add tasks with due dates as calendar items
+    const taskItems = tasks
+      .filter(t => t.due_date && t.status !== 'completed')
+      .map(t => ({
+        id: `task-${t.id}`,
+        title: `📋 ${t.title}`,
+        start: t.due_date,
+        allDay: true,
+        backgroundColor: getPriorityColor(t.priority),
+        borderColor: getPriorityColor(t.priority),
+        extendedProps: { type: 'task', data: t }
+      }));
+    
+    return [...eventItems, ...taskItems];
+  }, [events, tasks]);
+
+  function getEventColor(type) {
+    const colors = { 
+      court_hearing: "#ef4444", 
+      meeting: "#3b82f6", 
+      deadline: "#f59e0b", 
+      reminder: "#a855f7", 
+      appointment: "#10b981" 
+    };
+    return colors[type] || colors.meeting;
+  }
+
+  function getPriorityColor(priority) {
+    const colors = { high: "#ef4444", medium: "#f59e0b", low: "#22c55e" };
+    return colors[priority] || colors.medium;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,43 +188,49 @@ export const CalendarTab = ({ token }) => {
     }
   };
 
-  const handleDuplicateEvent = async (event) => {
-    const duplicateData = {
-      title: `${event.title} (Copy)`,
-      event_type: event.event_type,
-      start_datetime: event.start_datetime,
-      end_datetime: event.end_datetime,
-      location: event.location,
-      description: event.description,
-      client_id: event.client_id,
-      case_id: event.case_id
-    };
-    try {
-      await axios.post(`${API}/api/practice/events`, duplicateData, { headers });
-      toast.success("Event duplicated successfully");
-      fetchData();
-    } catch (error) {
-      toast.error("Failed to duplicate event");
+  const handleDateClick = (info) => {
+    const dateStr = `${info.dateStr}T09:00`;
+    setFormData({...formData, start_datetime: dateStr, end_datetime: `${info.dateStr}T10:00`});
+    setEditEvent(null);
+    setShowForm(true);
+  };
+
+  const handleEventClick = (info) => {
+    const { type, data } = info.event.extendedProps;
+    if (type === 'event') {
+      setViewEvent(data);
+    } else if (type === 'task') {
+      toast.info(`Task: ${data.title}`, { description: `Due: ${new Date(data.due_date).toLocaleDateString()}` });
     }
   };
 
-  const handleMarkEventComplete = async (event) => {
-    try {
-      await axios.patch(`${API}/api/practice/events/${event.id}/status`, { status: "completed" }, { headers });
-      toast.success("Event marked as completed");
-      fetchData();
-    } catch (error) {
-      toast.error("Failed to update event status");
-    }
-  };
+  // Computed data
+  const upcomingEvents = events
+    .filter(e => new Date(e.start_datetime) >= new Date())
+    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime))
+    .slice(0, 7);
 
-  const handleSetEventReminder = async (event, reminderMinutes = [15, 30, 60, 1440]) => {
-    try {
-      await axios.patch(`${API}/api/practice/events/${event.id}/reminder`, { reminder_minutes: reminderMinutes }, { headers });
-      toast.success("Reminders set successfully");
-      fetchData();
-    } catch (error) {
-      toast.error("Failed to set reminders");
+  const overdueDeadlines = events.filter(e => 
+    e.event_type === 'deadline' && 
+    new Date(e.start_datetime) < new Date() &&
+    e.status !== 'completed'
+  );
+
+  const overdueTasks = tasks.filter(t => 
+    t.due_date && 
+    new Date(t.due_date) < new Date() && 
+    t.status !== 'completed'
+  );
+
+  const totalOverdue = overdueDeadlines.length + overdueTasks.length;
+
+  const getEventTypeIcon = (type) => {
+    switch(type) {
+      case 'court_hearing': return <Gavel className="w-4 h-4" />;
+      case 'deadline': return <AlertTriangle className="w-4 h-4" />;
+      case 'reminder': return <Clock className="w-4 h-4" />;
+      case 'appointment': return <UserCheck className="w-4 h-4" />;
+      default: return <Calendar className="w-4 h-4" />;
     }
   };
 
@@ -156,69 +245,194 @@ export const CalendarTab = ({ token }) => {
     return colors[type] || colors.meeting;
   };
 
-  const getEventTypeIcon = (type) => {
-    switch(type) {
-      case 'court_hearing': return <Gavel className="w-4 h-4" />;
-      case 'deadline': return <AlertTriangle className="w-4 h-4" />;
-      case 'reminder': return <Clock className="w-4 h-4" />;
-      case 'appointment': return <UserCheck className="w-4 h-4" />;
-      default: return <Calendar className="w-4 h-4" />;
-    }
-  };
-
-  const eventDates = events.map(e => new Date(e.start_datetime));
-  
-  const selectedDateEvents = events.filter(e => {
-    const eventDate = new Date(e.start_datetime).toDateString();
-    return eventDate === selectedDate.toDateString();
-  }).sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
-
-  const upcomingEvents = events
-    .filter(e => new Date(e.start_datetime) >= new Date())
-    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime))
-    .slice(0, 10);
-
-  const overdueEvents = events.filter(e => 
-    e.event_type === 'deadline' && 
-    new Date(e.start_datetime) < new Date() &&
-    !e.completed
-  );
-
-  const getEventTypeCount = (type) => {
-    return selectedDateEvents.filter(e => e.event_type === type).length;
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-white">Calendar & Events</h2>
-          {overdueEvents.length > 0 && (
-            <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-              {overdueEvents.length} overdue
+    <div className="space-y-6">
+      {/* Inject custom styles */}
+      <style>{calendarStyles}</style>
+
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Calendar & Events</h2>
+          <p className="text-sm text-white/50">Track hearings, deadlines, meetings, and tasks</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {totalOverdue > 0 && (
+            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 px-3 py-1">
+              <AlertTriangle className="w-3 h-3 mr-1" />
+              {totalOverdue} overdue
             </Badge>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
-            <button 
-              onClick={() => setViewMode("list")} 
-              className={`p-1.5 rounded transition-colors ${viewMode === "list" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
-              data-testid="calendar-view-list-btn"
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => setViewMode("calendar")} 
-              className={`p-1.5 rounded transition-colors ${viewMode === "calendar" ? "bg-tls-blue-electric text-white" : "text-white/50 hover:text-white"}`}
-              data-testid="calendar-view-grid-btn"
-            >
-              <CalendarDays className="w-4 h-4" />
-            </button>
-          </div>
-          <Button onClick={() => { setEditEvent(null); resetForm(); setShowForm(true); }} className="bg-tls-blue-electric" data-testid="add-event-btn">
+          <Button 
+            onClick={() => { setEditEvent(null); resetForm(); setShowForm(true); }} 
+            className="bg-emerald-600 hover:bg-emerald-700"
+            data-testid="add-event-btn"
+          >
             <Plus className="w-4 h-4 mr-2" /> Add Event
           </Button>
+        </div>
+      </div>
+
+      {/* Main 2-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Calendar Widget - Takes 2 columns on large screens */}
+        <div className="lg:col-span-2">
+          <Card className="glass-card border-white/10 rounded-2xl overflow-hidden">
+            <CardContent className="p-4">
+              <FullCalendar
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                headerToolbar={{
+                  left: "prev,next today",
+                  center: "title",
+                  right: "dayGridMonth,timeGridWeek,timeGridDay",
+                }}
+                height="auto"
+                events={calendarEvents}
+                dateClick={handleDateClick}
+                eventClick={handleEventClick}
+                selectable
+                dayMaxEvents={3}
+                eventDisplay="block"
+                nowIndicator
+                weekNumbers={false}
+                fixedWeekCount={false}
+                eventTimeFormat={{
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar - Takes 1 column */}
+        <div className="space-y-4">
+          {/* Upcoming Events Panel */}
+          <Card className="glass-card border-white/10 rounded-2xl">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-400" />
+                  Upcoming Events
+                </h3>
+                <span className="text-xs text-white/40">Next 7 days</span>
+              </div>
+              {upcomingEvents.length > 0 ? (
+                <div className="space-y-2">
+                  {upcomingEvents.map((event) => (
+                    <div 
+                      key={event.id} 
+                      className="flex items-start gap-3 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                      onClick={() => setViewEvent(event)}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getEventTypeColor(event.event_type)}`}>
+                        {getEventTypeIcon(event.event_type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{event.title}</p>
+                        <p className="text-xs text-white/50">
+                          {new Date(event.start_datetime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          {' • '}
+                          {new Date(event.start_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-white/30 flex-shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <Calendar className="w-8 h-8 mx-auto mb-2 text-white/20" />
+                  <p className="text-sm text-white/40">No upcoming events</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Overdue Panel */}
+          {(overdueDeadlines.length > 0 || overdueTasks.length > 0) && (
+            <Card className="glass-card border-red-500/20 rounded-2xl bg-red-500/5">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold text-red-400 flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-4 h-4" />
+                  Overdue Items ({totalOverdue})
+                </h3>
+                <div className="space-y-2">
+                  {overdueDeadlines.slice(0, 3).map((event) => (
+                    <div 
+                      key={event.id} 
+                      className="flex items-center gap-2 p-2 bg-red-500/10 rounded-lg cursor-pointer hover:bg-red-500/20"
+                      onClick={() => setViewEvent(event)}
+                    >
+                      <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">{event.title}</p>
+                        <p className="text-xs text-red-400">
+                          Due: {new Date(event.start_datetime).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {overdueTasks.slice(0, 3).map((task) => (
+                    <div 
+                      key={task.id} 
+                      className="flex items-center gap-2 p-2 bg-red-500/10 rounded-lg"
+                    >
+                      <CheckSquare className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">{task.title}</p>
+                        <p className="text-xs text-red-400">
+                          Due: {new Date(task.due_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Quick Stats */}
+          <Card className="glass-card border-white/10 rounded-2xl">
+            <CardContent className="p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">This Month</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                  <p className="text-lg font-bold text-blue-400">{events.filter(e => e.event_type === 'meeting').length}</p>
+                  <p className="text-xs text-white/50">Meetings</p>
+                </div>
+                <div className="p-3 bg-red-500/10 rounded-lg text-center">
+                  <p className="text-lg font-bold text-red-400">{events.filter(e => e.event_type === 'court_hearing').length}</p>
+                  <p className="text-xs text-white/50">Court</p>
+                </div>
+                <div className="p-3 bg-amber-500/10 rounded-lg text-center">
+                  <p className="text-lg font-bold text-amber-400">{events.filter(e => e.event_type === 'deadline').length}</p>
+                  <p className="text-xs text-white/50">Deadlines</p>
+                </div>
+                <div className="p-3 bg-emerald-500/10 rounded-lg text-center">
+                  <p className="text-lg font-bold text-emerald-400">{tasks.filter(t => t.status !== 'completed').length}</p>
+                  <p className="text-xs text-white/50">Tasks</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Legend */}
+          <Card className="glass-card border-white/10 rounded-2xl">
+            <CardContent className="p-4">
+              <h3 className="text-xs font-semibold text-white/50 mb-2">Event Types</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> <span className="text-white/60">Meeting</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> <span className="text-white/60">Court</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> <span className="text-white/60">Deadline</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span className="text-white/60">Appointment</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span> <span className="text-white/60">Reminder</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-gray-500"></span> <span className="text-white/60">Task Due</span></span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -287,7 +501,7 @@ export const CalendarTab = ({ token }) => {
               <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditEvent(null); resetForm(); }} className="border-white/20 text-white hover:bg-white/10">
                 Cancel
               </Button>
-              <Button type="submit" className="bg-tls-blue-electric hover:bg-tls-blue-electric/90">
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
                 {editEvent ? "Save Changes" : "Create Event"}
               </Button>
             </DialogFooter>
@@ -348,8 +562,8 @@ export const CalendarTab = ({ token }) => {
                 <Button variant="outline" onClick={() => { handleEditEvent(viewEvent); setViewEvent(null); }} className="border-white/20 text-white hover:bg-white/10">
                   <Edit className="w-4 h-4 mr-2" /> Edit
                 </Button>
-                <Button variant="outline" onClick={() => { handleDuplicateEvent(viewEvent); setViewEvent(null); }} className="border-white/20 text-white hover:bg-white/10">
-                  <Copy className="w-4 h-4 mr-2" /> Duplicate
+                <Button variant="outline" onClick={() => setDeleteEvent(viewEvent)} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete
                 </Button>
               </DialogFooter>
             </>
@@ -366,245 +580,6 @@ export const CalendarTab = ({ token }) => {
         variant="danger"
         onConfirm={handleConfirmDelete}
       />
-
-      {viewMode === "calendar" ? (
-        <div className="grid lg:grid-cols-3 gap-4">
-          <Card className="glass-card border-white/10 lg:col-span-1">
-            <CardContent className="p-4">
-              <CalendarWidget
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                className="rounded-md bg-transparent text-white"
-                modifiers={{ hasEvent: eventDates }}
-                modifiersStyles={{
-                  hasEvent: { backgroundColor: 'rgba(59, 130, 246, 0.3)', borderRadius: '50%', fontWeight: 'bold' }
-                }}
-                classNames={{
-                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                  month: "space-y-4 w-full",
-                  caption: "flex justify-center pt-1 relative items-center text-white",
-                  caption_label: "text-sm font-medium text-white",
-                  nav: "space-x-1 flex items-center",
-                  nav_button: "h-7 w-7 bg-white/10 hover:bg-white/20 text-white rounded-md p-0 flex items-center justify-center",
-                  nav_button_previous: "absolute left-1",
-                  nav_button_next: "absolute right-1",
-                  table: "w-full border-collapse space-y-1",
-                  head_row: "flex justify-between",
-                  head_cell: "text-white/50 rounded-md w-8 font-normal text-[0.8rem] text-center",
-                  row: "flex w-full mt-2 justify-between",
-                  cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
-                  day: "h-8 w-8 p-0 font-normal text-white/70 hover:bg-white/10 rounded-md flex items-center justify-center cursor-pointer",
-                  day_selected: "bg-tls-blue-electric text-white hover:bg-tls-blue-electric",
-                  day_today: "bg-white/20 text-white font-bold",
-                  day_outside: "text-white/30",
-                }}
-              />
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-xs text-white/50 mb-2">Legend</p>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Meeting</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Court</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Deadline</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Appointment</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="glass-card border-white/10 lg:col-span-2">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                  </h3>
-                  <p className="text-sm text-white/50">{selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''} scheduled</p>
-                </div>
-                {selectedDateEvents.length > 0 && (
-                  <div className="flex gap-2">
-                    {getEventTypeCount('meeting') > 0 && <Badge className="bg-blue-500/20 text-blue-400">{getEventTypeCount('meeting')} meetings</Badge>}
-                    {getEventTypeCount('court_hearing') > 0 && <Badge className="bg-red-500/20 text-red-400">{getEventTypeCount('court_hearing')} court</Badge>}
-                    {getEventTypeCount('deadline') > 0 && <Badge className="bg-amber-500/20 text-amber-400">{getEventTypeCount('deadline')} deadlines</Badge>}
-                  </div>
-                )}
-              </div>
-              
-              {selectedDateEvents.length > 0 ? (
-                <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                  {selectedDateEvents.map((event) => (
-                    <div key={event.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getEventTypeColor(event.event_type)}`}>
-                        {getEventTypeIcon(event.event_type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <h4 className="font-medium text-white">{event.title}</h4>
-                            <p className="text-xs text-white/50">
-                              {new Date(event.start_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                              {event.end_datetime && ` - ${new Date(event.end_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}
-                            </p>
-                            {event.location && <p className="text-xs text-white/40 mt-1">{event.location}</p>}
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/50 hover:text-white">
-                                <MoreVertical className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[160px]">
-                              <DropdownMenuItem onClick={() => setViewEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                                <Eye className="mr-2 h-4 w-4" /> View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                                <Edit className="mr-2 h-4 w-4" /> Edit Event
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDuplicateEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                                <Copy className="mr-2 h-4 w-4" /> Duplicate
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-white/10" />
-                              <DropdownMenuItem onClick={() => handleMarkEventComplete(event)} className="hover:bg-emerald-500/20 text-emerald-400 cursor-pointer" disabled={event.status === 'completed'}>
-                                <CheckSquare className="mr-2 h-4 w-4" /> Mark Complete
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSetEventReminder(event)} className="hover:bg-blue-500/20 text-blue-400 cursor-pointer">
-                                <Bell className="mr-2 h-4 w-4" /> Set Reminder
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-white/10" />
-                              <DropdownMenuItem onClick={() => setDeleteEvent(event)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Calendar className="w-10 h-10 mx-auto mb-3 text-white/20" />
-                  <p className="text-white/40">No events on this day</p>
-                  <Button 
-                    onClick={() => {
-                      const dateStr = selectedDate.toISOString().slice(0, 16);
-                      setFormData({...formData, start_datetime: dateStr});
-                      setShowForm(true);
-                    }} 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-3 border-white/20 text-white"
-                  >
-                    <Plus className="w-3 h-3 mr-1" /> Add Event
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card className="glass-card border-white/10">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-white">{events.length}</p>
-                <p className="text-xs text-white/50">Total Events</p>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-white/10">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-emerald-400">{upcomingEvents.length}</p>
-                <p className="text-xs text-white/50">Upcoming</p>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-white/10">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-amber-400">{events.filter(e => e.event_type === 'deadline').length}</p>
-                <p className="text-xs text-white/50">Deadlines</p>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-white/10">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-red-400">{events.filter(e => e.event_type === 'court_hearing').length}</p>
-                <p className="text-xs text-white/50">Court Hearings</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-white/70">Upcoming Events</h3>
-            {upcomingEvents.map((event) => (
-              <Card key={event.id} className="glass-card border-white/10 hover:border-white/20 transition-all" data-testid={`event-card-${event.id}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getEventTypeColor(event.event_type)}`}>
-                      {getEventTypeIcon(event.event_type)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium text-white">{event.title}</h3>
-                          <p className="text-sm text-white/50 mt-1">
-                            {new Date(event.start_datetime).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                          {event.location && (
-                            <p className="text-xs text-white/40 mt-1 flex items-center gap-1">
-                              <Building className="w-3 h-3" /> {event.location}
-                            </p>
-                          )}
-                          {(event.client_name || event.case_title) && (
-                            <div className="flex items-center gap-2 mt-2">
-                              {event.client_name && <Badge variant="outline" className="text-xs border-white/20 text-white/60">{event.client_name}</Badge>}
-                              {event.case_title && <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">{event.case_title}</Badge>}
-                            </div>
-                          )}
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/50 hover:text-white hover:bg-white/10">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-[#1a1f2e] border-white/10 text-white min-w-[160px]">
-                            <DropdownMenuItem onClick={() => setViewEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                              <Eye className="mr-2 h-4 w-4" /> View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                              <Edit className="mr-2 h-4 w-4" /> Edit Event
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicateEvent(event)} className="hover:bg-white/10 cursor-pointer">
-                              <Copy className="mr-2 h-4 w-4" /> Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-white/10" />
-                            <DropdownMenuItem onClick={() => handleMarkEventComplete(event)} className="hover:bg-emerald-500/20 text-emerald-400 cursor-pointer" disabled={event.status === 'completed'}>
-                              <CheckSquare className="mr-2 h-4 w-4" /> Mark Complete
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSetEventReminder(event)} className="hover:bg-blue-500/20 text-blue-400 cursor-pointer">
-                              <Bell className="mr-2 h-4 w-4" /> Set Reminder
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-white/10" />
-                            <DropdownMenuItem onClick={() => setDeleteEvent(event)} className="hover:bg-red-500/20 text-red-400 cursor-pointer">
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
-
-      {events.length === 0 && (
-        <div className="text-center py-12">
-          <Calendar className="w-12 h-12 mx-auto mb-4 text-white/30" />
-          <p className="text-white/50">No events scheduled</p>
-          <p className="text-white/30 text-sm mt-1">Create your first event to get started</p>
-        </div>
-      )}
     </div>
   );
 };
