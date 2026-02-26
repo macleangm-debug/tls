@@ -929,11 +929,21 @@ const DocumentStampPage = () => {
       formData.append('layout', stampLayout);
       formData.append('shape', stampShape);
       
-      const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
-      // Normalize: Notarization stamps NEVER have signatures
       const isNotarization = selectedType === "notarization";
-      const includeSignature = !isNotarization && stampTypeConfig?.requiresSignature && signatureMode === 'digital' && savedSignature;
-      const showSignaturePlaceholder = !isNotarization && stampTypeConfig?.requiresSignature && !includeSignature;
+      
+      // ========== STRICT SIGNATURE RULES ==========
+      // Digital signature: certification + digital mode + has saved signature
+      const includeSignature = 
+        !isNotarization &&
+        selectedType === "certification" &&
+        signatureMode === "digital" &&
+        !!savedSignature;
+      
+      // Placeholder: certification + print mode (sign after printing)
+      const showSignaturePlaceholder = 
+        !isNotarization &&
+        selectedType === "certification" &&
+        signatureMode === "print";
       
       formData.append('include_signature', includeSignature.toString());
       formData.append('show_signature_placeholder', showSignaturePlaceholder.toString());
