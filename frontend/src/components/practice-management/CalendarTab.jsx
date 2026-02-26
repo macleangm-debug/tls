@@ -396,6 +396,11 @@ export const CalendarTab = ({ token }) => {
     // Handle TLS global events (read-only)
     if (type === 'tls_event' || source === 'tls') {
       setViewTlsEvent(info.event.extendedProps);
+      // Fetch acknowledgement and attendance status
+      const eventId = info.event.extendedProps.original_event_id;
+      if (eventId) {
+        fetchTlsEventStatus(eventId, info.event.extendedProps);
+      }
       return;
     }
     
@@ -408,6 +413,66 @@ export const CalendarTab = ({ token }) => {
       setViewEvent(normalizedData);
     } else if (type === 'task') {
       toast.info(`Task: ${data.title}`, { description: `Due: ${new Date(data.due_date).toLocaleDateString()}` });
+    }
+  };
+
+  const fetchTlsEventStatus = async (eventId, extendedProps) => {
+    try {
+      const csrfToken = localStorage.getItem("csrf_token");
+      const authHeaders = { 
+        ...headers,
+        "X-CSRF-Token": csrfToken
+      };
+      
+      // Fetch ack status if require_ack
+      if (extendedProps.require_ack) {
+        const ackRes = await axios.get(`${API}/api/tls/events/${eventId}/ack-status`, { headers: authHeaders });
+        setTlsAckStatus(ackRes.data);
+      } else {
+        setTlsAckStatus(null);
+      }
+      
+      // Fetch attendance status if enabled
+      if (extendedProps.data?.attendance?.enabled) {
+        const attRes = await axios.get(`${API}/api/tls/events/${eventId}/my-attendance`, { headers: authHeaders });
+        setTlsAttendanceStatus(attRes.data);
+      } else {
+        setTlsAttendanceStatus(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch TLS event status:", error);
+    }
+  };
+
+  const handleAcknowledgeTlsEvent = async () => {
+    if (!viewTlsEvent?.original_event_id) return;
+    try {
+      const csrfToken = localStorage.getItem("csrf_token");
+      await axios.post(
+        `${API}/api/tls/events/${viewTlsEvent.original_event_id}/ack`,
+        {},
+        { headers: { ...headers, "X-CSRF-Token": csrfToken } }
+      );
+      toast.success("Event acknowledged");
+      setTlsAckStatus({ ...tlsAckStatus, acknowledged: true, acknowledged_at: new Date().toISOString() });
+    } catch (error) {
+      toast.error("Failed to acknowledge event");
+    }
+  };
+
+  const handleRegisterForTlsEvent = async () => {
+    if (!viewTlsEvent?.original_event_id) return;
+    try {
+      const csrfToken = localStorage.getItem("csrf_token");
+      await axios.post(
+        `${API}/api/tls/events/${viewTlsEvent.original_event_id}/register`,
+        {},
+        { headers: { ...headers, "X-CSRF-Token": csrfToken } }
+      );
+      toast.success("Registered for event");
+      setTlsAttendanceStatus({ ...tlsAttendanceStatus, registered: true, status: "registered" });
+    } catch (error) {
+      toast.error("Failed to register for event");
     }
   };
 
