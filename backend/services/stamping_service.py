@@ -342,10 +342,10 @@ class StampingService:
                     brand_color=border_color
                 )
                 
-                # Determine pages stamped
+                # Determine pages stamped using validated metadata
                 page_mode = position.get("page_mode", "first")
                 if page_mode == "all":
-                    pages_stamped = pdf_info["page_count"]
+                    pages_stamped = pdf_metadata.page_count
                 elif page_mode == "first":
                     pages_stamped = 1
                 else:
