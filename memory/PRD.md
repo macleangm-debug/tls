@@ -48,6 +48,42 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ## Recent Changes
 
+### Feb 26, 2026 - Go-Live P0 Blockers Resolved ✅
+**Critical infrastructure for production deployment:**
+
+**1. MongoDB Backup System**
+- **Backup Manager** (`/app/backend/backup_manager.py`):
+  - `backup` - Create compressed mongodump archive
+  - `restore` - Restore from backup
+  - `test-restore` - Verify backup integrity to temp database
+  - `cleanup` - Remove backups older than retention period (14 days)
+  - `daily` - Automated daily backup + cleanup routine
+- **Location**: `/app/backups/tls_backup_*.archive.gz`
+- **✅ Restore Test Passed**: 31 collections, 42 stamps, 2 users verified
+
+**2. Sentry Error Monitoring**
+- **Integration**: `sentry-sdk[fastapi]` v2.53.0 added
+- **Initialization**: Early in server.py startup
+- **Context**: Stamping operations tagged with `feature=stamping`
+- **Environment**: Reads `SENTRY_DSN`, `ENVIRONMENT`, `APP_VERSION` from .env
+- **Status**: Ready (requires SENTRY_DSN in production)
+
+**3. Admin PDF Validation Endpoint (Super Admin Only)**
+- `POST /api/admin/pdf/validate` - Validate single PDF with dry-run stamp option
+- `POST /api/admin/pdf/batch-validate` - Validate multiple PDFs for certification
+- **Returns**: validation result, metadata, page sizes, rotations, dry-run stamp result
+- **Audit Logging**: All validations logged to `audit_logs` collection
+
+**4. Key Rotation Mechanism (CA-Style)**
+- **Multi-key support**: Active key + historical keys for verification
+- **Key Registry**: Stores key_id → public/private key mappings
+- **Endpoints**:
+  - `GET /api/admin/crypto/status` - Current key status
+  - `POST /api/admin/crypto/generate-key` - Generate new ECDSA P-256 key pair
+  - `POST /api/admin/crypto/rotate-key` - Rotate to new key (in-memory)
+- **Verification**: Uses key_id from stamp record to find correct public key
+- **Audit**: KEY_GENERATED and KEY_ROTATED events logged to system_events
+
 ### Feb 26, 2026 - PDF Hardening & Validation Layer - COMPLETE ✅
 **Production-grade PDF input validation:**
 - **PDFValidationService** (`/app/backend/services/pdf_validation_service.py`):
