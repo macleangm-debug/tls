@@ -88,6 +88,12 @@ const DocumentStampPage = () => {
   const previewContainerRef = useRef(null);
   const canvasRef = useRef(null);
   
+  // Membership status check
+  const { status: membershipStatus } = useMembershipStatus();
+  const isStampingBlocked = membershipStatus?.billing_enabled && 
+    membershipStatus?.is_blocked && 
+    membershipStatus?.enforcement === 'block_stamping';
+  
   // Upload state
   const [file, setFile] = useState(null);
   const [fileData, setFileData] = useState(null);
