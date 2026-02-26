@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+from dateutil.rrule import rrulestr
+from dateutil.parser import parse as parse_date
 import uuid
 import os
 import base64
