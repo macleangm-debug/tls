@@ -383,11 +383,10 @@ const DocumentStampPage = () => {
       const formData = new FormData();
       formData.append('file', photoFile);
       
+      // DO NOT manually set Content-Type - let browser handle it
       const response = await axios.post(`${API}/documents/upload`, formData, {
-        ...getAuthHeaders(),
         headers: {
-          ...getAuthHeaders().headers,
-          'Content-Type': 'multipart/form-data'
+          ...getAuthHeaders().headers
         }
       });
       
