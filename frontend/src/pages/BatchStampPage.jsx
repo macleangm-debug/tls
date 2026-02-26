@@ -67,6 +67,12 @@ const BatchStampPage = () => {
   const { user, getAuthHeaders } = useAuth();
   const fileInputRef = useRef(null);
   
+  // Membership status check
+  const { status: membershipStatus } = useMembershipStatus();
+  const isStampingBlocked = membershipStatus?.billing_enabled && 
+    membershipStatus?.is_blocked && 
+    membershipStatus?.enforcement === 'block_stamping';
+  
   // Files state
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
