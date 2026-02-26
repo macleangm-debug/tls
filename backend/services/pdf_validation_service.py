@@ -266,9 +266,17 @@ class PDFValidationService:
                 details["problem_page"] = {"page": page_num, "error": str(e)}
                 return self._error(PDFErrorCode.PDF_CORRUPT, details), None
         
-        # 7. Check for forms (AcroForm)
-        if '/AcroForm' in reader.trailer.get('/Root', {}):
-            has_forms = True
+        # 7. Check for forms (AcroForm) - safely handle indirect objects
+        try:
+            root = reader.trailer.get('/Root')
+            if root is not None:
+                # Dereference if IndirectObject
+                if hasattr(root, 'get_object'):
+                    root = root.get_object()
+                if isinstance(root, dict) and '/AcroForm' in root:
+                    has_forms = True
+        except Exception:
+            pass  # Ignore errors checking for forms
         
         # 8. Check linearization
         is_linearized = self._check_linearized(content)
