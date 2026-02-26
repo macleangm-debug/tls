@@ -148,13 +148,17 @@ def create_membership_routes(db, get_current_user, require_admin, require_super_
             query, {"_id": 0}
         ).sort("created_at", -1).limit(limit).to_list(limit)
         
-        # Get user details for each payment
+        # Get user details for each payment - check both users and advocates
         user_ids = list(set(p["user_id"] for p in payments))
         users = await db.users.find(
             {"id": {"$in": user_ids}},
             {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roll_number": 1}
         ).to_list(len(user_ids))
-        user_map = {u["id"]: u for u in users}
+        advocates = await db.advocates.find(
+            {"id": {"$in": user_ids}},
+            {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roll_number": 1}
+        ).to_list(len(user_ids))
+        user_map = {u["id"]: u for u in users + advocates}
         
         for payment in payments:
             user_info = user_map.get(payment["user_id"], {})
