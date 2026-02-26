@@ -881,24 +881,31 @@ def generate_branded_stamp_image(
     shape: str = "rectangle",       # IGNORED - always rectangle
     show_advocate_name: bool = True,
     show_tls_logo: bool = True,
-    include_signature: bool = False,  # IGNORED - no signature in compact stamp
-    signature_data: Optional[str] = None,  # IGNORED
-    show_signature_placeholder: bool = False,  # IGNORED
+    include_signature: bool = False,  # Now supported for certification stamps
+    signature_data: Optional[str] = None,  # Base64 signature image
+    show_signature_placeholder: bool = False,  # Show "Sign here" placeholder
     scale: float = 2.0,
     transparent_background: bool = True
 ) -> Image.Image:
     """
-    TLS official COMPACT stamp card.
+    TLS official stamp card with two variants:
+    1. COMPACT (default): 560x300 base - for non-signature stamps
+    2. CERTIFICATION (taller): 560x420 base - includes signature section
+    
     - Fixed layout matching the official template
     - Fixed TLS brand colors for header + accents
     - ONLY border color changes (outer border) based on user preference
-    - No signature section (compact design)
     """
     from PIL import ImageDraw, ImageFont
     import os
+    import re
     
-    # --- Fixed template base size (compact card like reference) ---
-    base_w, base_h = 560, 300
+    # --- Determine stamp variant based on signature requirements ---
+    needs_signature_section = include_signature or show_signature_placeholder
+    
+    # --- Fixed template base sizes ---
+    base_w = 560
+    base_h = 420 if needs_signature_section else 300  # Taller for certification
     W, H = int(base_w * scale), int(base_h * scale)
 
     # --- Colors ---
