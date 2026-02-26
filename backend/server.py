@@ -65,6 +65,25 @@ if SENTRY_DSN:
 else:
     logging.warning("SENTRY_DSN not set - error monitoring disabled")
 
+# Try to import docx for DOCX support
+try:
+    from docx import Document as DocxDocument
+    DOCX_SUPPORTED = True
+except ImportError:
+    DOCX_SUPPORTED = False
+
+# Sentry helper for stamping context
+def set_sentry_stamping_context(stamp_id: str = None, pdf_validation: dict = None, user_id: str = None):
+    """Set Sentry context for stamping operations"""
+    if SENTRY_DSN:
+        sentry_sdk.set_tag("feature", "stamping")
+        if stamp_id:
+            sentry_sdk.set_tag("stamp_id", stamp_id)
+        if user_id:
+            sentry_sdk.set_user({"id": user_id})
+        if pdf_validation:
+            sentry_sdk.set_context("pdf_validation", pdf_validation)
+
 # Import crypto signing service AFTER loading .env
 from services.crypto_signing_service import crypto_service
 
