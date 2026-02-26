@@ -125,14 +125,13 @@ const DocumentStampPage = () => {
   const [stampMargin, setStampMargin] = useState(20); // Margin from edge in preview pixels
   const [stampPositionPreset, setStampPositionPreset] = useState("bottom-right"); // Position preset
   
+  // Page selection mode
+  const [pageSelectionMode, setPageSelectionMode] = useState("first"); // "first", "all", "custom"
+  const [customSelectedPages, setCustomSelectedPages] = useState([1]); // For custom mode
+  
   // PDF.js render scale - stored when page is rendered
   // This is the actual scale used to convert PDF points to preview pixels
   const [pdfRenderScale, setPdfRenderScale] = useState(1.5);
-  
-  // TLS FIXED stamp dimensions in PDF POINTS (matching backend)
-  // These are constant - the stamp is always this size on the final PDF
-  const STAMP_WIDTH_PT = 240;   // Fixed TLS official stamp width
-  const STAMP_HEIGHT_PT = 128;  // Fixed TLS official stamp height (compact card)
   
   // System edge margin in PDF points (prevents clipping, not user-controlled)
   const EDGE_MARGIN_PT = 12;
