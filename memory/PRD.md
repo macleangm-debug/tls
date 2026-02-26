@@ -47,6 +47,24 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 - **Batch Stamping** (Feb 25, 2026): Stamp up to 25 documents at once
 - **Stamp Ledger** (NEW - Feb 25, 2026): Regulatory-grade stamp management with audit trail
 
+### Digital Stamping - Enhanced (Feb 26, 2026) ✅
+- **Two Stamp Variants (Option B Implementation)**:
+  - **Compact Stamp** (240×128pt): Default for non-signature stamps (Notarization, Verification)
+  - **Certification Stamp** (200×150pt): Taller variant with signature section
+- **Dynamic Stamp Dimensions**: Backend returns `pdf_width_pt` and `pdf_height_pt` in stamp-preview response
+- **Signature Section** (Certification stamps only):
+  - Digital signature: Actual signature image embedded in stamp
+  - Placeholder mode: "Sign here" dashed line for physical signing
+  - "Digitally Signed ✓" badge when signature embedded
+- **Page Selection UI**:
+  - First Page (default)
+  - Last Page
+  - All Pages (shows per-page position controls)
+  - Custom... (checkboxes with Select All/Clear/Odd/Even quick actions)
+- **Upload Fixes**: Removed manual Content-Type header for FormData (browser handles boundary)
+- **PDF Validation on Upload**: Specific error messages for encrypted, corrupted, or invalid PDFs
+- **Test Report**: `/app/test_reports/iteration_60.json` - 100% pass rate
+
 ### Calendar & Events (Enhanced Feb 26, 2026) ✅
 - **FullCalendar Widget**: Professional month/week/day views with event display
 - **Professional Actions**: Mark Complete (with outcome), Cancel (with reason), Reschedule (with new datetime), Create Follow-up Task
