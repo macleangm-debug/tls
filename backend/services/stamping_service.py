@@ -168,10 +168,21 @@ class StampingService:
         
         Returns:
             Dict with stamp_id, stamped_document (base64), and metadata
+            
+        Raises:
+            ValueError: If PDF validation fails
         """
+        # Validate PDF before processing
+        validation_result, pdf_metadata = self.pdf_validator.validate(content, filename)
+        if not validation_result.valid:
+            logger.warning(f"PDF validation failed for {filename}: {validation_result.error_code}")
+            raise ValueError(f"{validation_result.error_message} (Code: {validation_result.error_code.value})")
+        
+        # Use hash from validation (already calculated)
+        doc_hash = pdf_metadata.document_hash
+        
         # Generate identifiers
         stamp_id = self.generate_stamp_id()
-        doc_hash = self.calculate_document_hash(content)
         verification_url = self.create_verification_url(stamp_id)
         
         # Generate stamp image
@@ -220,7 +231,12 @@ class StampingService:
             "created_at": stamp_record["created_at"],
             "expires_at": stamp_record["expires_at"],
             "stamped_document": base64.b64encode(stamped_content).decode(),
-            "content_type": "application/pdf"
+            "content_type": "application/pdf",
+            "pdf_metadata": {
+                "page_count": pdf_metadata.page_count,
+                "has_rotated_pages": any(p.get("rotation", 0) != 0 for p in pdf_metadata.pages),
+                "file_size_mb": round(pdf_metadata.file_size_bytes / (1024 * 1024), 2)
+            }
         }
     
     async def stamp_batch_documents(
