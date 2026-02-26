@@ -1,0 +1,8 @@
+{
+  "created_at": "2026-02-26T07:17:48.136670",
+  "database": "test_database",
+  "size_bytes": 2109955,
+  "size_mb": 2.01,
+  "mongo_uri": "mongodb://localhost:27017",
+  "retention_days": 14
+}
