@@ -224,10 +224,9 @@ const BatchStampPage = () => {
       setProgress(30);
       
       const response = await axios.post(`${API}/documents/batch-stamp`, formData, {
-        ...getAuthHeaders(),
         headers: {
-          ...getAuthHeaders().headers,
-          'Content-Type': 'multipart/form-data'
+          ...getAuthHeaders().headers
+          // Content-Type is auto-set by browser for FormData
         },
         responseType: 'blob',
         onUploadProgress: (progressEvent) => {
