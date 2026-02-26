@@ -156,7 +156,7 @@ export default function TLSEventsAdmin() {
     }
     
     try {
-      await axios.post(`${API}/api/tls/events/${eventId}/cancel`, { reason }, { headers });
+      await axios.post(`${API}/api/tls/events/${eventId}/cancel`, { reason }, getAuthHeaders());
       toast.success("TLS event cancelled");
       fetchEvents();
     } catch (error) {
@@ -167,7 +167,7 @@ export default function TLSEventsAdmin() {
   const handleDelete = async () => {
     if (!showDeleteDialog) return;
     try {
-      await axios.delete(`${API}/api/tls/events/${showDeleteDialog.id}`, { headers });
+      await axios.delete(`${API}/api/tls/events/${showDeleteDialog.id}`, getAuthHeaders());
       toast.success("TLS event deleted permanently");
       setShowDeleteDialog(null);
       fetchEvents();
