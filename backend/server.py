@@ -7598,6 +7598,11 @@ from routes.notifications import notifications_router, setup_notification_routes
 notification_routes = setup_notification_routes(db, get_current_user, send_email)
 app.include_router(notification_routes)
 
+# Include TLS global events router
+from routes.tls_events import tls_events_router, create_tls_events_routes
+tls_events_routes = create_tls_events_routes(db, get_current_user, require_admin, require_super_admin)
+app.include_router(tls_events_routes)
+
 # Security Headers Middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
