@@ -907,10 +907,12 @@ const DocumentStampPage = () => {
         // This keeps the coordinate system consistent with pdf.js
         
         // Step 3: Clamp to safe area (EDGE_MARGIN_PT from each edge)
-        // x_pt in [EDGE_MARGIN_PT, pageWidth_pt - STAMP_WIDTH_PT - EDGE_MARGIN_PT]
-        // y_pt in [EDGE_MARGIN_PT, pageHeight_pt - STAMP_HEIGHT_PT - EDGE_MARGIN_PT]
-        const maxX_pt = pageWidthPt - STAMP_WIDTH_PT - EDGE_MARGIN_PT;
-        const maxY_pt = pageHeightPt - STAMP_HEIGHT_PT - EDGE_MARGIN_PT;
+        // Use dynamic stamp dimensions from backend
+        const STAMP_W_PT = stampPdfDimensions.width;
+        const STAMP_H_PT = stampPdfDimensions.height;
+        
+        const maxX_pt = pageWidthPt - STAMP_W_PT - EDGE_MARGIN_PT;
+        const maxY_pt = pageHeightPt - STAMP_H_PT - EDGE_MARGIN_PT;
         
         const x_pt = Math.max(EDGE_MARGIN_PT, Math.min(rawX_pt, maxX_pt));
         const y_pt = Math.max(EDGE_MARGIN_PT, Math.min(rawY_pt, maxY_pt));
@@ -918,7 +920,7 @@ const DocumentStampPage = () => {
         console.log(`=== COORDINATE CONVERSION (Page ${pageNum}) ===`);
         console.log(`  Scale (px/pt): ${scale}`);
         console.log(`  Page size (pt): ${pageWidthPt} x ${pageHeightPt}`);
-        console.log(`  Stamp size (pt): ${STAMP_WIDTH_PT} x ${STAMP_HEIGHT_PT}`);
+        console.log(`  Stamp size (pt): ${STAMP_W_PT} x ${STAMP_H_PT}`);
         console.log(`  Edge margin (pt): ${EDGE_MARGIN_PT}`);
         console.log(`  Safe area X: [${EDGE_MARGIN_PT}, ${maxX_pt}]`);
         console.log(`  Safe area Y: [${EDGE_MARGIN_PT}, ${maxY_pt}]`);
@@ -935,8 +937,8 @@ const DocumentStampPage = () => {
         page: pagesToStamp[0],
         pages: pagesToStamp,
         positions: pagePositions, // All positions in PDF POINTS (top-left origin)
-        stamp_width_pt: STAMP_WIDTH_PT,  // Fixed stamp width in points
-        stamp_height_pt: STAMP_HEIGHT_PT, // Fixed stamp height in points
+        stamp_width_pt: stampPdfDimensions.width,  // Dynamic stamp width in points
+        stamp_height_pt: stampPdfDimensions.height, // Dynamic stamp height in points
         edge_margin_pt: EDGE_MARGIN_PT,   // System edge margin
         page_width_pt: pageWidthPt,
         page_height_pt: pageHeightPt,
