@@ -3568,22 +3568,31 @@ async def create_document_stamp(
     
     expires_at = (now + timedelta(days=365)).isoformat()
     
-    # Get user's signature if they want to include it
+    # ========== NORMALIZE SIGNATURE FLAGS BY STAMP TYPE ==========
+    include_sig_bool = include_signature.lower() == "true"
+    show_placeholder_bool = show_signature_placeholder.lower() == "true"
+    
+    # Notarization stamps NEVER have signatures
+    if stamp_type == "notarization":
+        include_sig_bool = False
+        show_placeholder_bool = False
+    
+    # Get user's signature only if certification with digital signature
     signature_data = None
-    if include_signature.lower() == "true":
+    if include_sig_bool and stamp_type == "certification":
         user_full = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1})
         if user_full:
             signature_data = user_full.get("signature_data")
     
-    # Branding options
+    # Branding options with normalized values
     branding = {
         "color": brand_color,
         "show_advocate_name": show_advocate_name.lower() == "true",
         "show_tls_logo": True,  # Always show TLS logo
         "layout": layout,
         "shape": shape,
-        "include_signature": include_signature.lower() == "true",
-        "show_signature_placeholder": show_signature_placeholder.lower() == "true",
+        "include_signature": include_sig_bool,
+        "show_signature_placeholder": show_placeholder_bool,
         "stamp_size": stamp_size,
         "opacity": opacity,
         "transparent_background": transparent_background.lower() == "true"
