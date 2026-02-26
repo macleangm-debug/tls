@@ -6,10 +6,12 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
 import {
   Building, Plus, Edit, Trash2, Calendar, Clock, Users, AlertTriangle,
-  ChevronRight, Globe, MapPin, RefreshCw, X, Check, Bell
+  ChevronRight, Globe, MapPin, RefreshCw, X, Check, Bell, Eye, Download,
+  UserCheck, FileText, CheckCircle2, XCircle
 } from "lucide-react";
 import axios from "axios";
 
@@ -22,6 +24,10 @@ export default function TLSEventsAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [editEvent, setEditEvent] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(null);
+  const [viewEvent, setViewEvent] = useState(null);
+  const [acknowledgements, setAcknowledgements] = useState([]);
+  const [attendance, setAttendance] = useState({ records: [], counts: {} });
+  const [loadingDetails, setLoadingDetails] = useState(false);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -38,7 +44,10 @@ export default function TLSEventsAdmin() {
     audience_regions: "",
     recurrence_enabled: false,
     recurrence_rule: "",
-    recurrence_count: 12
+    recurrence_count: 12,
+    attendance_enabled: false,
+    attendance_mode: "admin",
+    cpd_points: ""
   });
 
   const fetchEvents = async () => {
