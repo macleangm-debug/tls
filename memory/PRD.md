@@ -25,11 +25,21 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 - **Batch Stamping** (Feb 25, 2026): Stamp up to 25 documents at once
 - **Stamp Ledger** (NEW - Feb 25, 2026): Regulatory-grade stamp management with audit trail
 
-### Calendar & Events (Enhanced Feb 22, 2026)
-- Dual view: List and Calendar widget
-- Event creation modal with date/time picker
-- Actions: View, Edit, Duplicate, Mark Complete, Set Reminder, Delete
-- Event status tracking (scheduled, completed, cancelled)
+### Calendar & Events (Enhanced Feb 26, 2026) ✅
+- **FullCalendar Widget**: Professional month/week/day views with event display
+- **Professional Actions**: Mark Complete (with outcome), Cancel (with reason), Reschedule (with new datetime), Create Follow-up Task
+- **Drag-and-Drop**: Quick event rescheduling via drag-and-drop
+- **Event Types**: Court Hearing (red), Meeting (blue), Deadline (amber), Appointment (green), Reminder (purple)
+- **Priority Support**: High/Medium/Low priority with color indicators
+- **Sidebar Panels**: Upcoming Events (next 7 days), Overdue Items (deadlines/tasks)
+- **Event Status**: scheduled, completed, cancelled, rescheduled with visual indicators
+- **Backend Endpoints**:
+  - `POST /api/practice/events/{id}/complete` - Mark complete with outcome notes
+  - `POST /api/practice/events/{id}/cancel` - Cancel with reason (min 5 chars)
+  - `POST /api/practice/events/{id}/reschedule` - Reschedule with new datetime
+  - `POST /api/practice/events/{id}/convert-to-task` - Create follow-up task
+  - `PATCH /api/practice/events/{id}/move` - Drag-drop move
+- **Test Report**: `/app/test_reports/iteration_58.json` - 100% pass rate (13/13 backend, all frontend)
 
 ### Notification System (Feb 23, 2026) ✅
 - **In-App Notifications**: Bell icon in header, dropdown with notification list
