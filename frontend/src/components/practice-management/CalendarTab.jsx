@@ -107,16 +107,19 @@ export const CalendarTab = ({ token }) => {
 
   // Transform events and tasks for FullCalendar
   const calendarEvents = useMemo(() => {
-    const eventItems = events.map(e => ({
-      id: `event-${e.id}`,
-      title: e.title,
-      start: e.start_datetime,
-      end: e.end_datetime,
-      backgroundColor: getEventColor(e.event_type, e.status, e.priority),
-      borderColor: getEventColor(e.event_type, e.status, e.priority),
-      classNames: e.status === 'completed' ? ['fc-event-completed'] : e.status === 'cancelled' ? ['fc-event-cancelled'] : [],
-      extendedProps: { type: 'event', data: e }
-    }));
+    const eventItems = events.map(e => {
+      const status = e.status || 'scheduled'; // Default to scheduled if no status
+      return {
+        id: `event-${e.id}`,
+        title: e.title,
+        start: e.start_datetime,
+        end: e.end_datetime,
+        backgroundColor: getEventColor(e.event_type, status, e.priority),
+        borderColor: getEventColor(e.event_type, status, e.priority),
+        classNames: status === 'completed' ? ['fc-event-completed'] : status === 'cancelled' ? ['fc-event-cancelled'] : [],
+        extendedProps: { type: 'event', data: { ...e, status } }
+      };
+    });
     
     // Add tasks with due dates as calendar items
     const taskItems = tasks
