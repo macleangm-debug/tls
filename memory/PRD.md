@@ -49,24 +49,28 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ### Digital Stamping - Enhanced (Feb 26, 2026) ✅
 - **Two Stamp Variants (Option B Implementation)**:
-  - **Compact Stamp** (240×128pt): Default for non-signature stamps (Notarization, Verification)
-  - **Certification Stamp** (200×150pt): Taller variant with signature section
+  - **Compact Stamp** (170×90pt): Quarter-page size for non-signature stamps (Notarization, Verification)
+  - **Certification Stamp** (180×120pt): Quarter-page taller variant with signature section INSIDE the stamp image
 - **Dynamic Stamp Dimensions**: Backend returns `pdf_width_pt` and `pdf_height_pt` in stamp-preview response
-- **Signature Section** (Certification stamps only):
+- **Signature Section** (Certification stamps only - INSIDE the stamp PNG):
   - Digital signature: Actual signature image embedded in stamp
   - Placeholder mode: "Sign here" dashed line for physical signing
   - "Digitally Signed ✓" badge when signature embedded
+- **Notarization Normalization**: Backend forces `include_signature=false` and `show_signature_placeholder=false` for notarization stamps
+- **Render-Image Endpoint** (NEW): `POST /api/stamps/render-image` - Returns exact stamp PNG for WYSIWYG preview
 - **Page Selection UI**:
   - First Page (default)
   - Last Page
   - All Pages (shows per-page position controls)
   - Custom... (checkboxes with Select All/Clear/Odd/Even quick actions)
-- **Preview Stamped PDF** (NEW):
+- **Preview Stamped PDF**:
   - `POST /api/documents/stamp-preview-pdf` - Same payload as final stamp
   - Returns PDF with watermark "PREVIEW ONLY - NOT VALID"
   - No DB records, events, or billing charges
   - Uses `TLS-PREVIEW-*` stamp ID format
   - Modal viewer with "Adjust Position" and "Generate Final" actions
+- **Stamp Centering**: Stamps are automatically centered on page after upload
+- **Removed Signature-Below Overlay**: Signature is now inside the stamp image, not a separate element
 - **Upload Fixes**: Removed manual Content-Type header for FormData (browser handles boundary)
 - **PDF Validation on Upload**: Specific error messages for encrypted, corrupted, or invalid PDFs
 - **Test Report**: `/app/test_reports/iteration_60.json` - 100% pass rate
