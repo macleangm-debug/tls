@@ -311,7 +311,35 @@ const DocumentStampPage = () => {
     }
   }, [fileData?.pages, pageDimensions.width, pageDimensions.height, stampSize.width, stampSize.height]);
 
-  // Set fixed stamp size based on shape (optimized for QR scanning)
+  // ========== CENTER STAMP WHEN DIMENSIONS CHANGE ==========
+  // When stampPdfDimensions OR pageDimensions change, recalculate stamp size and center
+  useEffect(() => {
+    if (!pageDimensions?.width || !pageDimensions?.height) return;
+    if (!stampPdfDimensions?.width || !stampPdfDimensions?.height) return;
+    if (pageDimensions.width < 100) return; // Page not loaded yet
+    
+    // Calculate stamp size in preview pixels (scaled from PDF points)
+    const stampW = stampPdfDimensions.width * pdfRenderScale;
+    const stampH = stampPdfDimensions.height * pdfRenderScale;
+    
+    // Only update if dimensions actually changed
+    if (Math.abs(stampW - stampSize.width) > 1 || Math.abs(stampH - stampSize.height) > 1) {
+      setStampSize({ width: stampW, height: stampH });
+      
+      // Recenter stamp on current page
+      const marginPx = EDGE_MARGIN_PT * pdfRenderScale;
+      const centerX = Math.max(marginPx, (pageDimensions.width - stampW) / 2);
+      const centerY = Math.max(marginPx, (pageDimensions.height - stampH) / 2);
+      
+      // Update position for current page (preserve other pages)
+      setStampPositions(prev => ({
+        ...prev,
+        [currentPage]: { x: centerX, y: centerY }
+      }));
+    }
+  }, [pageDimensions, stampPdfDimensions, pdfRenderScale, currentPage]);
+
+  // Set fixed stamp size based on shape (FALLBACK - overridden by PDF dimensions effect above)
   useEffect(() => {
     // These sizes should match the aspect ratios of backend-generated stamps
     // LARGE stamp sizes for professional documents - readable fonts when embedded in PDF
