@@ -384,7 +384,7 @@ const LandingPage = () => {
             </Card>
 
             {/* Tamper Detection */}
-            <Card className="glass-card rounded-2xl border-emerald-500/20 hover:border-emerald-500/40 transition-all group">
+            <Card className="glass-card rounded-2xl border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/10 group">
               <CardContent className="p-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
                   <FileCheck className="w-6 h-6 text-emerald-400" />
