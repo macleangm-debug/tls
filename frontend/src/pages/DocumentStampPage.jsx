@@ -1508,13 +1508,36 @@ const DocumentStampPage = () => {
     setLocalDescription("");
     setLocalRecipientName("");
     setLocalRecipientOrg("");
-    setStampPosition({ x: 50, y: 50 });
+    // Reset stamp positions for new document
+    setStampPositions({});
     // Reset to default stamp size (will be recalculated when PDF loads)
     setStampSize({ width: 255, height: 135 });
     setCurrentPage(1);
     setPdfDoc(null);
     setPageCanvasUrl(null);
     setPageDimensions({ width: 612, height: 792 });
+    setPageCache({});
+    // Force file input remount so selecting same file triggers onChange
+    setFileInputKey(Date.now());
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  // Reset document only (keep stamp settings)
+  const resetDocument = () => {
+    setFile(null);
+    setFileData(null);
+    setPreviewUrl(null);
+    setPageCanvasUrl(null);
+    setPageCache({});
+    setCurrentPage(1);
+    setPdfDoc(null);
+    // Reset stamp positions for new document
+    setStampPositions({});
+    // Keep stamp type, signature mode, color (UX: user wants to stamp another doc same way)
+    // Force file input remount
+    setFileInputKey(Date.now());
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
