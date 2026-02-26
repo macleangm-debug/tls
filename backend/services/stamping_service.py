@@ -298,22 +298,25 @@ class StampingService:
                 "issued_at": None,
                 "pages_stamped": 0,
                 "status": "PENDING",
-                "error": None
+                "error": None,
+                "error_code": None
             }
             
             try:
-                # Check file size
-                if len(content) > self.MAX_FILE_SIZE_MB * 1024 * 1024:
-                    raise ValueError(f"File exceeds {self.MAX_FILE_SIZE_MB}MB limit")
+                # Validate PDF using the validation service
+                validation_result, pdf_metadata = self.pdf_validator.validate(content, filename)
+                if not validation_result.valid:
+                    result["status"] = "FAILED"
+                    result["error"] = validation_result.error_message
+                    result["error_code"] = validation_result.error_code.value
+                    results.append(result)
+                    continue
                 
-                # Check page count
-                pdf_info = PDFOverlayService.get_pdf_info(content)
-                if pdf_info["page_count"] > self.MAX_PAGES_PER_PDF:
-                    raise ValueError(f"PDF exceeds {self.MAX_PAGES_PER_PDF} page limit")
+                # Use hash from validation
+                doc_hash = pdf_metadata.document_hash
                 
                 # Generate identifiers
                 stamp_id = self.generate_stamp_id()
-                doc_hash = self.calculate_document_hash(content)
                 verification_url = self.create_verification_url(stamp_id)
                 
                 # Generate stamp image
