@@ -3182,22 +3182,31 @@ async def stamp_preview_pdf(
     # Generate PREVIEW stamp ID (clearly marked as preview)
     preview_stamp_id = f"TLS-PREVIEW-{datetime.now().strftime('%Y%m%d%H%M%S')}-{secrets.token_hex(2).upper()}"
     
-    # Get user's signature if they want to include it
+    # ========== NORMALIZE SIGNATURE FLAGS BY STAMP TYPE ==========
+    # Notarization stamps NEVER have signatures
+    include_sig_bool = include_signature.lower() == "true"
+    show_placeholder_bool = show_signature_placeholder.lower() == "true"
+    
+    if stamp_type == "notarization":
+        include_sig_bool = False
+        show_placeholder_bool = False
+    
+    # Get user's signature only if certification with digital signature
     signature_data = None
-    if include_signature.lower() == "true":
+    if include_sig_bool and stamp_type == "certification":
         user_full = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1})
         if user_full:
             signature_data = user_full.get("signature_data")
     
-    # Build branding options (same as real stamp)
+    # Build branding options with normalized values
     branding = {
         "color": brand_color,
         "show_advocate_name": show_advocate_name.lower() == "true",
         "show_tls_logo": True,
         "layout": layout,
         "shape": shape,
-        "include_signature": include_signature.lower() == "true",
-        "show_signature_placeholder": show_signature_placeholder.lower() == "true",
+        "include_signature": include_sig_bool,
+        "show_signature_placeholder": show_placeholder_bool,
         "stamp_size": stamp_size,
         "opacity": opacity,
         "transparent_background": transparent_background.lower() == "true"
