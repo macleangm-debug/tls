@@ -2427,38 +2427,151 @@ const DocumentStampPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Stamp Button */}
-              <Button 
-                onClick={handleStampDocument}
-                disabled={!fileData || stamping || !localRecipientName.trim() || isStampingBlocked}
-                className={`w-full h-14 rounded-xl text-lg font-semibold shadow-lg ${
-                  isStampingBlocked 
-                    ? 'bg-gray-600 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-emerald-500/25'
-                }`}
-                data-testid="stamp-document-btn"
-              >
-                {isStampingBlocked ? (
-                  <>
-                    <Lock className="w-5 h-5 mr-2" />
-                    Membership Required
-                  </>
-                ) : stamping ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Creating Secure Stamp...
-                  </>
-                ) : (
-                  <>
-                    <Fingerprint className="w-5 h-5 mr-2" />
-                    Generate Verified Stamp
-                  </>
-                )}
-              </Button>
+              {/* Preview & Generate Buttons */}
+              <div className="space-y-3">
+                {/* Preview Button */}
+                <Button 
+                  onClick={handlePreviewPdf}
+                  disabled={!fileData || generatingPreview || !localRecipientName.trim() || isStampingBlocked}
+                  variant="outline"
+                  className="w-full h-12 rounded-xl font-medium border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/50"
+                  data-testid="preview-stamp-btn"
+                >
+                  {generatingPreview ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating Preview...
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />
+                      Preview Stamped PDF
+                    </>
+                  )}
+                </Button>
+
+                {/* Generate Button */}
+                <Button 
+                  onClick={handleStampDocument}
+                  disabled={!fileData || stamping || !localRecipientName.trim() || isStampingBlocked}
+                  className={`w-full h-14 rounded-xl text-lg font-semibold shadow-lg ${
+                    isStampingBlocked 
+                      ? 'bg-gray-600 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-emerald-500/25'
+                  }`}
+                  data-testid="stamp-document-btn"
+                >
+                  {isStampingBlocked ? (
+                    <>
+                      <Lock className="w-5 h-5 mr-2" />
+                      Membership Required
+                    </>
+                  ) : stamping ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creating Secure Stamp...
+                    </>
+                  ) : (
+                    <>
+                      <Fingerprint className="w-5 h-5 mr-2" />
+                      Generate Verified Stamp
+                    </>
+                  )}
+                </Button>
+              </div>
               </div>
             </div>
           </div>
         </div>
+
+      {/* Preview PDF Modal */}
+      <Dialog open={showPreviewModal} onOpenChange={handleClosePreviewModal}>
+        <DialogContent className="sm:max-w-4xl h-[85vh] bg-[#0B1120] border-white/10 p-0 overflow-hidden" data-testid="preview-pdf-modal">
+          <DialogHeader className="p-4 border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-white flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-blue-400" />
+                  Preview Stamped Document
+                </DialogTitle>
+                <DialogDescription className="text-white/50 text-sm mt-1">
+                  Review the stamp placement before generating the final document
+                </DialogDescription>
+              </div>
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                PREVIEW ONLY
+              </Badge>
+            </div>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-hidden p-4">
+            {/* Preview Info Bar */}
+            <div className="flex items-center justify-between mb-3 p-3 bg-white/5 rounded-lg">
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-white/50">Preview ID:</span>
+                  <code className="text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded text-xs">
+                    {previewStampId}
+                  </code>
+                </div>
+                {previewDocHash && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/50">Hash:</span>
+                    <code className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-xs">
+                      {previewDocHash?.substring(0, 12)}...
+                    </code>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* PDF Viewer */}
+            {previewPdfUrl && (
+              <iframe
+                src={previewPdfUrl}
+                className="w-full h-[calc(100%-100px)] rounded-lg border border-white/10 bg-white"
+                title="Preview Stamped PDF"
+              />
+            )}
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="p-4 border-t border-white/10 flex items-center justify-between">
+            <Button 
+              variant="ghost" 
+              onClick={handleClosePreviewModal}
+              className="text-white/70 hover:text-white"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Close Preview
+            </Button>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  handleClosePreviewModal();
+                  // Scroll to position section
+                  document.getElementById('stamp-preview-area')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="border-white/20 text-white/70 hover:text-white"
+              >
+                Adjust Position
+              </Button>
+              <Button 
+                onClick={() => {
+                  handleClosePreviewModal();
+                  handleStampDocument();
+                }}
+                disabled={stamping || isStampingBlocked}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Fingerprint className="w-4 h-4 mr-2" />
+                Generate Final Stamp
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Success Dialog */}
       <Dialog open={!!stampResult} onOpenChange={() => setStampResult(null)}>
