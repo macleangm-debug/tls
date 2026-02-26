@@ -202,49 +202,71 @@ const DocumentStampPage = () => {
   const [previewDocHash, setPreviewDocHash] = useState(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
 
-  // Fetch stamp preview from backend when stamp settings change
+  // Fetch stamp preview from backend using /stamps/render-image (SINGLE SOURCE OF TRUTH)
+  // This returns the exact PNG that will be embedded into the PDF
   const fetchStampPreview = useCallback(async () => {
     if (!user) return;
     
     setLoadingStampPreview(true);
     try {
-      const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
-      
-      // ========== NORMALIZE BY STAMP TYPE ==========
-      // Notarization stamps NEVER have signatures
       const isNotarization = selectedType === "notarization";
-      const hasDigitalSignature = !isNotarization && signatureMode === 'digital' && savedSignature;
-      const showPlaceholder = !isNotarization && stampTypeConfig?.requiresSignature && !hasDigitalSignature;
       
-      const response = await axios.post(`${API}/documents/stamp-preview`, {
-        stamp_type: selectedType,
-        brand_color: brandColor,
-        advocate_name: user?.full_name || 'Advocate',
-        show_advocate_name: showAdvocateName,
-        layout: stampLayout,
-        shape: stampShape,
-        include_signature: hasDigitalSignature,
-        show_signature_placeholder: showPlaceholder,
-        width: stampSize.width,
-        height: stampSize.height
-      }, getAuthHeaders());
+      // ========== STRICT SIGNATURE RULES ==========
+      // Digital signature: certification + digital mode + has saved signature
+      const includeSignature = 
+        !isNotarization &&
+        selectedType === "certification" &&
+        signatureMode === "digital" &&
+        !!savedSignature;
       
-      setStampPreviewImage(response.data.preview_image);
+      // Placeholder: certification + print mode (sign after printing)
+      const showPlaceholder = 
+        !isNotarization &&
+        selectedType === "certification" &&
+        signatureMode === "print";
       
-      // Update stamp PDF dimensions from backend (QUARTER-PAGE sizes)
-      if (response.data.pdf_width_pt && response.data.pdf_height_pt) {
-        setStampPdfDimensions({
-          width: response.data.pdf_width_pt,
-          height: response.data.pdf_height_pt
-        });
+      const fd = new FormData();
+      fd.append("stamp_type", selectedType);
+      fd.append("brand_color", brandColor);
+      fd.append("advocate_name", user?.full_name || "Advocate");
+      fd.append("include_signature", String(includeSignature));
+      fd.append("show_signature_placeholder", String(showPlaceholder));
+      
+      // Send signature_data ONLY when actually embedding digital signature
+      if (includeSignature && savedSignature) {
+        fd.append("signature_data", savedSignature);
       }
+      
+      const response = await axios.post(`${API}/stamps/render-image`, fd, {
+        headers: {
+          ...getAuthHeaders().headers
+          // DO NOT set Content-Type manually - browser handles FormData boundary
+        },
+        responseType: "blob"
+      });
+      
+      // Get dimensions from response headers
+      const wPt = Number(response.headers["x-stamp-width-pt"]) || 170;
+      const hPt = Number(response.headers["x-stamp-height-pt"]) || 90;
+      
+      setStampPdfDimensions({ width: wPt, height: hPt });
+      
+      // Convert blob to object URL for <img src=...>
+      const imgUrl = URL.createObjectURL(response.data);
+      
+      // Revoke old URL to prevent memory leaks
+      if (stampPreviewImage && stampPreviewImage.startsWith('blob:')) {
+        URL.revokeObjectURL(stampPreviewImage);
+      }
+      
+      setStampPreviewImage(imgUrl);
     } catch (error) {
-      console.error("Failed to fetch stamp preview:", error);
+      console.error("Stamp render-image preview failed:", error);
       setStampPreviewImage(null);
     } finally {
       setLoadingStampPreview(false);
     }
-  }, [user, selectedType, brandColor, showAdvocateName, stampLayout, stampShape, signatureMode, savedSignature, stampSize.width, stampSize.height, getAuthHeaders]);
+  }, [user, selectedType, brandColor, signatureMode, savedSignature, getAuthHeaders, stampPreviewImage]);
 
   // Debounced stamp preview fetch to avoid excessive API calls
   useEffect(() => {
