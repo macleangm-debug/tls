@@ -29,6 +29,7 @@ import VerifyPage from "./pages/VerifyPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminAdvocates from "./pages/AdminAdvocates";
 import AdminOrders from "./pages/AdminOrders";
+import TLSEventsAdmin from "./pages/TLSEventsAdmin";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import IDCOrdersPage from "./pages/IDCOrdersPage";
 import BusinessRegistrationPage from "./pages/BusinessRegistrationPage";
