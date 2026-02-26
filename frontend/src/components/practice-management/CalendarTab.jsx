@@ -89,18 +89,49 @@ export const CalendarTab = ({ token }) => {
 
   const fetchData = async () => {
     try {
-      const [eventsRes, clientsRes, casesRes, tasksRes] = await Promise.all([
-        axios.get(`${API}/api/practice/events`, { headers }),
+      // Get date range for calendar (3 months before and after current date)
+      const now = new Date();
+      const fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+      const toDate = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString().split('T')[0];
+      
+      const [calendarRes, clientsRes, casesRes] = await Promise.all([
+        axios.get(`${API}/api/practice/calendar?from=${fromDate}&to=${toDate}`, { headers }),
         axios.get(`${API}/api/practice/clients`, { headers }),
-        axios.get(`${API}/api/practice/cases`, { headers }),
-        axios.get(`${API}/api/practice/tasks`, { headers }).catch(() => ({ data: { tasks: [] } }))
+        axios.get(`${API}/api/practice/cases`, { headers })
       ]);
-      setEvents(eventsRes.data.events || []);
+      
+      // Separate personal events/tasks and TLS events
+      const allCalendarEvents = calendarRes.data.events || [];
+      const personalEvents = allCalendarEvents
+        .filter(e => e.source === 'personal' && e.extendedProps?.type === 'event')
+        .map(e => e.extendedProps.data);
+      const personalTasks = allCalendarEvents
+        .filter(e => e.source === 'personal' && e.extendedProps?.type === 'task')
+        .map(e => e.extendedProps.data);
+      const tlsEventsData = allCalendarEvents.filter(e => e.source === 'tls');
+      
+      setEvents(personalEvents);
+      setTasks(personalTasks);
+      setTlsEvents(tlsEventsData);
       setClients(clientsRes.data.clients || []);
       setCases(casesRes.data.cases || []);
-      setTasks(tasksRes.data.tasks || []);
     } catch (error) {
-      toast.error("Failed to fetch data");
+      console.error("Failed to fetch calendar data:", error);
+      // Fallback to old endpoints if combined fails
+      try {
+        const [eventsRes, clientsRes, casesRes, tasksRes] = await Promise.all([
+          axios.get(`${API}/api/practice/events`, { headers }),
+          axios.get(`${API}/api/practice/clients`, { headers }),
+          axios.get(`${API}/api/practice/cases`, { headers }),
+          axios.get(`${API}/api/practice/tasks`, { headers }).catch(() => ({ data: { tasks: [] } }))
+        ]);
+        setEvents(eventsRes.data.events || []);
+        setClients(clientsRes.data.clients || []);
+        setCases(casesRes.data.cases || []);
+        setTasks(tasksRes.data.tasks || []);
+      } catch (fallbackError) {
+        toast.error("Failed to fetch data");
+      }
     }
   };
 
