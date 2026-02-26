@@ -12,6 +12,28 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 - Enterprise-grade JWT authentication with HttpOnly cookies
 - Full CSRF protection
 
+### Membership Billing System (NEW - Feb 26, 2026) ✅
+- **IDC Control Panel** at `/super-admin/membership` for Super Admins
+- **Policy Configuration**: Enable/disable billing, set pricing, choose billing mode (fixed/subscription)
+- **Enforcement Modes**: warn_only, block_stamping, block_all
+- **Grace Period**: Configurable 0-30 days after membership expiry
+- **Advocate Status Banners**: 
+  - Grace period warning (amber) with days remaining
+  - Blocked state (red) when membership expired
+  - Dismiss/Remind Later options
+- **Stamping Disabled** when blocked: Buttons show lock icon, "Membership Required" text
+- **Backend Endpoints**:
+  - `GET /api/admin/membership/settings` - Get policy (super_admin)
+  - `PATCH /api/admin/membership/settings` - Update policy (super_admin)
+  - `GET /api/admin/membership/stats` - Get membership statistics (admin)
+  - `GET /api/admin/membership/payments` - List payments (admin)
+  - `POST /api/admin/membership/manual-payment` - Create manual payment (admin)
+  - `GET /api/membership/status` - Get advocate's membership status
+- **MongoDB Collections**:
+  - `membership_billing_settings` - Singleton policy document
+  - `membership_payments` - Payment records
+- **Enforcement Integration**: Stamping endpoints (`/api/documents/stamp`, `/api/documents/batch-stamp`) check membership status before processing
+
 ### Practice Management Dashboard
 - Analytics dashboard with charts (Cases by Status, Cases by Type, Revenue Trend)
 - Tab-based navigation: Dashboard, Clients, Cases, Documents, Calendar, Tasks, Invoices, Templates, Messages
