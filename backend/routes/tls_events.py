@@ -534,4 +534,247 @@ def create_tls_events_routes(db, get_current_user, require_admin, require_super_
             "total": len(acks)
         }
     
+    # =============== ATTENDANCE ENDPOINTS ===============
+    
+    @tls_events_router.get("/events/{event_id}/attendance")
+    async def get_event_attendance(
+        event_id: str,
+        status: Optional[str] = None,
+        user: dict = Depends(require_admin)
+    ):
+        """Get attendance records for a TLS event (admin only)."""
+        event = await db.tls_global_events.find_one({"id": event_id}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="TLS event not found")
+        
+        query = {"event_id": event_id}
+        if status:
+            query["status"] = status
+        
+        attendance_records = await db.tls_event_attendance.find(
+            query, {"_id": 0}
+        ).sort("updated_at", -1).to_list(1000)
+        
+        # Get advocate details for each record
+        advocate_ids = [r["advocate_id"] for r in attendance_records]
+        advocates = await db.users.find(
+            {"id": {"$in": advocate_ids}},
+            {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roll_number": 1, "location": 1}
+        ).to_list(1000)
+        advocate_map = {a["id"]: a for a in advocates}
+        
+        # Merge advocate info
+        for record in attendance_records:
+            advocate = advocate_map.get(record["advocate_id"], {})
+            record["advocate_name"] = advocate.get("full_name", "Unknown")
+            record["advocate_email"] = advocate.get("email", "")
+            record["advocate_roll"] = advocate.get("roll_number", "")
+            record["advocate_region"] = advocate.get("location", "")
+        
+        # Count by status
+        status_counts = {
+            "registered": len([r for r in attendance_records if r.get("status") == "registered"]),
+            "attended": len([r for r in attendance_records if r.get("status") == "attended"]),
+            "absent": len([r for r in attendance_records if r.get("status") == "absent"]),
+            "excused": len([r for r in attendance_records if r.get("status") == "excused"])
+        }
+        
+        return {
+            "event_id": event_id,
+            "event_title": event.get("title"),
+            "attendance_enabled": event.get("attendance", {}).get("enabled", False),
+            "attendance_mode": event.get("attendance", {}).get("mode", "admin"),
+            "cpd_points": event.get("attendance", {}).get("cpd_points"),
+            "records": attendance_records,
+            "total": len(attendance_records),
+            "counts": status_counts
+        }
+    
+    @tls_events_router.post("/events/{event_id}/attendance/mark")
+    async def mark_attendance(
+        event_id: str,
+        data: AttendanceMarkRequest,
+        user: dict = Depends(require_admin)
+    ):
+        """Bulk mark attendance for advocates (admin only)."""
+        event = await db.tls_global_events.find_one({"id": event_id}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="TLS event not found")
+        
+        if not event.get("attendance", {}).get("enabled", False):
+            raise HTTPException(status_code=400, detail="Attendance tracking not enabled for this event")
+        
+        if data.status not in ["registered", "attended", "absent", "excused"]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        
+        now = datetime.now(timezone.utc).isoformat()
+        marked_count = 0
+        
+        for advocate_id in data.advocate_ids:
+            # Upsert attendance record
+            existing = await db.tls_event_attendance.find_one({
+                "event_id": event_id,
+                "advocate_id": advocate_id
+            })
+            
+            if existing:
+                await db.tls_event_attendance.update_one(
+                    {"event_id": event_id, "advocate_id": advocate_id},
+                    {"$set": {
+                        "status": data.status,
+                        "marked_by": user["id"],
+                        "marked_at": now,
+                        "reason": data.reason,
+                        "updated_at": now
+                    }}
+                )
+            else:
+                await db.tls_event_attendance.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "event_id": event_id,
+                    "advocate_id": advocate_id,
+                    "status": data.status,
+                    "check_in_at": now if data.status == "attended" else None,
+                    "marked_by": user["id"],
+                    "marked_at": now,
+                    "reason": data.reason,
+                    "proof": {"method": "admin_mark", "token": None},
+                    "created_at": now,
+                    "updated_at": now
+                })
+            marked_count += 1
+        
+        # Log system event
+        await db.system_events.insert_one({
+            "event_type": "TLS_EVENT_ATTENDANCE_MARKED",
+            "event_id": event_id,
+            "marked_by": user["id"],
+            "marked_by_email": user.get("email"),
+            "advocate_count": marked_count,
+            "status": data.status,
+            "timestamp": now
+        })
+        
+        return {
+            "message": f"Marked {marked_count} advocates as {data.status}",
+            "marked_count": marked_count,
+            "status": data.status
+        }
+    
+    @tls_events_router.post("/events/{event_id}/register")
+    async def register_for_event(event_id: str, user: dict = Depends(get_current_user)):
+        """Register for a TLS event (advocate action)."""
+        event = await db.tls_global_events.find_one({"id": event_id}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="TLS event not found")
+        
+        if not event.get("attendance", {}).get("enabled", False):
+            raise HTTPException(status_code=400, detail="Registration not available for this event")
+        
+        # Check if already registered
+        existing = await db.tls_event_attendance.find_one({
+            "event_id": event_id,
+            "advocate_id": user["id"]
+        })
+        
+        if existing:
+            return {"message": "Already registered", "status": existing.get("status"), "registered_at": existing.get("created_at")}
+        
+        now = datetime.now(timezone.utc).isoformat()
+        
+        await db.tls_event_attendance.insert_one({
+            "id": str(uuid.uuid4()),
+            "event_id": event_id,
+            "advocate_id": user["id"],
+            "status": "registered",
+            "check_in_at": None,
+            "proof": {"method": "self_register", "token": None},
+            "created_at": now,
+            "updated_at": now
+        })
+        
+        # Log system event
+        await db.system_events.insert_one({
+            "event_type": "TLS_EVENT_REGISTERED",
+            "event_id": event_id,
+            "advocate_id": user["id"],
+            "advocate_email": user.get("email"),
+            "timestamp": now
+        })
+        
+        return {"message": "Registered successfully", "status": "registered", "registered_at": now}
+    
+    @tls_events_router.get("/events/{event_id}/my-attendance")
+    async def get_my_attendance(event_id: str, user: dict = Depends(get_current_user)):
+        """Get current user's attendance status for a TLS event."""
+        event = await db.tls_global_events.find_one({"id": event_id}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="TLS event not found")
+        
+        attendance = await db.tls_event_attendance.find_one({
+            "event_id": event_id,
+            "advocate_id": user["id"]
+        }, {"_id": 0})
+        
+        return {
+            "event_id": event_id,
+            "attendance_enabled": event.get("attendance", {}).get("enabled", False),
+            "attendance_mode": event.get("attendance", {}).get("mode", "admin"),
+            "cpd_points": event.get("attendance", {}).get("cpd_points"),
+            "registered": attendance is not None,
+            "status": attendance.get("status") if attendance else None,
+            "check_in_at": attendance.get("check_in_at") if attendance else None,
+            "registered_at": attendance.get("created_at") if attendance else None
+        }
+    
+    @tls_events_router.get("/events/{event_id}/attendance/export")
+    async def export_attendance_csv(event_id: str, user: dict = Depends(require_admin)):
+        """Export attendance records as CSV (admin only)."""
+        from fastapi.responses import StreamingResponse
+        import io
+        import csv
+        
+        event = await db.tls_global_events.find_one({"id": event_id}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="TLS event not found")
+        
+        records = await db.tls_event_attendance.find(
+            {"event_id": event_id}, {"_id": 0}
+        ).to_list(5000)
+        
+        # Get advocate details
+        advocate_ids = [r["advocate_id"] for r in records]
+        advocates = await db.users.find(
+            {"id": {"$in": advocate_ids}},
+            {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roll_number": 1, "location": 1, "phone": 1}
+        ).to_list(5000)
+        advocate_map = {a["id"]: a for a in advocates}
+        
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Roll Number", "Full Name", "Email", "Phone", "Region", "Status", "Check-in Time", "Registered At"])
+        
+        for record in records:
+            advocate = advocate_map.get(record["advocate_id"], {})
+            writer.writerow([
+                advocate.get("roll_number", ""),
+                advocate.get("full_name", "Unknown"),
+                advocate.get("email", ""),
+                advocate.get("phone", ""),
+                advocate.get("location", ""),
+                record.get("status", ""),
+                record.get("check_in_at", ""),
+                record.get("created_at", "")
+            ])
+        
+        output.seek(0)
+        filename = f"attendance_{event_id[:8]}_{datetime.now().strftime('%Y%m%d')}.csv"
+        
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
     return tls_events_router
