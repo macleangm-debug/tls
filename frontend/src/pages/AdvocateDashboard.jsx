@@ -18,6 +18,7 @@ import {
   Info, HelpCircle, MousePointer, Upload, Scan, LinkIcon, DollarSign
 } from "lucide-react";
 import { NotificationBell } from "../components/NotificationBell";
+import { MembershipStatusBanner, useMembershipStatus } from "../components/MembershipStatusBanner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
