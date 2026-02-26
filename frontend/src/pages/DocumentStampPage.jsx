@@ -361,8 +361,9 @@ const DocumentStampPage = () => {
   }, [fileData?.pages, pageDimensions.width, pageDimensions.height, stampPdfDimensions.width, stampPdfDimensions.height, pdfRenderScale]);
 
   // ========== STAMP SIZE AND CENTERING ==========
-  // Calculate stamp size from PDF dimensions and re-center when dimensions change
+  // Calculate stamp size from PDF dimensions
   // Uses UNSCALED coordinates because the parent container handles CSS transform scaling
+  // IMPORTANT: Don't recenter on type switch - only clamp to bounds
   useEffect(() => {
     if (!pageCanvasUrl) return; // Wait for PDF to load
     if (!pageDimensions?.width || !pageDimensions?.height) return;
@@ -381,26 +382,38 @@ const DocumentStampPage = () => {
       return;
     }
     
-    // Only update stamp size if it actually changed significantly
-    const sizeChanged = Math.abs(stampW - stampSize.width) > 1 || Math.abs(stampH - stampSize.height) > 1;
-    if (sizeChanged) {
-      setStampSize({ width: stampW, height: stampH });
-    }
+    // Update stamp size if changed
+    setStampSize(prev => {
+      if (Math.abs(stampW - prev.width) > 1 || Math.abs(stampH - prev.height) > 1) {
+        return { width: stampW, height: stampH };
+      }
+      return prev;
+    });
     
-    // Center stamp on page using UNSCALED coordinates
+    // Center stamp ONLY if no position exists for this page
+    // If position exists, CLAMP to new bounds (don't recenter on type switch)
     const marginPx = EDGE_MARGIN_PT * safePdfScale;
+    const maxX = Math.max(marginPx, pageDimensions.width - stampW - marginPx);
+    const maxY = Math.max(marginPx, pageDimensions.height - stampH - marginPx);
     const centerX = Math.max(marginPx, (pageDimensions.width - stampW) / 2);
     const centerY = Math.max(marginPx, (pageDimensions.height - stampH) / 2);
     
-    // Update position for current page ONLY if:
-    // 1. Position doesn't exist yet, OR
-    // 2. Stamp size changed (need to re-center with new dimensions)
     setStampPositions(prev => {
       const currentPos = prev[currentPage];
-      if (!currentPos || sizeChanged) {
+      if (!currentPos) {
+        // No position yet - center it
         return {
           ...prev,
           [currentPage]: { x: centerX, y: centerY }
+        };
+      }
+      // Position exists - CLAMP to new bounds (preserves user's placement)
+      const clampedX = Math.max(marginPx, Math.min(currentPos.x, maxX));
+      const clampedY = Math.max(marginPx, Math.min(currentPos.y, maxY));
+      if (clampedX !== currentPos.x || clampedY !== currentPos.y) {
+        return {
+          ...prev,
+          [currentPage]: { x: clampedX, y: clampedY }
         };
       }
       return prev;
