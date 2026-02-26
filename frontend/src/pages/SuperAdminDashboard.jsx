@@ -158,6 +158,7 @@ const SuperAdminDashboard = () => {
     {
       label: "Configuration",
       items: [
+        { icon: CreditCard, label: "Membership Billing", path: "/super-admin/membership" },
         { icon: DollarSign, label: "Pricing Tiers", path: "/super-admin#pricing" },
         { icon: Settings, label: "System Settings", path: "/super-admin#settings" },
       ]
