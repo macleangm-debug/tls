@@ -477,6 +477,12 @@ const AdvocateDashboard = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  
+  // Membership status
+  const { status: membershipStatus } = useMembershipStatus();
+  const isStampingBlocked = membershipStatus?.billing_enabled && 
+    membershipStatus?.is_blocked && 
+    membershipStatus?.enforcement === 'block_stamping';
 
   useEffect(() => {
     fetchDashboardData();
