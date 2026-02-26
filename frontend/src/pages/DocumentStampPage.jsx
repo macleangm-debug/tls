@@ -168,8 +168,10 @@ const DocumentStampPage = () => {
 
   // Signature canvas state
   const signatureCanvasRef = useRef(null);
+  const sigWrapRef = useRef(null);
   const [showSignatureDrawer, setShowSignatureDrawer] = useState(false);
   const [savingSignature, setSavingSignature] = useState(false);
+  const [sigCanvasSize, setSigCanvasSize] = useState({ width: 520, height: 140 });
 
   // Page selection state
   const [pageSelection, setPageSelection] = useState("first"); // first, all, last, custom
