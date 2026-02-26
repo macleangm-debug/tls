@@ -411,6 +411,15 @@ export default function TLSEventsAdmin() {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => fetchEventDetails(event)}
+                          className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
                           onClick={() => handleEdit(event)}
                           className="border-white/20 text-white hover:bg-white/10"
                         >
