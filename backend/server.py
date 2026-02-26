@@ -4343,6 +4343,101 @@ async def admin_batch_validate_pdfs(
     }
 
 
+# =============== ADMIN KEY MANAGEMENT ===============
+
+@api_router.get("/admin/crypto/status")
+async def get_crypto_key_status(user: dict = Depends(require_super_admin)):
+    """Get current cryptographic key status for monitoring"""
+    return crypto_service.get_key_status()
+
+
+@api_router.post("/admin/crypto/generate-key")
+async def generate_new_key_pair(user: dict = Depends(require_super_admin)):
+    """
+    Generate a new ECDSA P-256 key pair.
+    Returns the keys in Base64 format for secure storage.
+    
+    IMPORTANT: Store these keys securely! The private key will NOT be stored.
+    """
+    private_pem, public_pem = crypto_service.generate_key_pair()
+    
+    new_key_id = f"tls-key-{datetime.now().strftime('%Y-%m')}-{secrets.token_hex(4)}"
+    
+    # Log key generation (but NOT the private key!)
+    await db.system_events.insert_one({
+        "event_type": "KEY_GENERATED",
+        "actor_id": str(user.get("_id", user.get("id"))),
+        "actor_email": user.get("email"),
+        "key_id": new_key_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "key_id": new_key_id,
+        "private_key_b64": base64.b64encode(private_pem).decode(),
+        "public_key_b64": base64.b64encode(public_pem).decode(),
+        "algorithm": "ECDSA_P256_SHA256",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "instructions": {
+            "1": "Store private_key_b64 securely (e.g., secrets manager, encrypted storage)",
+            "2": "Set TLS_PRIVATE_KEY_B64 environment variable with the private key",
+            "3": "Set TLS_PUBLIC_KEY_B64 environment variable with the public key",
+            "4": "Set TLS_ACTIVE_KEY_ID to the new key_id",
+            "5": "Add current key to TLS_HISTORICAL_KEYS_JSON before switching",
+            "6": "Restart the backend service to load new keys"
+        }
+    }
+
+
+@api_router.post("/admin/crypto/rotate-key")
+async def rotate_signing_key(
+    new_key_id: str = Form(...),
+    new_private_key_b64: str = Form(...),
+    new_public_key_b64: str = Form(...),
+    user: dict = Depends(require_super_admin)
+):
+    """
+    Rotate to a new signing key.
+    
+    The old key is retained for verification of existing stamps.
+    New stamps will be signed with the new key.
+    
+    This is an in-memory rotation. For persistence, update environment variables.
+    """
+    try:
+        private_pem = base64.b64decode(new_private_key_b64)
+        public_pem = base64.b64decode(new_public_key_b64)
+        
+        old_key_id = crypto_service.active_key_id
+        
+        # Perform rotation
+        rotation_event = crypto_service.rotate_key(new_key_id, private_pem, public_pem)
+        
+        # Log to system events
+        await db.system_events.insert_one({
+            "event_type": "KEY_ROTATED",
+            "actor_id": str(user.get("_id", user.get("id"))),
+            "actor_email": user.get("email"),
+            "old_key_id": old_key_id,
+            "new_key_id": new_key_id,
+            "rotated_at": datetime.now(timezone.utc).isoformat(),
+            "metadata": rotation_event
+        })
+        
+        return {
+            "success": True,
+            "rotation_event": rotation_event,
+            "current_status": crypto_service.get_key_status(),
+            "note": "This is an in-memory rotation. Update environment variables for persistence."
+        }
+        
+    except Exception as e:
+        logger.error(f"Key rotation failed: {e}")
+        if SENTRY_DSN:
+            sentry_sdk.capture_exception(e)
+        raise HTTPException(status_code=400, detail=f"Key rotation failed: {str(e)}")
+
+
 # =============== BATCH STAMPING ===============
 
 @api_router.post("/documents/batch-stamp")
