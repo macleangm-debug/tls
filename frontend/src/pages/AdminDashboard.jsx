@@ -158,7 +158,7 @@ const AdminDashboard = () => {
           <CardTitle className="font-heading text-lg text-white">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-4 gap-4">
             <a href="/admin/advocates" className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:border-tls-blue-electric/30 hover:bg-white/10 transition-all group">
               <Users className="w-6 h-6 text-tls-blue-electric mb-3 group-hover:scale-110 transition-transform" />
               <p className="font-medium text-white">Manage Advocates</p>
@@ -168,6 +168,11 @@ const AdminDashboard = () => {
               <ShoppingCart className="w-6 h-6 text-tls-gold mb-3 group-hover:scale-110 transition-transform" />
               <p className="font-medium text-white">Process Orders</p>
               <p className="text-sm text-white/50 mt-1">Approve and track orders</p>
+            </a>
+            <a href="/admin/tls-events" className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:border-purple-500/30 hover:bg-white/10 transition-all group" data-testid="tls-events-link">
+              <Building className="w-6 h-6 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
+              <p className="font-medium text-white">TLS Events</p>
+              <p className="text-sm text-white/50 mt-1">AGM, CPD sessions, notices</p>
             </a>
             <a href="/verify" className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:border-cyan-500/30 hover:bg-white/10 transition-all group">
               <QrCode className="w-6 h-6 text-cyan-500 mb-3 group-hover:scale-110 transition-transform" />
