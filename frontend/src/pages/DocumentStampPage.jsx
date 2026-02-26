@@ -159,7 +159,7 @@ const DocumentStampPage = () => {
   });
 
   // Signature state - for Certification stamps (Global Signature Storage)
-  const [signatureMode, setSignatureMode] = useState("placeholder"); // "digital", "upload", or "placeholder"
+  const [signatureMode, setSignatureMode] = useState("print"); // "digital" or "print" (none for notarization)
   const [savedSignature, setSavedSignature] = useState(null); // Global saved signature from profile
   const [signatureSource, setSignatureSource] = useState(null); // "drawn" or "uploaded"
   const [stampLayout, setStampLayout] = useState("horizontal");
