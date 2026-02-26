@@ -1001,6 +1001,98 @@ export const CalendarTab = ({ token }) => {
         variant="danger"
         onConfirm={handleConfirmDelete}
       />
+
+      {/* TLS Global Event View Modal (Read-Only) */}
+      <Dialog open={!!viewTlsEvent} onOpenChange={(open) => !open && setViewTlsEvent(null)}>
+        <DialogContent className="bg-[#0a0d14] border-purple-500/20 max-w-lg">
+          {viewTlsEvent && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/20 text-purple-400">
+                      <Building className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-white text-lg">{viewTlsEvent.data?.title || 'TLS Event'}</DialogTitle>
+                      <div className="flex gap-2 mt-1">
+                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">TLS Event</Badge>
+                        {viewTlsEvent.is_mandatory && (
+                          <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Mandatory</Badge>
+                        )}
+                        {viewTlsEvent.is_recurring && (
+                          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Recurring</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-3 text-white/70">
+                  <CalendarIcon className="w-4 h-4 text-purple-400" />
+                  <span>
+                    {viewTlsEvent.data?.start_at ? new Date(viewTlsEvent.data.start_at).toLocaleString('en-GB', { 
+                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                    }) : 'Date TBD'}
+                  </span>
+                </div>
+                
+                {viewTlsEvent.data?.end_at && (
+                  <div className="flex items-center gap-3 text-white/70">
+                    <ClockIcon className="w-4 h-4 text-purple-400" />
+                    <span>Until {new Date(viewTlsEvent.data.end_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-3 text-white/70">
+                  <Badge className="bg-purple-500/10 text-purple-400 text-xs">
+                    {viewTlsEvent.event_type?.replace(/_/g, ' ').toUpperCase() || 'TLS ANNOUNCEMENT'}
+                  </Badge>
+                </div>
+                
+                {viewTlsEvent.description && (
+                  <div className="p-3 bg-purple-500/5 rounded-lg border border-purple-500/20">
+                    <p className="text-white/70 text-sm">{viewTlsEvent.description}</p>
+                  </div>
+                )}
+                
+                {viewTlsEvent.data?.links && viewTlsEvent.data.links.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-white/50">Related Links:</p>
+                    {viewTlsEvent.data.links.map((link, idx) => (
+                      <a 
+                        key={idx}
+                        href={link.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm"
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <p className="text-xs text-white/40 flex items-center gap-2">
+                    <AlertTriangle className="w-3 h-3" />
+                    This is a TLS organization-wide event. You cannot edit or delete it.
+                  </p>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewTlsEvent(null)} className="border-white/20 text-white hover:bg-white/10">
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
