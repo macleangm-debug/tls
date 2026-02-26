@@ -18,7 +18,7 @@ import base64
 from io import BytesIO
 from PIL import Image
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://legal-hub-59.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://billing-dashboard-45.preview.emergentagent.com')
 
 # Test credentials
 TEST_EMAIL = "testadvocate@tls.or.tz"

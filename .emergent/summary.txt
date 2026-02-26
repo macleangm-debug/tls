@@ -1,73 +1,78 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to build a Practice Management Suite for advocates. The project has evolved to include a sophisticated, secure digital stamping platform. The most recent work has focused on hardening the platform for production go-live, creating system documentation, and refining the UI/UX of the Advocate Dashboard and Practice Management modules to meet professional standards.
+The user's initial request was to build a Practice Management Suite for advocates. The project has since evolved into a sophisticated, secure digital stamping platform. The most recent requests focus on adding high-value features for the Tanganyika Law Society (TLS) and its governing body (IDC) to manage members and drive digital adoption. This includes implementing TLS-wide calendar events, tracking member compliance (acknowledgements, attendance), and creating a centralized membership billing and enforcement system.
+
+PRODUCT REQUIREMENTS have been defined through a series of strategic conversations:
+1.  **TLS Global Events:** A system for TLS admins to publish events (like AGMs, CPD sessions, and notices) that automatically appear on all relevant advocate calendars as read-only.
+2.  **Compliance Tracking:** Mechanisms for advocates to Acknowledge mandatory notices and for admins to track attendance at events like CPD sessions.
+3.  **Membership Billing Controls:** A centralized settings panel for the Super Admin (IDC) to define and enforce membership fee policies (e.g., subscription vs. fixed price, and enforcement actions like blocking stamping for unpaid members).
+4.  **Personal Recurring Events:** Allowing advocates to create recurring events in their own calendars.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A comprehensive, full-stack digital certification and practice management platform built with React, FastAPI, and MongoDB. The system includes a robust stamping engine with cryptographic signing (ECDSA), batch processing, an immutable audit trail, and a public verification portal.
+A comprehensive full-stack digital certification and practice management platform (React, FastAPI, MongoDB). Key features include a secure stamping engine, an interactive professional calendar, and robust admin tooling.
 
-Key production-readiness features have been implemented:
--   **PDF Hardening:** A validation service () protects the stamping engine from malformed or malicious PDFs. A stress test suite has been created to validate this.
--   **Operational Safety:** Automated MongoDB backups (via ) and Sentry error monitoring are integrated into the backend and frontend.
--   **Key Rotation:** A v1 cryptographic key rotation mechanism is in place, allowing an admin to switch the active signing key.
--   **UI/UX Refinements:** The Advocate Dashboard has been redesigned to be workflow-centric, and the Calendar module within Practice Management has been upgraded with a professional  widget.
--   The backend has been prepared with new endpoints and data models to support advanced calendar features.
+In this session, the following were added:
+-   **TLS Global Events:** A complete backend and frontend system for creating and displaying TLS-wide events on advocate calendars. It supports recurrence (e.g., yearly AGMs) and audience scoping (nationwide vs. regional).
+-   **Compliance Features (V1):** Backend APIs and frontend UI for advocates to acknowledge mandatory TLS events and register for CPD sessions. An admin panel was also created to view event acknowledgements and track attendance.
+-   **Membership Billing Backend:** The initial backend for the Membership Billing Settings has been created, including a new MongoDB collection (), admin APIs to control the policy, an advocate-facing status API, and enforcement hooks in the stamping endpoints.
 
 **Last working item**:
--   **Last item agent was working:** The agent was implementing professional features for the calendar module. It had successfully added the necessary backend endpoints and data models in  to support actions like marking events as complete, rescheduling, canceling with a reason, and setting priorities. The agent was about to start modifying the frontend component  to integrate these new capabilities.
+-   **Last item agent was working:** The agent was implementing the Membership Billing Settings feature. It created the backend APIs and a frontend admin page. However, during testing, it discovered that the backend logic was querying the wrong MongoDB collection () instead of the correct one () to fetch user data, causing API calls to fail. The agent identified the issue and had begun applying fixes to  but did not complete or verify them.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** Frontend testing agent. This is a complex frontend task involving new modals, state management, and multiple API integrations for event manipulation (drag-drop, status changes). The testing agent is best suited to verify the end-to-end functionality.
+-   **Which testing method agent to use?** both. The backend needs  testing to verify the collection fix and enforcement logic. The frontend admin page needs a  to confirm it renders correctly. The advocate-facing UI (banners, disabled buttons) will need frontend testing once implemented.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Implement Professional Calendar Features in Frontend (P0)**
-    -   **Description:** The backend is ready for advanced calendar functionality. The frontend () must be updated to consume these APIs. This includes building modals for creating/editing events, handling drag-and-drop rescheduling, and adding UI controls to change an event's status (e.g., Mark as Complete).
-    -   **Attempted fixes:** All required backend endpoints and Pydantic models have been created in .
+-   **Issue 1: Fix and Complete Membership Billing Settings Feature (P0)**
+    -   **Description:** The backend membership service in  incorrectly queries the  collection instead of the  collection, causing status checks and enforcement logic to fail. The advocate-facing UI for displaying warnings and blocking actions has not been implemented yet.
+    -   **Attempted fixes:** The agent identified the incorrect collection name and started to patch the file .
     -   **Next debug checklist:**
-        1.  Modify .
-        2.  Create or update the event modal to include fields for , , , and linking to a /.
-        3.  Implement API calls to the new endpoints (, , ).
-        4.  Configure the FullCalendar component to be  and create an  handler that calls the reschedule API.
-        5.  Update the event rendering logic to reflect  (e.g., strikethrough for 'completed') and  (e.g., color-coding).
-    -   **Why fix this issue and what will be achieved with the fix?** It will elevate the calendar from a simple display to an interactive, professional-grade practice management tool, as explicitly requested by the user.
+        1.  Complete the edits in  to ensure all database queries for advocate data point to the  collection.
+        2.  Restart the backend service.
+        3.  Test the  endpoint with an advocate's token to confirm it returns a correct status.
+        4.  Test the enforcement by setting the policy to  and attempting to use the  endpoint with an unpaid advocate's token.
+        5.  Verify the frontend admin page at  renders and functions correctly.
+        6.  Implement the advocate-facing UI: display a warning banner on the dashboard if membership is expired, and disable stamping controls if enforcement is active.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a critical go-live feature that provides IDC with the necessary tools to manage revenue and enforce membership policies.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Update Frontend CalendarTab.jsx**
-    -   **Where to resume:** The agent needs to begin editing the file .
-    -   **What will be achieved with this?** A fully interactive and professional calendar feature within the Practice Management suite.
+-   **Task 1: Complete Membership Billing Feature**
+    -   **Where to resume:** Resume editing  to fix the MongoDB collection name. Then, test the backend thoroughly, verify the admin frontend, and implement the advocate-facing frontend UI (banners and disabled actions).
+    -   **What will be achieved with this?** A fully functional membership billing control panel for IDC admins and an automated enforcement system for advocates.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Real-world PDF Stress Testing Campaign:** Use the admin endpoint () to test 30-50 diverse, real-world PDF documents to certify the stamping engine is production-safe.
-    -   **(P1) Audit Practice Management Modules:** Review all tabs in the Practice Management section (Clients, Cases, Invoices) for go-live readiness. Ensure all features are fully persistent and not using mock data. Mark any incomplete modules as Beta.
-    -   **(P2) Implement Convert Event to Task:** Add the functionality to create a follow-up task directly from a calendar event.
+    -   **(P1) Real-world PDF Stress Testing Campaign:** Use the admin endpoint () to test 30-50 diverse, real-world PDF documents.
+    -   **(P1) Audit Practice Management Modules:** Review all tabs in the Practice Management section (Clients, Cases, Invoices) for go-live readiness.
+    -   **(P2) Personal Recurring Events:** Implement recurring events for advocates' personal calendars, including the UI for creating recurrence rules and editing series.
 
 -   **Future Tasks:**
-    -   **(P2) Backend Monolith Refactoring:** Continue breaking down  by moving remaining route groups (admin, user profile) into the  directory.
-    -   **(P2) Implement Stamp Expiry Job:** Create a scheduled background task to automatically handle expired stamps.
-    -   **(P2) Google Calendar Sync:** Allow users to sync their practice calendar with their Google Calendar.
+    -   **(P2) Backend Monolith Refactoring:** Continue breaking down  into the  directory.
+    -   **(P2) Google Calendar Sync:** Allow users to sync their practice calendar.
+    -   **(P2) CPD Compliance Module:** Build out a full module for CPD tracking, including certificates.
+    -   **(P2) Stamp Expiry Job:** Create a background task to handle expired stamps.
+    -   **(P2) KwikPay Integration:** Replace the mocked payment gateway.
 
 **Completed work in this session**
--   **Landing Page Enhancement:** Added a new Digital Certification Platform section to  and applied hover animations.
--   **PDF Hardening & Stress Testing Suite:** Implemented a , integrated it into the stamping workflow, and created a  test suite.
--   **Go-Live Readiness Implementation:**
-    -   **Backups:** Created and tested a MongoDB backup and restore script.
-    -   **Monitoring:** Integrated Sentry for error tracking on both frontend and backend.
-    -   **Admin Tooling:** Added an admin-only endpoint for PDF validation.
-    -   **Security:** Implemented a v1 key rotation mechanism for cryptographic keys.
--   **System Documentation:** Authored a comprehensive .
--   **UI/UX Refinement:**
-    -   Refactored the  to be workflow-first, removing gamification elements.
-    -   Upgraded the  with a full-featured  widget.
--   **Backend Enhancement:** Added new professional-grade endpoints and models for the calendar in .
+-   **Professional Calendar Feature Fixes:**
+    -   Resolved a bug caused by a duplicate  component definition.
+    -   Fixed an issue where events without a  property were not handled correctly.
+    -   Successfully used the testing agent to validate all calendar functionality and fix a bug related to sidebar event clicks.
+-   **TLS Global Events (Phase 1):**
+    -   **Backend:** Implemented a new  collection and a dedicated  module for admin management. The main calendar feed () now merges personal and global events.
+    -   **Frontend:** The advocate calendar now renders read-only TLS events with distinct styling. A new admin page () was created for managing these events.
+-   **TLS Compliance Features (Acknowledgement & Attendance):**
+    -   **Backend:** Created  and  collections and APIs for advocates to acknowledge/register and for admins to track status.
+    -   **Frontend:** The admin event view now includes tabs for monitoring acknowledgements and attendance. The advocate event modal now includes buttons to Acknowledge or Register for events.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
@@ -79,65 +84,67 @@ Key production-readiness features have been implemented:
 
 
 **Key Technical Concepts**
--   **PDF Hardening:** Proactive validation of PDF files before processing to prevent crashes and handle edge cases like encryption, large files, and corruption.
--   **Operational Readiness:** Implementing production-safe practices like automated backups (), error monitoring (), and operational tooling (admin validation endpoints).
--   **Cryptographic Key Rotation:** A mechanism to switch the active signing key while retaining old keys for verifying past signatures.
--   **Workflow-First UI/UX:** Prioritizing core user actions and workflows in UI design over secondary information or gamification to enhance professional usability.
--   **Modular Backend Routes:** Separating business logic into dedicated route files (e.g., ) for better code organization and maintainability.
+-   **Global Event Overlay:** Merging a central, read-only dataset (TLS events) with a user's personal data (advocate events) in a single API response to display a unified view without data duplication.
+-   **Centralized Policy Management:** Using a single document in MongoDB () as the source of truth for application-wide business rules, allowing admins to change behavior without code deployments.
+-   **Middleware/Hook-based Enforcement:** Injecting a dependency () into critical API endpoints () to enforce business rules like payment status before executing the core logic.
+-   **Role-Based Access Control (RBAC):** Protecting new admin features by adding role checks (, ) to the API endpoints.
 
 **key DB schema**
--   **practice_events:** (new collection)
-    -   Fields: , , ,  (high/medium/low), , ,  ('scheduled', 'completed', 'cancelled'), , , , .
+-   **tls_global_events:** (new) Stores TLS-wide events like AGMs and CPDs. Fields: , , , , ,  (rrule),  (scope, regions), , .
+-   **tls_event_ack:** (new) Logs when an advocate acknowledges a mandatory event. Fields: , , .
+-   **tls_event_attendance:** (new) Tracks advocate attendance for events. Fields: , ,  ('registered', 'attended', 'absent').
+-   **membership_billing_settings:** (new) A singleton document storing the active membership billing policy. Fields: , , , , , , .
 
 **changes in tech stack**
--   **Backend:** Added .
--   **Frontend:** Added , , and its related plugins.
+-   None.
 
 **All files of reference**
--   : Contains the new backend logic for the enhanced calendar.
--   : The frontend component to be modified next.
--   : Comprehensive system documentation.
--   : Core of the PDF hardening feature.
--   : Contains the key rotation logic.
--   : The refactored advocate dashboard.
--   : The test harness for PDF stress testing.
+-   : Contains the failing logic for the membership billing feature.
+-   : Contains the backend logic for TLS global events and compliance features.
+-   : The new frontend page for managing billing settings.
+-   : The frontend page for managing TLS global events.
+-   : The advocate calendar, updated to display TLS events and handle user interactions (acknowledging, registering).
+-   : Modified to include the new routers and enforcement hooks.
 
 **Areas that need refactoring**:
--   The  file is still a large monolith. The practice management, admin, and user profile routes within it are candidates for extraction into separate files under .
+-    remains a large file with several core routes that could be extracted into their own modules in .
+-   The  component has grown large and could be broken down into smaller sub-components (e.g., EventList, EventModal).
 
 **key api endpoints**
--   : (new) Super-admin endpoint to test PDF files.
--   : (new) Super-admin endpoint to trigger signing key rotation.
--   : (new) Marks a calendar event as complete.
--   : (new) Cancels a calendar event with a reason.
--   : (updated) General-purpose update for events, including rescheduling.
+-   : (new) Admin endpoint to create a TLS global event.
+-   : (updated) Merges advocate's personal events with relevant TLS global events.
+-   : (new) Advocate endpoint to acknowledge a mandatory event.
+-   : (new) Admin endpoint to mark advocate attendance.
+-   : (new) Super-admin endpoint to get the current billing policy.
+-   : (new) Super-admin endpoint to update the billing policy.
+-   : (new) Advocate endpoint to check their own membership status.
 
 **Critical Info for New Agent**
--   Your immediate task is to complete the **Professional Calendar Implementation**. The backend is done; you must build the frontend UI in  to let users manage events (complete, reschedule, cancel, set priority).
--   The platform is in the final mile before go-live. The user's focus is on hardening, polish, and ensuring the Practice Management suite feels credible and professional.
--   After the calendar, the next P1 task is the **Real-World PDF Stress Testing Campaign** using the  endpoint.
--   Pay close attention to user feedback regarding UI/UX. The goal is to create a tool that feels trustworthy and reliable for legal professionals, avoiding anything that seems mocked or gimmicky.
+-   Your immediate priority (P0) is to fix the **Membership Billing Settings** feature. The backend is failing because it's querying the wrong collection ( instead of ). You need to apply the fix in , test the backend endpoints, and then verify the frontend admin page.
+-   After fixing the backend, you must implement the advocate-facing part of the membership feature: displaying banners for expired/grace-period accounts and disabling stamping functionality if enforcement is active.
+-   The user has approved a clear strategic roadmap. After the billing feature is complete, the next tasks are the P1 items: **PDF Stress Testing** and the **Practice Management Audit**.
 
 **documents and test reports created in this job**
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user**: Asks to share the complete system architecture and DB structure.
-2.  **agent**: Provides a detailed breakdown of the architecture, services, and MongoDB schemas.
-3.  **user**: Gives a go-live readiness assessment, prioritizing Backups, Monitoring, and PDF testing. Approves building an admin-only PDF validation endpoint.
-4.  **agent**: Implements all P0 go-live blockers: backups, Sentry, admin PDF validation endpoint, and key rotation.
-5.  **user**: Asks to share the practice management codebase and dashboard frontend.
-6.  **agent**: Provides a summary of the relevant frontend files and screenshots.
-7.  **user**: Provides a detailed critique of the Advocate Dashboard and Practice Management module, suggesting a workflow-first layout and raising concerns about gamification and session expiry.
-8.  **agent**: Refactors the Advocate Dashboard to be workflow-first and removes gamification elements.
-9.  **user**: Approves the dashboard changes and suggests upgrading the Calendar tab with a real calendar widget (), providing a recommended layout.
-10. **user:** Approves the new calendar widget and outlines a detailed plan for adding professional actions (Mark Complete, Reschedule, etc.), including modal design, DB schema, and API endpoints.
+1.  **user**: Agrees with the agent's plan for membership billing settings, confirming enforcement should default to  and grace days to 7. Asks about existing member fee records.
+2.  **agent**: Proposes to implement the membership billing settings.
+3.  **user**: Responds to the agent's proposal for implementing the membership billing settings.
+4.  **agent**: Proposes to implement the membership billing settings.
+5.  **user**: Provides detailed instructions and confirmation on the scope and mode for implementing TLS event acknowledgement and CPD attendance tracking.
+6.  **agent**: Outlines the detailed execution checklist for implementing personal recurring events, TLS acknowledgements, and attendance tracking, asking for user confirmation on scope.
+7.  **user**: Confirms the agent's plan and provides more detailed design specifications for personal recurring events and TLS event acknowledgement/attendance tracking.
+8.  **agent**: Proposes a design for personal recurring events and TLS event acknowledgement/attendance tracking.
+9.  **user**: Provides positive feedback on the TLS Global Events implementation and confirms the next priority is to implement the Membership Billing Settings.
+10. **agent**: Finishes the TLS Global Events implementation, updates the PRD, and suggests implementing the Membership Billing Settings toggle next.
 
 **Project Health Check:**
--   **Broken:** None
+-   **Broken:**
+    -   Membership status check and enforcement is currently broken due to incorrect MongoDB collection query.
 -   **Mocked:**
-    -   Some analytics in the Practice Management dashboard may still use seed data and require verification.
+    -   Some analytics in the Practice Management dashboard may still use seed data.
     -   KwikPay payment integration remains a placeholder.
 
 **3rd Party Integrations**
@@ -149,9 +156,11 @@ Key production-readiness features have been implemented:
 -   **KwikPay (Mocked):** Placeholder for a payment gateway.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO
+-   **Testing agent used after significant changes:** YES (for the Calendar feature)
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** 
+-   **Test files created:**
+    -   
+    -   
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
@@ -162,5 +171,4 @@ Key production-readiness features have been implemented:
 | Super Admin |  |  |
 
 **What agent forgot to execute**
--   The user requested a broader audit of all Practice Management modules for go-live readiness. The agent has only focused on the Dashboard and Calendar so far. This audit remains a pending upcoming task.
--   The Made with Emergent watermark was identified but not removed, as it's likely a platform-injected element. This should be noted for production deployment.</analysis>
+-   The agent created the backend and admin frontend for the Membership Billing Settings but did not implement the corresponding advocate-facing UI (e.g., warning banners on the dashboard or disabling of stamp buttons). This is a required part of the feature.</analysis>
