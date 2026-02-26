@@ -838,6 +838,113 @@ const DocumentStampPage = () => {
     }
   };
 
+  // Generate preview of stamped PDF (without persisting)
+  const handlePreviewPdf = async () => {
+    if (!file || !fileData || !localRecipientName.trim()) {
+      toast.error("Please complete all required fields before preview");
+      return;
+    }
+
+    setGeneratingPreview(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('stamp_type', selectedType);
+      
+      // Build the same position data as the real stamp
+      const pagesToStamp = getPagesToStamp();
+      const pagePositions = {};
+      const scale = pdfRenderScale;
+      const pageWidthPt = pageDimensions.width / scale;
+      const pageHeightPt = pageDimensions.height / scale;
+      const EDGE_MARGIN_PT = 12;
+      
+      pagesToStamp.forEach(pageNum => {
+        const pos = stampPositions[pageNum] || getStampPosition(pageNum);
+        const rawX_pt = pos.x / scale;
+        const rawY_pt = pos.y / scale;
+        const STAMP_W_PT = stampPdfDimensions.width;
+        const STAMP_H_PT = stampPdfDimensions.height;
+        const maxX_pt = pageWidthPt - STAMP_W_PT - EDGE_MARGIN_PT;
+        const maxY_pt = pageHeightPt - STAMP_H_PT - EDGE_MARGIN_PT;
+        const x_pt = Math.max(EDGE_MARGIN_PT, Math.min(rawX_pt, maxX_pt));
+        const y_pt = Math.max(EDGE_MARGIN_PT, Math.min(rawY_pt, maxY_pt));
+        pagePositions[pageNum] = { x: x_pt, y: y_pt };
+      });
+      
+      const stampPosition = {
+        page: pagesToStamp[0],
+        pages: pagesToStamp,
+        positions: pagePositions,
+        stamp_width_pt: stampPdfDimensions.width,
+        stamp_height_pt: stampPdfDimensions.height,
+        edge_margin_pt: EDGE_MARGIN_PT,
+        page_width_pt: pageWidthPt,
+        page_height_pt: pageHeightPt,
+        scale: scale,
+        stamp_version: "tls_standard_v1"
+      };
+      
+      formData.append('stamp_position', JSON.stringify(stampPosition));
+      formData.append('document_name', documentName || file.name);
+      formData.append('document_type', documentType);
+      formData.append('description', localDescription);
+      formData.append('recipient_name', localRecipientName);
+      formData.append('recipient_org', localRecipientOrg);
+      formData.append('brand_color', brandColor);
+      formData.append('show_advocate_name', showAdvocateName.toString());
+      formData.append('show_tls_logo', 'true');
+      formData.append('layout', stampLayout);
+      formData.append('shape', stampShape);
+      
+      const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
+      const includeSignature = stampTypeConfig?.requiresSignature && signatureMode === 'digital' && savedSignature;
+      const showSignaturePlaceholder = stampTypeConfig?.requiresSignature && !includeSignature;
+      
+      formData.append('include_signature', includeSignature.toString());
+      formData.append('show_signature_placeholder', showSignaturePlaceholder.toString());
+      formData.append('transparent_background', 'true');
+
+      const response = await axios.post(`${API}/documents/stamp-preview-pdf`, formData, {
+        headers: {
+          ...getAuthHeaders().headers
+        },
+        responseType: 'blob'
+      });
+      
+      // Create blob URL for preview
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      // Get headers
+      const stampId = response.headers['x-stamp-id'] || 'TLS-PREVIEW';
+      const docHash = response.headers['x-document-hash'] || '';
+      
+      setPreviewPdfUrl(url);
+      setPreviewStampId(stampId);
+      setPreviewDocHash(docHash);
+      setShowPreviewModal(true);
+      
+    } catch (error) {
+      console.error("Preview generation failed:", error);
+      toast.error(error.response?.data?.detail || "Failed to generate preview");
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
+  // Cleanup preview URL when modal closes
+  const handleClosePreviewModal = () => {
+    setShowPreviewModal(false);
+    if (previewPdfUrl) {
+      URL.revokeObjectURL(previewPdfUrl);
+      setPreviewPdfUrl(null);
+    }
+    setPreviewStampId(null);
+    setPreviewDocHash(null);
+  };
+
   const handleStampDocument = async () => {
     // Comprehensive validation with clear feedback
     const missingFields = [];
