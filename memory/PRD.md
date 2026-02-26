@@ -41,6 +41,25 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
   - `PATCH /api/practice/events/{id}/move` - Drag-drop move
 - **Test Report**: `/app/test_reports/iteration_58.json` - 100% pass rate (13/13 backend, all frontend)
 
+### TLS Global Events (NEW - Feb 26, 2026) ✅
+- **Organization-Wide Events**: AGM, CPD sessions, regulatory deadlines, branch meetings appear on ALL advocate calendars
+- **Event Types**: agm, cpd, deadline, holiday, branch_meeting, tls_announcement
+- **Audience Scoping**: Nationwide (all advocates) or Regional (specific regions like Dar es Salaam, Arusha)
+- **Recurrence Support**: RRULE-based patterns (yearly AGM, weekly CPD, bi-weekly sessions)
+- **Read-Only for Advocates**: TLS events show with purple color/badge, no edit/delete actions
+- **Mandatory Events**: Flag for required attendance (shows "Mandatory" badge)
+- **Admin Management**: Full CRUD at `/admin/tls-events` for TLS admins
+- **Backend Endpoints**:
+  - `POST /api/tls/events` - Create TLS event (admin only)
+  - `GET /api/tls/events` - List TLS events
+  - `PATCH /api/tls/events/{id}` - Update event
+  - `POST /api/tls/events/{id}/cancel` - Cancel with reason
+  - `DELETE /api/tls/events/{id}` - Permanent delete (super_admin only)
+  - `GET /api/practice/calendar?from&to` - Combined calendar with personal + TLS events
+- **MongoDB Collection**: `tls_global_events` with audience, recurrence, status fields
+- **Phase 2 Scaffold**: Acknowledgement system (require_ack field, tls_event_ack collection ready)
+- **Test Report**: `/app/test_reports/iteration_59.json` - 100% pass rate (16/16 backend, all frontend)
+
 ### Notification System (Feb 23, 2026) ✅
 - **In-App Notifications**: Bell icon in header, dropdown with notification list
 - **Email Notifications**: Event reminders via Resend email integration
