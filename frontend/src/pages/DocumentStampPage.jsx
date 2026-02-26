@@ -195,6 +195,13 @@ const DocumentStampPage = () => {
   const [loadingStampPreview, setLoadingStampPreview] = useState(false);
   const [stampPdfDimensions, setStampPdfDimensions] = useState({ width: 240, height: 128 }); // PDF points
 
+  // PDF Preview Modal state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [previewStampId, setPreviewStampId] = useState(null);
+  const [previewDocHash, setPreviewDocHash] = useState(null);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
+
   // Fetch stamp preview from backend when stamp settings change
   const fetchStampPreview = useCallback(async () => {
     if (!user) return;
