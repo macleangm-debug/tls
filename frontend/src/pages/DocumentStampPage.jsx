@@ -354,20 +354,9 @@ const DocumentStampPage = () => {
     });
   }, [pageCanvasUrl, pageDimensions, stampPdfDimensions, pdfRenderScale, previewScale, currentPage]);
 
-  // Set fixed stamp size based on shape (FALLBACK - overridden by PDF dimensions effect above)
-  useEffect(() => {
-    // These sizes should match the aspect ratios of backend-generated stamps
-    // LARGE stamp sizes for professional documents - readable fonts when embedded in PDF
-    // Backend generates at base width 500px * scale 2.0 = 1000px
-    // Frontend preview at 1.5x scale, then converted back to PDF points
-    const fixedSizes = {
-      rectangle: { width: 350, height: 310 },   // Large TLS stamp matching template proportions
-      circle: { width: 200, height: 200 },      // Large circle
-      oval: { width: 280, height: 175 }         // Large oval
-    };
-    const size = fixedSizes[stampShape] || fixedSizes.rectangle;
-    setStampSize(size);
-  }, [stampShape]);
+  // NOTE: Removed the old "fixed stamp size based on shape" useEffect
+  // stampSize is now ONLY calculated from stampPdfDimensions * pdfRenderScale * previewScale
+  // This ensures the stamp overlay matches the actual PDF stamp dimensions
 
   useEffect(() => {
     fetchStamps();
