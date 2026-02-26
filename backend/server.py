@@ -3128,6 +3128,96 @@ async def generate_stamp_preview(
     }
 
 
+# =============== RENDER STAMP IMAGE (WYSIWYG PREVIEW) ===============
+@api_router.post("/stamps/render-image")
+async def render_stamp_image(
+    stamp_type: str = Form("certification"),
+    brand_color: str = Form("#10B981"),
+    advocate_name: str = Form(""),
+    include_signature: str = Form("false"),
+    show_signature_placeholder: str = Form("false"),
+    signature_data: str = Form(None),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Render the exact stamp PNG that will be embedded into PDFs.
+    Used for WYSIWYG preview in the frontend.
+    Returns: image/png with X-Stamp-Width-Pt, X-Stamp-Height-Pt headers
+    """
+    # ========== NORMALIZE SIGNATURE FLAGS BY STAMP TYPE ==========
+    include_sig_bool = include_signature.lower() == "true"
+    show_placeholder_bool = show_signature_placeholder.lower() == "true"
+    
+    # Notarization stamps NEVER have signatures
+    if stamp_type == "notarization":
+        include_sig_bool = False
+        show_placeholder_bool = False
+        signature_data = None
+    
+    # Determine stamp variant
+    needs_signature_area = (stamp_type == "certification") and (include_sig_bool or show_placeholder_bool)
+    
+    # ========== QUARTER-PAGE STAMP SIZES ==========
+    if needs_signature_area:
+        STAMP_W_PT = 180   # Certification stamp width
+        STAMP_H_PT = 120   # Certification stamp height (includes signature area)
+    else:
+        STAMP_W_PT = 170   # Compact stamp width
+        STAMP_H_PT = 90    # Compact stamp height
+    
+    # Use advocate name from user if not provided
+    display_name = advocate_name if advocate_name else user.get("full_name", "Advocate")
+    
+    # Fetch saved signature if using digital signature
+    actual_signature_data = None
+    if include_sig_bool and stamp_type == "certification":
+        if signature_data:
+            actual_signature_data = signature_data
+        else:
+            # Fetch from user profile
+            user_full = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1})
+            if user_full:
+                actual_signature_data = user_full.get("signature_data")
+    
+    # Generate the branded stamp image
+    scale = 2.0  # High-res for quality
+    verification_url = f"{os.environ.get('REACT_APP_BACKEND_URL', '')}/verify?id=TLS-PREVIEW"
+    
+    stamp_img = generate_branded_stamp_image(
+        stamp_id="TLS-PREVIEW",
+        advocate_name=display_name,
+        verification_url=verification_url,
+        brand_color=brand_color,
+        layout="horizontal",
+        shape="rectangle",
+        show_advocate_name=True,
+        show_tls_logo=True,
+        include_signature=include_sig_bool,
+        signature_data=actual_signature_data,
+        show_signature_placeholder=show_placeholder_bool,
+        scale=scale,
+        transparent_background=True
+    )
+    
+    # Convert to PNG bytes
+    img_buffer = BytesIO()
+    stamp_img.save(img_buffer, format='PNG', optimize=True)
+    img_buffer.seek(0)
+    png_bytes = img_buffer.read()
+    
+    return Response(
+        content=png_bytes,
+        media_type="image/png",
+        headers={
+            "X-Stamp-Width-Pt": str(STAMP_W_PT),
+            "X-Stamp-Height-Pt": str(STAMP_H_PT),
+            "X-Stamp-Variant": "certification" if needs_signature_area else "compact",
+            "X-Stamp-Width-Px": str(stamp_img.width),
+            "X-Stamp-Height-Px": str(stamp_img.height),
+            "Cache-Control": "no-store",
+        }
+    )
+
 
 # =============== PREVIEW STAMPED PDF (NO PERSISTENCE) ===============
 @api_router.post("/documents/stamp-preview-pdf")
