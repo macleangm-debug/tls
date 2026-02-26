@@ -64,6 +64,7 @@ const calendarStyles = `
 
 export const CalendarTab = ({ token }) => {
   const [events, setEvents] = useState([]);
+  const [tlsEvents, setTlsEvents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [clients, setClients] = useState([]);
   const [cases, setCases] = useState([]);
