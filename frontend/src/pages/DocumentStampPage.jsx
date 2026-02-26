@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { storeDocument, queueStampOperation, cacheStamp } from "../lib/offlineDB";
 import { isOnline, syncAll } from "../lib/offlineSync";
+import { MembershipInlineWarning, useMembershipStatus } from "../components/MembershipStatusBanner";
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
