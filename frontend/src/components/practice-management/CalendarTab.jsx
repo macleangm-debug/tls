@@ -1152,6 +1152,62 @@ export const CalendarTab = ({ token }) => {
                     ))}
                   </div>
                 )}
+
+                {/* Acknowledgement Status */}
+                {viewTlsEvent.require_ack && (
+                  <div className={`p-3 rounded-lg border ${tlsAckStatus?.acknowledged ? 'bg-green-500/10 border-green-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+                    {tlsAckStatus?.acknowledged ? (
+                      <p className="text-sm text-green-400 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Acknowledged on {new Date(tlsAckStatus.acknowledged_at).toLocaleDateString()}
+                      </p>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-amber-400">Acknowledgement required</p>
+                        <Button 
+                          size="sm" 
+                          onClick={handleAcknowledgeTlsEvent}
+                          className="bg-amber-600 hover:bg-amber-700"
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Acknowledge
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Attendance Status */}
+                {viewTlsEvent.data?.attendance?.enabled && (
+                  <div className={`p-3 rounded-lg border ${tlsAttendanceStatus?.registered ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/10'}`}>
+                    {tlsAttendanceStatus?.registered ? (
+                      <div>
+                        <p className="text-sm text-blue-400 flex items-center gap-2">
+                          <UserCheck className="w-4 h-4" />
+                          {tlsAttendanceStatus.status === 'attended' ? 'Attendance recorded' : `Registered (${tlsAttendanceStatus.status})`}
+                        </p>
+                        {viewTlsEvent.data?.attendance?.cpd_points && (
+                          <p className="text-xs text-white/50 mt-1">{viewTlsEvent.data.attendance.cpd_points} CPD points</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-white/70">Register for this event</p>
+                          {viewTlsEvent.data?.attendance?.cpd_points && (
+                            <p className="text-xs text-white/50">{viewTlsEvent.data.attendance.cpd_points} CPD points available</p>
+                          )}
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={handleRegisterForTlsEvent}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <UserPlus className="w-4 h-4 mr-1" /> Register
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 <div className="p-3 bg-white/5 rounded-lg border border-white/10">
                   <p className="text-xs text-white/40 flex items-center gap-2">
@@ -1162,7 +1218,7 @@ export const CalendarTab = ({ token }) => {
               </div>
               
               <DialogFooter>
-                <Button variant="outline" onClick={() => setViewTlsEvent(null)} className="border-white/20 text-white hover:bg-white/10">
+                <Button variant="outline" onClick={() => { setViewTlsEvent(null); setTlsAckStatus(null); setTlsAttendanceStatus(null); }} className="border-white/20 text-white hover:bg-white/10">
                   Close
                 </Button>
               </DialogFooter>
