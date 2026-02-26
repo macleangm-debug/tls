@@ -18,6 +18,7 @@ import logging
 from .stamp_image_service import StampImageService
 from .pdf_overlay_service import PDFOverlayService
 from .crypto_signing_service import crypto_service
+from .pdf_validation_service import PDFValidationService, PDFErrorCode, pdf_validator
 
 logger = logging.getLogger(__name__)
 
