@@ -272,18 +272,20 @@ const DocumentStampPage = () => {
       }
       
       // ========== SAFE BLOB URL MANAGEMENT ==========
-      // Revoke previous blob URL BEFORE creating new one
-      if (stampBlobUrlRef.current) {
-        URL.revokeObjectURL(stampBlobUrlRef.current);
-        stampBlobUrlRef.current = null;
-      }
-      
-      // Create new blob URL and store in ref
+      // Create new blob URL first, then revoke old one AFTER state update
       const imgUrl = URL.createObjectURL(response.data);
-      stampBlobUrlRef.current = imgUrl;
       
-      // Update state (this is safe, blob URL is stored in ref)
-      setStampPreviewImage(imgUrl);
+      // Update state and revoke old URL safely (after React has swapped)
+      setStampPreviewImage(prevUrl => {
+        // Revoke previous blob URL in next tick (after img has swapped)
+        if (prevUrl?.startsWith("blob:")) {
+          setTimeout(() => URL.revokeObjectURL(prevUrl), 0);
+        }
+        return imgUrl;
+      });
+      
+      // Keep ref updated for unmount cleanup
+      stampBlobUrlRef.current = imgUrl;
       
     } catch (error) {
       // Only handle error if this is still the current request
