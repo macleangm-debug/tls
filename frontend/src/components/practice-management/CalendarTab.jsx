@@ -496,7 +496,7 @@ export const CalendarTab = ({ token }) => {
                     <div 
                       key={event.id} 
                       className="flex items-center gap-2 p-2 bg-red-500/10 rounded-lg cursor-pointer hover:bg-red-500/20"
-                      onClick={() => setViewEvent(event)}
+                      onClick={() => setViewEvent({ ...event, status: event.status || 'scheduled' })}
                     >
                       <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
