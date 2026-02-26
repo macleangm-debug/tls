@@ -1984,7 +1984,7 @@ const DocumentStampPage = () => {
                                 >
                                   {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
                                   <div 
-                                    className="cursor-move stamp-drag-handle"
+                                    className="cursor-move stamp-drag-handle relative"
                                     style={{ 
                                       width: stampW,
                                       height: stampH,
@@ -1993,21 +1993,32 @@ const DocumentStampPage = () => {
                                     }}
                                     data-testid="stamp-preview"
                                   >
-                                    {loadingStampPreview ? (
+                                    {/* Always show stamp image if available (don't blank on loading) */}
+                                    {stampPreviewImage ? (
+                                      <>
+                                        <img 
+                                          src={stampPreviewImage} 
+                                          alt="TLS Verified Stamp Preview"
+                                          className="w-full h-full object-contain"
+                                          style={{ imageRendering: 'crisp-edges' }}
+                                          draggable={false}
+                                        />
+                                        {/* Tiny "Updating..." indicator in corner when loading */}
+                                        {loadingStampPreview && (
+                                          <div className="absolute top-1 right-1 bg-black/60 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-1">
+                                            <Loader2 className="w-2 h-2 animate-spin" />
+                                            <span>Updating</span>
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : loadingStampPreview ? (
+                                      /* Only show full loader if no image exists yet */
                                       <div 
                                         className="w-full h-full flex items-center justify-center rounded-lg"
                                         style={{ backgroundColor: `${brandColor}20`, border: `2px dashed ${brandColor}` }}
                                       >
                                         <Loader2 className="w-6 h-6 animate-spin" style={{ color: brandColor }} />
                                       </div>
-                                    ) : stampPreviewImage ? (
-                                      <img 
-                                        src={stampPreviewImage} 
-                                        alt="TLS Verified Stamp Preview"
-                                        className="w-full h-full object-contain"
-                                        style={{ imageRendering: 'crisp-edges' }}
-                                        draggable={false}
-                                      />
                                     ) : (
                                       /* Fallback if preview fails to load */
                                       <div 
