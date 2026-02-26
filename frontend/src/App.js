@@ -151,6 +151,7 @@ function App() {
           {/* Super Admin Routes (IDC) */}
           <Route path="/super-admin" element={<ProtectedRoute superAdminOnly><SuperAdminDashboard /></ProtectedRoute>} />
           <Route path="/super-admin/orders" element={<ProtectedRoute superAdminOnly><IDCOrdersPage /></ProtectedRoute>} />
+          <Route path="/super-admin/membership" element={<ProtectedRoute superAdminOnly><MembershipSettingsPage /></ProtectedRoute>} />
           <Route path="/idc/orders" element={<ProtectedRoute superAdminOnly><IDCOrdersPage /></ProtectedRoute>} />
         </Routes>
         <Toaster position="top-right" richColors />
