@@ -166,8 +166,42 @@ export const CalendarTab = ({ token }) => {
         extendedProps: { type: 'task', data: t }
       }));
     
-    return [...eventItems, ...taskItems];
-  }, [events, tasks]);
+    // Add TLS global events (read-only, special styling)
+    const tlsItems = tlsEvents.map(e => ({
+      id: e.id,
+      title: e.title,
+      start: e.start,
+      end: e.end,
+      allDay: e.allDay || false,
+      backgroundColor: getTLSEventColor(e.extendedProps?.event_type, e.extendedProps?.is_mandatory),
+      borderColor: getTLSEventColor(e.extendedProps?.event_type, e.extendedProps?.is_mandatory),
+      classNames: ['fc-tls-event'],
+      editable: false, // TLS events are read-only
+      extendedProps: { 
+        type: 'tls_event',
+        source: 'tls',
+        readonly: true,
+        ...e.extendedProps,
+        data: e.extendedProps?.data || e
+      }
+    }));
+    
+    return [...eventItems, ...taskItems, ...tlsItems];
+  }, [events, tasks, tlsEvents]);
+  
+  function getTLSEventColor(eventType, isMandatory) {
+    // TLS events get distinctive purple/indigo colors
+    if (isMandatory) return "#7c3aed"; // Purple for mandatory
+    const colors = {
+      agm: "#7c3aed",           // Purple
+      cpd: "#6366f1",           // Indigo
+      deadline: "#dc2626",       // Red
+      holiday: "#059669",        // Emerald
+      branch_meeting: "#0891b2", // Cyan
+      tls_announcement: "#8b5cf6" // Violet
+    };
+    return colors[eventType] || "#8b5cf6";
+  }
 
   function getEventColor(type, status, priority) {
     if (status === 'completed') return "#6b7280";
