@@ -894,12 +894,17 @@ def create_practice_routes(db, get_current_user):
             rr = rrulestr(rule_str, dtstart=dtstart)
             
             until_date = parse_date(recurrence["until"]) if recurrence.get("until") else None
+            if until_date and until_date.tzinfo is None:
+                until_date = until_date.replace(tzinfo=timezone.utc)
             count = recurrence.get("count") or 100
             
             occurrences = []
             occurrence_count = 0
             
             for dt in rr:
+                # Make dt timezone-aware if needed
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
                 if until_date and dt > until_date:
                     break
                 if occurrence_count >= count:
