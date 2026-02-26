@@ -617,8 +617,59 @@ const AdvocateDashboard = () => {
         </Link>
       </div>
 
-      {/* ========== SECTION 2: Key Stats ========== */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      {/* ========== SECTION 2: Quick Actions Row ========== */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <Link to="/documents">
+          <Card className="glass-card rounded-xl border-emerald-500/20 hover:border-emerald-500/40 transition-all cursor-pointer group h-full">
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <FileText className="w-5 h-5 text-emerald-400" />
+              </div>
+              <p className="text-sm font-medium text-white">Stamp Document</p>
+              <p className="text-[10px] text-white/40">Single PDF</p>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/batch-stamp">
+          <Card className="glass-card rounded-xl border-purple-500/20 hover:border-purple-500/40 transition-all cursor-pointer group h-full">
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Layers className="w-5 h-5 text-purple-400" />
+              </div>
+              <p className="text-sm font-medium text-white">Batch Stamp</p>
+              <p className="text-[10px] text-white/40">Up to 25 files</p>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/verify">
+          <Card className="glass-card rounded-xl border-blue-500/20 hover:border-blue-500/40 transition-all cursor-pointer group h-full">
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Scan className="w-5 h-5 text-blue-400" />
+              </div>
+              <p className="text-sm font-medium text-white">Verify Stamp</p>
+              <p className="text-[10px] text-white/40">Check validity</p>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/stamp-ledger">
+          <Card className="glass-card rounded-xl border-amber-500/20 hover:border-amber-500/40 transition-all cursor-pointer group h-full">
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-5 h-5 text-amber-400" />
+              </div>
+              <p className="text-sm font-medium text-white">Stamp Ledger</p>
+              <p className="text-[10px] text-white/40">Manage stamps</p>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
+      {/* ========== SECTION 3: Key Stats ========== */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card className="glass-card rounded-xl border-white/10">
           <CardContent className="p-4 text-center">
             <QrCode className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
@@ -645,14 +696,14 @@ const AdvocateDashboard = () => {
         
         <Card className="glass-card rounded-xl border-white/10">
           <CardContent className="p-4 text-center">
-            <CreditCard className="w-6 h-6 text-tls-gold mx-auto mb-2" />
+            <DollarSign className="w-6 h-6 text-tls-gold mx-auto mb-2" />
             <p className="text-xl font-bold text-emerald-400">{((stats?.savings?.total_savings || 150000) / 1000).toFixed(0)}K</p>
             <p className="text-[10px] text-white/50">TZS Saved</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* ========== SECTION 3: Two Column - Progress & Activity ========== */}
+      {/* ========== SECTION 4: Two Column - Recent Activity ========== */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         {/* Left Column: Progress & Achievements */}
         <div className="space-y-4">
