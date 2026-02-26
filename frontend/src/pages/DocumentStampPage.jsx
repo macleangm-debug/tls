@@ -1107,12 +1107,22 @@ const DocumentStampPage = () => {
       
       // For Certification stamps, include signature based on signatureMode
       // For Notarization stamps, NEVER include signature (backend also enforces this)
-      const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
       const isNotarization = selectedType === "notarization";
-      const includeSignature = !isNotarization && stampTypeConfig?.requiresSignature && signatureMode === 'digital' && savedSignature;
-      // Show placeholder when: stamp requires signature AND (user chose placeholder mode OR no digital signature to include)
-      // But NOT for notarization stamps
-      const showSignaturePlaceholder = !isNotarization && stampTypeConfig?.requiresSignature && !includeSignature;
+      
+      // ========== STRICT SIGNATURE RULES ==========
+      // Digital signature: certification + digital mode + has saved signature
+      const includeSignature = 
+        !isNotarization &&
+        selectedType === "certification" &&
+        signatureMode === "digital" &&
+        !!savedSignature;
+      
+      // Placeholder: certification + print mode (sign after printing)
+      // NOT based on "!includeSignature" to avoid phantom placeholders
+      const showSignaturePlaceholder = 
+        !isNotarization &&
+        selectedType === "certification" &&
+        signatureMode === "print";
       
       // DEBUG: Log signature settings
       console.log(`DEBUG SIGNATURE: selectedType=${selectedType}, signatureMode=${signatureMode}`);
