@@ -49,16 +49,26 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 - **Read-Only for Advocates**: TLS events show with purple color/badge, no edit/delete actions
 - **Mandatory Events**: Flag for required attendance (shows "Mandatory" badge)
 - **Admin Management**: Full CRUD at `/admin/tls-events` for TLS admins
+- **Acknowledgement System**: AGM and notices can require acknowledgement
+- **Attendance Tracking**: CPD/AGM events support admin marking for attendance
 - **Backend Endpoints**:
   - `POST /api/tls/events` - Create TLS event (admin only)
   - `GET /api/tls/events` - List TLS events
   - `PATCH /api/tls/events/{id}` - Update event
   - `POST /api/tls/events/{id}/cancel` - Cancel with reason
   - `DELETE /api/tls/events/{id}` - Permanent delete (super_admin only)
+  - `POST /api/tls/events/{id}/ack` - Acknowledge event (advocate)
+  - `GET /api/tls/events/{id}/ack-status` - Get acknowledgement status
+  - `POST /api/tls/events/{id}/register` - Register for event (advocate)
+  - `GET /api/tls/events/{id}/my-attendance` - Get attendance status
+  - `POST /api/tls/events/{id}/attendance/mark` - Mark attendance (admin)
+  - `GET /api/tls/events/{id}/attendance/export` - Export CSV (admin)
   - `GET /api/practice/calendar?from&to` - Combined calendar with personal + TLS events
-- **MongoDB Collection**: `tls_global_events` with audience, recurrence, status fields
-- **Phase 2 Scaffold**: Acknowledgement system (require_ack field, tls_event_ack collection ready)
-- **Test Report**: `/app/test_reports/iteration_59.json` - 100% pass rate (16/16 backend, all frontend)
+- **MongoDB Collections**:
+  - `tls_global_events` - Main events collection
+  - `tls_event_ack` - Acknowledgement records
+  - `tls_event_attendance` - Attendance records
+- **Test Reports**: `/app/test_reports/iteration_59.json`
 
 ### Notification System (Feb 23, 2026) ✅
 - **In-App Notifications**: Bell icon in header, dropdown with notification list
