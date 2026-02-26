@@ -785,11 +785,12 @@ const DocumentStampPage = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
+      // DO NOT manually set Content-Type for multipart/form-data
+      // Let the browser set it automatically with the correct boundary
       const response = await axios.post(`${API}/documents/upload`, formData, {
-        ...getAuthHeaders(),
         headers: {
-          ...getAuthHeaders().headers,
-          'Content-Type': 'multipart/form-data'
+          ...getAuthHeaders().headers
+          // Content-Type is auto-set by browser for FormData
         }
       });
 
