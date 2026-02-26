@@ -45,6 +45,23 @@ A comprehensive Practice Management Suite for advocates built with React, FastAP
 
 ## Recent Changes
 
+### Feb 26, 2026 - Landing Page Digital Certification Section - COMPLETE ✅
+**Marketing-ready showcase of platform capabilities:**
+- **Location**: LandingPage.jsx, positioned after Hero and Stats sections
+- **Features Highlighted**:
+  1. Cryptographic Signing (ECDSA P-256 + SHA-256)
+  2. Tamper Detection (SHA-256 document fingerprinting)
+  3. Batch Stamping (up to 25 documents)
+  4. Compliance Ledger (regulatory-grade audit trail)
+  5. Instant QR Verification
+  6. Regulatory Controls (bulk revoke for suspended advocates)
+- **Design**:
+  - Mobile-first responsive grid (1→2→3 columns)
+  - Compliance-friendly copy (no blockchain buzzwords)
+  - Trust indicators: "Cryptographically Signed", "SHA-256 Hash Binding", "Public Key Verification", "Non-Forgeable"
+  - CTAs: "Verify a Stamp" (primary), "Explore the Platform" (secondary)
+- **No backend changes required**
+
 ### Feb 25, 2026 - Cryptographic Signing Layer - COMPLETE ✅
 **ECDSA P-256 + SHA-256 digital signatures for non-forgeable stamps:**
 - **Key Management**: Private/public keys stored in .env as base64
