@@ -1,0 +1,88 @@
+{
+  "summary": "Stamp dimensions testing completed. Backend: 8/8 tests passed. Frontend: All UI features verified. Certification stamps return 200x150pt (taller for signature), Notarization stamps return 240x128pt (compact). Dynamic stamp dimensions from backend working correctly. Page selection UI (First/Last/All/Custom) verified in code - appears when multi-page document uploaded.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_stamp_dimensions_v2.py",
+    "/app/test_reports/pytest/stamp_dimensions_v2_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend stamp-preview endpoint correctly returns pdf_width_pt and pdf_height_pt based on signature requirements",
+    "Certification stamps (include_signature=true OR show_signature_placeholder=true) return 200x150pt",
+    "Notarization/compact stamps (no signature) return 240x128pt", 
+    "Frontend fetchStampPreview() updates stampPdfDimensions state from backend response",
+    "Frontend uses stampPdfDimensions for Rnd component constraints and stamp positioning",
+    "Page selection UI (First/Last/All/Custom) implemented in DocumentStampPage.jsx lines 1760-1850",
+    "Document upload works correctly - Content-Type header handled automatically by browser for FormData",
+    "Color picker with 6 color options working correctly",
+    "Stamp type toggle (Certification vs Notarization) dynamically updates signature options visibility"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_stamp_dimensions_v2.py - Created comprehensive stamp dimensions test suite"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all stamp UI flows verified)"
+  },
+  "test_credentials": {
+    "test_advocate": {
+      "email": "test@tls.or.tz",
+      "password": "Test@12345678!"
+    }
+  },
+  "seed_data_creation": "None - used existing test advocate account",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Stamp dimensions feature (Option B - taller certification stamp) verified. Key endpoints: POST /api/documents/stamp-preview returns pdf_width_pt/pdf_height_pt. Certification stamps (200x150pt) include signature section, Notarization/compact stamps (240x128pt) are smaller. Frontend DocumentStampPage.jsx at lines 196-248 handles dynamic stamp dimensions from backend. Page selection UI at lines 1760-1850 shows First/Last/All/Custom options when multi-page document uploaded.",
+  "features_verified": {
+    "Backend API Tests (Stamp Dimensions)": {
+      "Certification with include_signature=true": "PASS - Returns 200x150pt",
+      "Certification with show_signature_placeholder=true": "PASS - Returns 200x150pt",
+      "Notarization (no signature)": "PASS - Returns 240x128pt (compact)",
+      "Preview image format": "PASS - Returns base64 PNG data URL",
+      "Dimensions toggle on signature mode change": "PASS - Dimensions change correctly",
+      "Brand colors support": "PASS - All 5 colors tested"
+    },
+    "Backend API Tests (Document Upload)": {
+      "PDF upload": "PASS - Endpoint accessible",
+      "Image upload": "PASS - Endpoint accessible"
+    },
+    "Frontend UI Tests (Stamp Document Page)": {
+      "Page loads": "PASS - /stamp-document accessible",
+      "Stamp preview displayed": "PASS - Backend-generated base64 PNG shown",
+      "Color picker": "PASS - 6 colors available with custom option",
+      "Progress steps": "PASS - Document/Position/Details/Generate shown",
+      "Certification stamp type": "PASS - Shows signature options",
+      "Notarization stamp type": "PASS - Hides signature options",
+      "Stamp type toggle": "PASS - Preview updates on type change",
+      "Page selection UI in code": "PASS - First/Last/All/Custom options at lines 1760-1850"
+    }
+  },
+  "mocked_api": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+  "bugs_found": [],
+  "stamp_dimensions_summary": {
+    "certification_stamp": {
+      "description": "Taller variant with signature section",
+      "pdf_width_pt": 200,
+      "pdf_height_pt": 150,
+      "triggers": ["include_signature=true", "show_signature_placeholder=true"]
+    },
+    "compact_stamp": {
+      "description": "Standard variant without signature",
+      "pdf_width_pt": 240,
+      "pdf_height_pt": 128,
+      "triggers": ["include_signature=false AND show_signature_placeholder=false"]
+    }
+  }
+}
