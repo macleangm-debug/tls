@@ -82,8 +82,54 @@ export default function TLSEventsAdmin() {
       audience_regions: "",
       recurrence_enabled: false,
       recurrence_rule: "",
-      recurrence_count: 12
+      recurrence_count: 12,
+      attendance_enabled: false,
+      attendance_mode: "admin",
+      cpd_points: ""
     });
+  };
+
+  const fetchEventDetails = async (event) => {
+    setViewEvent(event);
+    setLoadingDetails(true);
+    try {
+      const [ackRes, attRes] = await Promise.all([
+        event.require_ack 
+          ? axios.get(`${API}/api/tls/events/${event.id}/acknowledgements`, getAuthHeaders())
+          : Promise.resolve({ data: { acknowledgements: [], total: 0 } }),
+        event.attendance?.enabled
+          ? axios.get(`${API}/api/tls/events/${event.id}/attendance`, getAuthHeaders())
+          : Promise.resolve({ data: { records: [], counts: {} } })
+      ]);
+      setAcknowledgements(ackRes.data.acknowledgements || []);
+      setAttendance(attRes.data || { records: [], counts: {} });
+    } catch (error) {
+      console.error("Failed to fetch event details:", error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleExportAttendance = async (eventId) => {
+    try {
+      const response = await axios.get(
+        `${API}/api/tls/events/${eventId}/attendance/export`,
+        {
+          ...getAuthHeaders(),
+          responseType: 'blob'
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance_${eventId.slice(0,8)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Attendance exported successfully");
+    } catch (error) {
+      toast.error("Failed to export attendance");
+    }
   };
 
   const handleSubmit = async () => {
