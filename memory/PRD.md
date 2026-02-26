@@ -87,6 +87,23 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ## Recent Changes
 
+### Feb 26, 2026 - TLS Acknowledgement & Attendance - COMPLETE ✅
+**Compliance features for TLS events:**
+- **Acknowledgement System**:
+  - AGM and TLS notices can require acknowledgement (`require_ack` field)
+  - Advocates see "Acknowledge" button in event modal
+  - Admin can view all acknowledgements with timestamps
+- **Attendance Tracking**:
+  - CPD/AGM events support attendance (`attendance.enabled` field)
+  - Admin marking mode (safest for go-live)
+  - Attendance counts: registered, attended, absent, excused
+  - CSV export for attendance records
+  - CPD points tracking per event
+- **Auto-enable Features**:
+  - AGM/notices auto-enable `require_ack`
+  - CPD/AGM auto-enable attendance tracking
+- **Test Results**: Backend and frontend verified
+
 ### Feb 26, 2026 - TLS Global Events (Phase 1) - COMPLETE ✅
 **Organization-wide events appearing on all advocate calendars:**
 - **Backend (`/app/backend/routes/tls_events.py`)**:
