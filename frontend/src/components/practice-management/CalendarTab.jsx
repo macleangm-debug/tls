@@ -310,7 +310,12 @@ export const CalendarTab = ({ token }) => {
   const handleEventClick = (info) => {
     const { type, data } = info.event.extendedProps;
     if (type === 'event') {
-      setViewEvent(data);
+      // Normalize status - default to 'scheduled' if missing
+      const normalizedData = {
+        ...data,
+        status: data.status || 'scheduled'
+      };
+      setViewEvent(normalizedData);
     } else if (type === 'task') {
       toast.info(`Task: ${data.title}`, { description: `Due: ${new Date(data.due_date).toLocaleDateString()}` });
     }
