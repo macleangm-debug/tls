@@ -572,6 +572,9 @@ const AdvocateDashboard = () => {
         user={user}
       />
 
+      {/* ========== MEMBERSHIP STATUS BANNER ========== */}
+      <MembershipStatusBanner />
+
       {/* ========== SECTION 1: Welcome & Primary CTA ========== */}
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         {/* Welcome Card */}
