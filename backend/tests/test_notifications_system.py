@@ -8,7 +8,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://billing-dashboard-45.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tls-stamping-suite.preview.emergentagent.com')
 
 # Global session data - login once
 _session_data = {}

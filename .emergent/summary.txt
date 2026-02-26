@@ -1,50 +1,55 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to build a Practice Management Suite for advocates. The project has since evolved into a sophisticated, secure digital stamping platform. The most recent requests focus on adding high-value features for the Tanganyika Law Society (TLS) and its governing body (IDC) to manage members and drive digital adoption. This includes implementing TLS-wide calendar events, tracking member compliance (acknowledgements, attendance), and creating a centralized membership billing and enforcement system.
+The user's initial request was to build a Practice Management Suite for advocates. The project has since evolved into a sophisticated, secure digital stamping platform. The most recent requests focus on adding high-value features for the Tanganyika Law Society (TLS) and its governing body (IDC) to manage members and drive digital adoption. This includes implementing TLS-wide calendar events, tracking member compliance (acknowledgements, attendance), creating a centralized membership billing and enforcement system, and perfecting the core document stamping user experience.
 
 PRODUCT REQUIREMENTS have been defined through a series of strategic conversations:
-1.  **TLS Global Events:** A system for TLS admins to publish events (like AGMs, CPD sessions, and notices) that automatically appear on all relevant advocate calendars as read-only.
-2.  **Compliance Tracking:** Mechanisms for advocates to Acknowledge mandatory notices and for admins to track attendance at events like CPD sessions.
+1.  **TLS Global Events:** A system for TLS admins to publish events that automatically appear on all relevant advocate calendars as read-only.
+2.  **Compliance Tracking:** Mechanisms for advocates to Acknowledge mandatory notices and for admins to track attendance at events.
 3.  **Membership Billing Controls:** A centralized settings panel for the Super Admin (IDC) to define and enforce membership fee policies (e.g., subscription vs. fixed price, and enforcement actions like blocking stamping for unpaid members).
 4.  **Personal Recurring Events:** Allowing advocates to create recurring events in their own calendars.
+5.  **Rock-Solid Stamping UX:** The document stamping flow, being the core selling point, must be trustworthy, effortless, and predictable. This includes robust error handling, a WYSIWYG preview, and a polished user interface.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A comprehensive full-stack digital certification and practice management platform (React, FastAPI, MongoDB). Key features include a secure stamping engine, an interactive professional calendar, and robust admin tooling.
+A comprehensive full-stack digital certification and practice management platform built with React, FastAPI, and MongoDB. The application features a secure stamping engine, an interactive professional calendar, admin tooling, and a newly implemented membership billing system.
 
-In this session, the following were added:
--   **TLS Global Events:** A complete backend and frontend system for creating and displaying TLS-wide events on advocate calendars. It supports recurrence (e.g., yearly AGMs) and audience scoping (nationwide vs. regional).
--   **Compliance Features (V1):** Backend APIs and frontend UI for advocates to acknowledge mandatory TLS events and register for CPD sessions. An admin panel was also created to view event acknowledgements and track attendance.
--   **Membership Billing Backend:** The initial backend for the Membership Billing Settings has been created, including a new MongoDB collection (), admin APIs to control the policy, an advocate-facing status API, and enforcement hooks in the stamping endpoints.
+In this session, the agent successfully completed the Membership Billing Settings feature by implementing the advocate-facing UI (grace period/expiry banners) and the logic to disable stamping controls.
+
+Subsequently, the agent undertook a major refactoring and debugging of the Document Stamping page to improve its UX and fix several critical bugs. This included:
+-   Implementing a WYSIWYG preview by creating a dedicated backend endpoint () that generates the exact stamp PNG.
+-   Creating two distinct stamp variants (a larger Certification stamp with a signature area and a Compact stamp without) to handle different use cases.
+-   Adding a Preview Stamped PDF feature with a watermarked output.
+-   Fixing backend normalization logic to ensure stamp types (e.g., Notarization) cannot have signatures.
+-   Resolving a major UI bug where the stamp preview would disappear due to incorrect CSS  usage.
 
 **Last working item**:
--   **Last item agent was working:** The agent was implementing the Membership Billing Settings feature. It created the backend APIs and a frontend admin page. However, during testing, it discovered that the backend logic was querying the wrong MongoDB collection () instead of the correct one () to fetch user data, causing API calls to fail. The agent identified the issue and had begun applying fixes to  but did not complete or verify them.
+-   **Last item agent was working:** The agent was debugging a persistent and complex bug where the stamp preview on the  would disappear or become unstable after the user toggled between stamp types (Certification/Notarization) or signature modes (Digital/Print). While several underlying causes were fixed (CSS scaling, incorrect state updates), the core issue of state management during rapid UI changes remains.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** both. The backend needs  testing to verify the collection fix and enforcement logic. The frontend admin page needs a  to confirm it renders correctly. The advocate-facing UI (banners, disabled buttons) will need frontend testing once implemented.
+-   **Agent Testing Done:** Y
+-   **Which testing method agent to use?** both. The frontend's complex state logic requires the  to run through all permutations of stamp type and signature mode toggles. The backend  endpoint should be re-verified with  after the final backend tweaks are made.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Fix and Complete Membership Billing Settings Feature (P0)**
-    -   **Description:** The backend membership service in  incorrectly queries the  collection instead of the  collection, causing status checks and enforcement logic to fail. The advocate-facing UI for displaying warnings and blocking actions has not been implemented yet.
-    -   **Attempted fixes:** The agent identified the incorrect collection name and started to patch the file .
+-   **Issue 1: Finalize and Stabilize the Document Stamping UX (P0)**
+    -   **Description:** The stamp preview () becomes unstable or disappears after a user toggles options. The root causes are race conditions from multiple  calls firing in quick succession, improper handling of blob URLs, and state not being normalized correctly on certain UI interactions. The user has provided a detailed final implementation plan to fix this.
+    -   **Attempted fixes:** The agent correctly identified and fixed a re-render loop by removing  from the  dependency array. It also fixed a separate bug where a fallback  was overwriting the stamp size. However, these fixes did not address the race conditions or blob URL lifecycle issues.
     -   **Next debug checklist:**
-        1.  Complete the edits in  to ensure all database queries for advocate data point to the  collection.
-        2.  Restart the backend service.
-        3.  Test the  endpoint with an advocate's token to confirm it returns a correct status.
-        4.  Test the enforcement by setting the policy to  and attempting to use the  endpoint with an unpaid advocate's token.
-        5.  Verify the frontend admin page at  renders and functions correctly.
-        6.  Implement the advocate-facing UI: display a warning banner on the dashboard if membership is expired, and disable stamping controls if enforcement is active.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical go-live feature that provides IDC with the necessary tools to manage revenue and enforce membership policies.
+        1.  In , implement a request sequence guard using  to ignore stale responses from the  endpoint.
+        2.  Refactor blob URL handling to use a  () to prevent premature revocation and memory leaks.
+        3.  Ensure the UI state for  is forced to  when the  is , and hide the signature UI controls.
+        4.  In the  function on the backend (), reduce the stamp's point (pt) sizes and replace the advocate's phone number with their name for a more professional and compact design.
+        5.  Ensure the Use Digital Signature option is disabled with a toast message if the user has not yet uploaded a signature.
+        6.  Confirm the logic for  and  is a strict truth table based on  and , removing any ambiguity.
+    -   **Why fix this issue and what will be achieved with the fix?** This is the core selling point of the application. Fixing it will create a reliable, trustworthy, and predictable user experience, which is critical for go-live.
     -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
+    -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Complete Membership Billing Feature**
-    -   **Where to resume:** Resume editing  to fix the MongoDB collection name. Then, test the backend thoroughly, verify the admin frontend, and implement the advocate-facing frontend UI (banners and disabled actions).
-    -   **What will be achieved with this?** A fully functional membership billing control panel for IDC admins and an automated enforcement system for advocates.
+-   **Task 1: Stabilize and Polish Document Stamping UX**
+    -   **Where to resume:** . Start by implementing the  and  pattern in the  function as detailed by the user.
+    -   **What will be achieved with this?** A rock-solid, bug-free stamping interface that provides a WYSIWYG preview under all conditions.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None
@@ -63,16 +68,17 @@ In this session, the following were added:
     -   **(P2) KwikPay Integration:** Replace the mocked payment gateway.
 
 **Completed work in this session**
--   **Professional Calendar Feature Fixes:**
-    -   Resolved a bug caused by a duplicate  component definition.
-    -   Fixed an issue where events without a  property were not handled correctly.
-    -   Successfully used the testing agent to validate all calendar functionality and fix a bug related to sidebar event clicks.
--   **TLS Global Events (Phase 1):**
-    -   **Backend:** Implemented a new  collection and a dedicated  module for admin management. The main calendar feed () now merges personal and global events.
-    -   **Frontend:** The advocate calendar now renders read-only TLS events with distinct styling. A new admin page () was created for managing these events.
--   **TLS Compliance Features (Acknowledgement & Attendance):**
-    -   **Backend:** Created  and  collections and APIs for advocates to acknowledge/register and for admins to track status.
-    -   **Frontend:** The admin event view now includes tabs for monitoring acknowledgements and attendance. The advocate event modal now includes buttons to Acknowledge or Register for events.
+-   **Membership Billing Settings Feature (COMPLETE)**
+    -   Implemented the advocate-facing UI, including a  to show grace period/expired warnings.
+    -   Integrated enforcement logic into the frontend to disable stamping buttons and show warnings based on an advocate's membership status.
+    -   Verified the entire feature end-to-end via  tests and screenshots.
+-   **Document Stamping UX Refactor (IN PROGRESS)**
+    -   **WYSIWYG Preview:** Created a  endpoint to generate a PNG of the stamp, ensuring the draggable preview matches the final output.
+    -   **Stamp Variants:** Implemented logic for two stamp sizes: a taller Certification variant (180x120pt) that includes a signature area, and a Compact variant (170x90pt).
+    -   **Preview PDF:** Added a  endpoint to generate a watermarked preview PDF without creating a billable stamp record.
+    -   **Bug Fixes:** Resolved several critical bugs, including a CSS  issue that made the stamp disappear, a re-render loop caused by incorrect  dependencies, and an incorrect  that was overwriting the stamp size.
+    -   **Backend Normalization:** Added logic to backend endpoints to enforce rules, such as preventing Notarization stamps from having signatures.
+    -   **CORS Fix:** Added  to the backend CORS middleware to allow the frontend to read custom headers from the  API response.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
@@ -84,67 +90,58 @@ In this session, the following were added:
 
 
 **Key Technical Concepts**
--   **Global Event Overlay:** Merging a central, read-only dataset (TLS events) with a user's personal data (advocate events) in a single API response to display a unified view without data duplication.
--   **Centralized Policy Management:** Using a single document in MongoDB () as the source of truth for application-wide business rules, allowing admins to change behavior without code deployments.
--   **Middleware/Hook-based Enforcement:** Injecting a dependency () into critical API endpoints () to enforce business rules like payment status before executing the core logic.
--   **Role-Based Access Control (RBAC):** Protecting new admin features by adding role checks (, ) to the API endpoints.
+-   **WYSIWYG Preview via Backend Rendering:** Using a dedicated API endpoint () to generate a PNG of the stamp. This makes the frontend preview a single source of truth that is identical to the final embedded stamp, eliminating a whole class of UI/backend mismatch bugs.
+-   **State Normalization:** Enforcing business rules on both the frontend (disabling UI) and backend (overwriting invalid parameters) to maintain a consistent application state. E.g., ensuring a notarization stamp type can never include a signature.
+-   **React State & Lifecycle Bug Management:** Debugging and fixing complex React issues, including infinite re-render loops ( dependencies), race conditions from async calls, and improper state management for blob URLs (/).
+-   **CSS  vs. Layout Sizing:** Understanding that CSS  creates a separate rendering layer and does not alter the layout coordinate space, which can break libraries like . The fix was to remove the transform and apply scaling directly to the element's  and .
 
 **key DB schema**
--   **tls_global_events:** (new) Stores TLS-wide events like AGMs and CPDs. Fields: , , , , ,  (rrule),  (scope, regions), , .
--   **tls_event_ack:** (new) Logs when an advocate acknowledges a mandatory event. Fields: , , .
--   **tls_event_attendance:** (new) Tracks advocate attendance for events. Fields: , ,  ('registered', 'attended', 'absent').
--   **membership_billing_settings:** (new) A singleton document storing the active membership billing policy. Fields: , , , , , , .
+-   No changes made to the database schema in this session.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   : Contains the failing logic for the membership billing feature.
--   : Contains the backend logic for TLS global events and compliance features.
--   : The new frontend page for managing billing settings.
--   : The frontend page for managing TLS global events.
--   : The advocate calendar, updated to display TLS events and handle user interactions (acknowledging, registering).
--   : Modified to include the new routers and enforcement hooks.
+-   : The main file for the stamping feature. Contains the complex state logic for the preview, positioning, and generation. This is where the next agent will resume work.
+-   : Contains all backend logic, including the newly added  and  endpoints, and the modified stamping functions (, ).
+-   : Modified to show the membership status banner and disable stamping quick actions.
+-   : The new component that alerts advocates about their membership status.
 
 **Areas that need refactoring**:
--    remains a large file with several core routes that could be extracted into their own modules in .
--   The  component has grown large and could be broken down into smaller sub-components (e.g., EventList, EventModal).
+-    has become very large and complex. The state management logic could be extracted into one or more custom hooks (e.g., , ) to improve readability and maintainability.
+-    remains a monolith and would benefit from breaking out routes into the  directory as planned.
 
 **key api endpoints**
--   : (new) Admin endpoint to create a TLS global event.
--   : (updated) Merges advocate's personal events with relevant TLS global events.
--   : (new) Advocate endpoint to acknowledge a mandatory event.
--   : (new) Admin endpoint to mark advocate attendance.
--   : (new) Super-admin endpoint to get the current billing policy.
--   : (new) Super-admin endpoint to update the billing policy.
--   : (new) Advocate endpoint to check their own membership status.
+-   : The main endpoint to generate a final, persisted stamp.
+-   : (new) Generates a watermarked PDF preview of the stamp without persisting it.
+-   : (new) Generates a PNG image of the stamp for the WYSIWYG preview in the UI.
 
 **Critical Info for New Agent**
--   Your immediate priority (P0) is to fix the **Membership Billing Settings** feature. The backend is failing because it's querying the wrong collection ( instead of ). You need to apply the fix in , test the backend endpoints, and then verify the frontend admin page.
--   After fixing the backend, you must implement the advocate-facing part of the membership feature: displaying banners for expired/grace-period accounts and disabling stamping functionality if enforcement is active.
--   The user has approved a clear strategic roadmap. After the billing feature is complete, the next tasks are the P1 items: **PDF Stress Testing** and the **Practice Management Audit**.
+-   Your immediate and highest priority (P0) is to fix the stamping page's instability. The user has provided an extremely detailed final message that acts as a definitive guide, explaining the remaining bugs (race conditions, blob URL handling) and the exact fixes required.
+-   Start in  and implement the  and  pattern within the  function. This is the most critical fix to prevent the stamp from disappearing.
+-   Follow the rest of the user's checklist to achieve a rock-solid stamping experience, including backend tweaks to stamp size and content.
+-   Do not get sidetracked by other tasks until the stamping UX is fully stabilized and verified.
 
 **documents and test reports created in this job**
--   
--   
+-    (updated multiple times)
+-   The testing agent was used successfully to validate the stamp dimension logic, implying a test report was generated (e.g., ).
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user**: Agrees with the agent's plan for membership billing settings, confirming enforcement should default to  and grace days to 7. Asks about existing member fee records.
-2.  **agent**: Proposes to implement the membership billing settings.
-3.  **user**: Responds to the agent's proposal for implementing the membership billing settings.
-4.  **agent**: Proposes to implement the membership billing settings.
-5.  **user**: Provides detailed instructions and confirmation on the scope and mode for implementing TLS event acknowledgement and CPD attendance tracking.
-6.  **agent**: Outlines the detailed execution checklist for implementing personal recurring events, TLS acknowledgements, and attendance tracking, asking for user confirmation on scope.
-7.  **user**: Confirms the agent's plan and provides more detailed design specifications for personal recurring events and TLS event acknowledgement/attendance tracking.
-8.  **agent**: Proposes a design for personal recurring events and TLS event acknowledgement/attendance tracking.
-9.  **user**: Provides positive feedback on the TLS Global Events implementation and confirms the next priority is to implement the Membership Billing Settings.
-10. **agent**: Finishes the TLS Global Events implementation, updates the PRD, and suggests implementing the Membership Billing Settings toggle next.
+1.  **user**: Provides final, detailed analysis of the stamp disappears bug, identifying it as a state/preview lifecycle issue. Gives a comprehensive fix plan including race condition guards, blob URL management, and state normalization rules.
+2.  **agent**: Confirms understanding and shares the relevant code snippets where the bug likely resides.
+3.  **user**: Requests the  ->  calculation code to check for NaN paths.
+4.  **agent**: Provides the requested code, correctly identifying that a fallback  is overwriting the calculated size.
+5.  **user**: Asks for the exact values of , , and  to sanity-check the math.
+6.  **agent**: Provides the values.
+7.  **user**: Asks for the  implementation and  state to identify why the stamp vanishes.
+8.  **agent**: Provides the code and correctly identifies that having  in the  dependency array is creating a re-render loop.
+9.  **user**: Asks for the PDF preview wrapper JSX to check for layering issues (z-index, iframes).
+10. **agent**: Provides the JSX code.
 
 **Project Health Check:**
 -   **Broken:**
-    -   Membership status check and enforcement is currently broken due to incorrect MongoDB collection query.
+    -   The core Document Stamping UI is unstable. The stamp preview disappears or behaves erratically when a user toggles between different stamp and signature options due to race conditions and state lifecycle bugs.
 -   **Mocked:**
-    -   Some analytics in the Practice Management dashboard may still use seed data.
     -   KwikPay payment integration remains a placeholder.
 
 **3rd Party Integrations**
@@ -156,12 +153,10 @@ In this session, the following were added:
 -   **KwikPay (Mocked):** Placeholder for a payment gateway.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (for the Calendar feature)
+-   **Testing agent used after significant changes:** YES (used to verify the backend stamp dimension variants).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:**
-    -   
-    -   
--   **Known regressions:** None.
+-   **Test files created:** []
+-   **Known regressions:** The stamp preview UI, which was partially working, is now more unstable due to the introduction of more complex state logic that has not been fully debugged.
 
 **Credentials to test flow:**
 | Role | Email | Password |
@@ -171,4 +166,8 @@ In this session, the following were added:
 | Super Admin |  |  |
 
 **What agent forgot to execute**
--   The agent created the backend and admin frontend for the Membership Billing Settings but did not implement the corresponding advocate-facing UI (e.g., warning banners on the dashboard or disabling of stamp buttons). This is a required part of the feature.</analysis>
+The agent did not fully implement the user's detailed final plan for fixing the stamping UI. Key missing pieces include:
+-   Implementing a request sequence guard () to prevent race conditions.
+-   Using a ref () for safer blob URL lifecycle management.
+-   Reducing the stamp size (in PT) on the backend.
+-   Replacing the advocate's phone number with their name in the stamp generator function on the backend.</analysis>

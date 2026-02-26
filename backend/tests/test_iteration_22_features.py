@@ -14,7 +14,7 @@ import requests
 import os
 import base64
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://billing-dashboard-45.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tls-stamping-suite.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "testadvocate@tls.or.tz"
