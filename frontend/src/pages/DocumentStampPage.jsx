@@ -310,6 +310,14 @@ const DocumentStampPage = () => {
     fetchSavedSignature();
   }, []);
 
+  // ========== NORMALIZE NOTARIZATION STATE ==========
+  // Notarization stamps NEVER have signatures - force signature mode off
+  useEffect(() => {
+    if (selectedType === "notarization") {
+      setSignatureMode("placeholder"); // Reset to placeholder mode
+    }
+  }, [selectedType]);
+
   // Fetch stamp prices from Super Admin settings
   const fetchStampPrices = async () => {
     try {
