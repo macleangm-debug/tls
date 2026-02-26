@@ -638,11 +638,20 @@ const BatchStampPage = () => {
             {/* Process Button */}
             <Button
               onClick={handleBatchStamp}
-              disabled={selectedFiles.length === 0 || processing || !recipientName.trim()}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-lg"
+              disabled={selectedFiles.length === 0 || processing || !recipientName.trim() || isStampingBlocked}
+              className={`w-full h-12 text-lg ${
+                isStampingBlocked 
+                  ? 'bg-gray-600 cursor-not-allowed' 
+                  : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
               data-testid="process-batch-btn"
             >
-              {processing ? (
+              {isStampingBlocked ? (
+                <>
+                  <Lock className="w-5 h-5 mr-2" />
+                  Membership Required
+                </>
+              ) : processing ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Processing...
