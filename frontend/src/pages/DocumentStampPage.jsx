@@ -209,11 +209,12 @@ const DocumentStampPage = () => {
     setLoadingStampPreview(true);
     try {
       const stampTypeConfig = STAMP_TYPES.find(t => t.id === selectedType);
-      // Show placeholder when:
-      // 1. Stamp requires signature AND user hasn't selected digital mode, OR
-      // 2. Stamp requires signature AND user selected digital mode but has no saved signature
-      const hasDigitalSignature = signatureMode === 'digital' && savedSignature;
-      const showPlaceholder = stampTypeConfig?.requiresSignature && !hasDigitalSignature;
+      
+      // ========== NORMALIZE BY STAMP TYPE ==========
+      // Notarization stamps NEVER have signatures
+      const isNotarization = selectedType === "notarization";
+      const hasDigitalSignature = !isNotarization && signatureMode === 'digital' && savedSignature;
+      const showPlaceholder = !isNotarization && stampTypeConfig?.requiresSignature && !hasDigitalSignature;
       
       const response = await axios.post(`${API}/documents/stamp-preview`, {
         stamp_type: selectedType,
@@ -230,7 +231,7 @@ const DocumentStampPage = () => {
       
       setStampPreviewImage(response.data.preview_image);
       
-      // Update stamp PDF dimensions from backend
+      // Update stamp PDF dimensions from backend (QUARTER-PAGE sizes)
       if (response.data.pdf_width_pt && response.data.pdf_height_pt) {
         setStampPdfDimensions({
           width: response.data.pdf_width_pt,
