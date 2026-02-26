@@ -36,6 +36,12 @@ class AudienceScope(BaseModel):
     regions: List[str] = []  # e.g., ["Dar es Salaam", "Arusha"]
     roles: List[str] = []  # e.g., ["advocate"]
 
+class AttendanceConfig(BaseModel):
+    enabled: bool = False
+    mode: str = "admin"  # "admin" | "self_attest" | "qr"
+    cpd_points: Optional[int] = None
+    certificate_enabled: bool = False
+
 class TLSEventCreate(BaseModel):
     title: str
     description: Optional[str] = ""
@@ -51,7 +57,9 @@ class TLSEventCreate(BaseModel):
     audience: Optional[AudienceScope] = None
     
     is_mandatory: bool = False
-    require_ack: bool = False  # Scaffold for Phase 2
+    require_ack: bool = False  # For AGM and notices
+    ack_deadline_at: Optional[str] = None  # Optional acknowledgement deadline
+    attendance: Optional[AttendanceConfig] = None  # For CPD and AGM
     show_in_sidebar: bool = True
     
     links: List[Dict[str, str]] = []  # [{"label": "Agenda", "url": "..."}]
@@ -69,11 +77,18 @@ class TLSEventUpdate(BaseModel):
     audience: Optional[AudienceScope] = None
     is_mandatory: Optional[bool] = None
     require_ack: Optional[bool] = None
+    ack_deadline_at: Optional[str] = None
+    attendance: Optional[AttendanceConfig] = None
     show_in_sidebar: Optional[bool] = None
     links: Optional[List[Dict[str, str]]] = None
 
 class TLSEventCancel(BaseModel):
     reason: str = Field(..., min_length=5)
+
+class AttendanceMarkRequest(BaseModel):
+    advocate_ids: List[str]
+    status: str = "attended"  # "attended" | "absent" | "excused"
+    reason: Optional[str] = None
 
 
 # =============== HELPER FUNCTIONS ===============
