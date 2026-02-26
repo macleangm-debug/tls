@@ -3003,6 +3003,17 @@ async def create_document_stamp(
     # DEBUG: Log received parameters
     print(f"DEBUG RECEIVED: layout={layout}, shape={shape}, show_sig_placeholder={show_signature_placeholder}")
     
+    # Membership enforcement check
+    from services.membership_service import get_membership_service
+    membership_service = get_membership_service(db)
+    enforcement = await membership_service.check_enforcement(user, "stamp")
+    if not enforcement.get("allowed"):
+        raise HTTPException(
+            status_code=403, 
+            detail=enforcement.get("reason", "Membership required"),
+            headers={"X-Membership-Required": "true"}
+        )
+    
     if user.get("practicing_status") != "Active":
         raise HTTPException(status_code=403, detail="Only active advocates can stamp documents")
     
