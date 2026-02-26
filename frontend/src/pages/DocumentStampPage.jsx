@@ -362,10 +362,11 @@ const DocumentStampPage = () => {
   }, []);
 
   // ========== NORMALIZE NOTARIZATION STATE ==========
-  // Notarization stamps NEVER have signatures - force signature mode off
+  // Notarization stamps NEVER have signatures - force signature mode to "none"
+  // This prevents any signature artifacts in the preview or final PDF
   useEffect(() => {
     if (selectedType === "notarization") {
-      setSignatureMode("placeholder"); // Reset to placeholder mode
+      setSignatureMode("none"); // Completely disable signature for notarization
     }
   }, [selectedType]);
 
