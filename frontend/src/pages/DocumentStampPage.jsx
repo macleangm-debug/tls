@@ -1411,8 +1411,8 @@ const DocumentStampPage = () => {
     setLocalRecipientName("");
     setLocalRecipientOrg("");
     setStampPosition({ x: 50, y: 50 });
-    // Reset to default large stamp size for professional documents
-    setStampSize({ width: 350, height: 310 });
+    // Reset to default stamp size (will be recalculated when PDF loads)
+    setStampSize({ width: 255, height: 135 });
     setCurrentPage(1);
     setPdfDoc(null);
     setPageCanvasUrl(null);
