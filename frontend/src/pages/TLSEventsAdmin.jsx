@@ -111,10 +111,10 @@ export default function TLSEventsAdmin() {
 
     try {
       if (editEvent) {
-        await axios.patch(`${API}/api/tls/events/${editEvent.id}`, payload, { headers });
+        await axios.patch(`${API}/api/tls/events/${editEvent.id}`, payload, getAuthHeaders());
         toast.success("TLS event updated");
       } else {
-        await axios.post(`${API}/api/tls/events`, payload, { headers });
+        await axios.post(`${API}/api/tls/events`, payload, getAuthHeaders());
         toast.success("TLS event created");
       }
       setShowForm(false);
