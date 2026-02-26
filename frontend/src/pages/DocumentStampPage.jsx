@@ -1729,6 +1729,7 @@ const DocumentStampPage = () => {
                       
                       {/* Hidden file inputs */}
                       <input
+                        key={fileInputKey}
                         ref={fileInputRef}
                         id="document-upload"
                         type="file"
@@ -1738,6 +1739,7 @@ const DocumentStampPage = () => {
                         data-testid="document-upload-input"
                       />
                       <input
+                        key={`camera-${fileInputKey}`}
                         ref={cameraInputRef}
                         id="camera-capture"
                         type="file"
