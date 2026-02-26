@@ -3157,13 +3157,14 @@ async def render_stamp_image(
     # Determine stamp variant
     needs_signature_area = (stamp_type == "certification") and (include_sig_bool or show_placeholder_bool)
     
-    # ========== QUARTER-PAGE STAMP SIZES ==========
+    # ========== REDUCED STAMP SIZES (Quarter-page feel) ==========
+    # Per user request: smaller stamps that feel like 1/4 page on A4/Letter
     if needs_signature_area:
-        STAMP_W_PT = 180   # Certification stamp width
-        STAMP_H_PT = 120   # Certification stamp height (includes signature area)
+        STAMP_W_PT = 150   # Certification stamp width (was 180)
+        STAMP_H_PT = 95    # Certification stamp height with signature (was 120)
     else:
-        STAMP_W_PT = 170   # Compact stamp width
-        STAMP_H_PT = 90    # Compact stamp height
+        STAMP_W_PT = 140   # Compact stamp width (was 170)
+        STAMP_H_PT = 75    # Compact stamp height (was 90)
     
     # Use advocate name from user if not provided
     display_name = advocate_name if advocate_name else user.get("full_name", "Advocate")
