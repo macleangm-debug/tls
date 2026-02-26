@@ -99,6 +99,7 @@ const DocumentStampPage = () => {
   const [fileData, setFileData] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(Date.now()); // Forces input remount for "change document"
   
   // PDF state
   const [pdfDoc, setPdfDoc] = useState(null);
