@@ -651,17 +651,60 @@ export default function TLSEventsAdmin() {
                   />
                   Show in sidebar (Upcoming Events)
                 </label>
-                <label className="flex items-center gap-2 text-white/50 text-sm cursor-not-allowed opacity-50">
+                <label className="flex items-center gap-2 text-white/70 text-sm cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={formData.require_ack}
                     onChange={(e) => setFormData({...formData, require_ack: e.target.checked})}
                     className="rounded border-white/20"
-                    disabled
                   />
-                  Require acknowledgement (coming soon)
+                  Require acknowledgement (for AGM/notices)
                 </label>
               </div>
+            </div>
+
+            {/* Attendance Tracking */}
+            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+              <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-green-400" /> Attendance Tracking
+              </h4>
+              <label className="flex items-center gap-2 text-white/70 text-sm cursor-pointer mb-3">
+                <input 
+                  type="checkbox" 
+                  checked={formData.attendance_enabled}
+                  onChange={(e) => setFormData({...formData, attendance_enabled: e.target.checked})}
+                  className="rounded border-white/20"
+                />
+                Track attendance (for CPD/AGM sessions)
+              </label>
+              {formData.attendance_enabled && (
+                <div className="space-y-3 mt-3 pt-3 border-t border-white/10">
+                  <div>
+                    <label className="text-xs text-white/50 mb-1 block">Attendance Mode</label>
+                    <select 
+                      value={formData.attendance_mode}
+                      onChange={(e) => setFormData({...formData, attendance_mode: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2"
+                    >
+                      <option value="admin">Admin Marking (recommended)</option>
+                      <option value="self_attest">Self-Attest</option>
+                      <option value="qr">QR Check-in (coming soon)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 mb-1 block">CPD Points (optional)</label>
+                    <Input 
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={formData.cpd_points}
+                      onChange={(e) => setFormData({...formData, cpd_points: e.target.value})}
+                      placeholder="e.g., 5"
+                      className="bg-white/5 border-white/10 text-white"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
