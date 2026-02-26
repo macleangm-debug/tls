@@ -2243,11 +2243,20 @@ const DocumentStampPage = () => {
               {/* Stamp Button */}
               <Button 
                 onClick={handleStampDocument}
-                disabled={!fileData || stamping || !localRecipientName.trim()}
-                className="w-full h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 rounded-xl text-lg font-semibold shadow-lg shadow-emerald-500/25"
+                disabled={!fileData || stamping || !localRecipientName.trim() || isStampingBlocked}
+                className={`w-full h-14 rounded-xl text-lg font-semibold shadow-lg ${
+                  isStampingBlocked 
+                    ? 'bg-gray-600 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-emerald-500/25'
+                }`}
                 data-testid="stamp-document-btn"
               >
-                {stamping ? (
+                {isStampingBlocked ? (
+                  <>
+                    <Lock className="w-5 h-5 mr-2" />
+                    Membership Required
+                  </>
+                ) : stamping ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                     Creating Secure Stamp...
