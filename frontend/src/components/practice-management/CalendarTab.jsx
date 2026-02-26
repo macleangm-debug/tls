@@ -457,7 +457,7 @@ export const CalendarTab = ({ token }) => {
                     <div 
                       key={event.id} 
                       className="flex items-start gap-3 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                      onClick={() => setViewEvent(event)}
+                      onClick={() => setViewEvent({ ...event, status: event.status || 'scheduled' })}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getEventTypeColor(event.event_type)}`}>
                         {getEventTypeIcon(event.event_type)}
