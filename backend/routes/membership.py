@@ -102,8 +102,10 @@ def create_membership_routes(db, get_current_user, require_admin, require_super_
         user: dict = Depends(require_admin)
     ):
         """Create a manual membership payment for a user. For admin use."""
-        # Verify user exists
+        # Verify user exists - check both users and advocates collections
         target_user = await db.users.find_one({"id": data.user_id}, {"_id": 0})
+        if not target_user:
+            target_user = await db.advocates.find_one({"id": data.user_id}, {"_id": 0})
         if not target_user:
             raise HTTPException(status_code=404, detail="User not found")
         
