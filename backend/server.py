@@ -4130,6 +4130,219 @@ async def get_bulk_revoke_history(
     }
 
 
+# =============== ADMIN PDF VALIDATION (Go-Live Testing) ===============
+
+class PDFValidationResponse(BaseModel):
+    """Response model for PDF validation endpoint"""
+    valid: bool
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
+    meta: Optional[dict] = None
+    stamp_dry_run: Optional[dict] = None
+    validation_time_ms: float
+
+@api_router.post("/admin/pdf/validate", response_model=PDFValidationResponse)
+async def admin_validate_pdf(
+    file: UploadFile = File(...),
+    dry_run_stamp: bool = Form(False),
+    user: dict = Depends(require_super_admin)
+):
+    """
+    Super Admin endpoint for validating PDF files against production rules.
+    
+    Use this to test real-world PDFs before go-live certification.
+    - Does NOT store the uploaded file
+    - Does NOT create any database records
+    - Returns detailed validation report
+    
+    Args:
+        file: PDF file to validate
+        dry_run_stamp: If True, also performs a dry-run stamp (in memory only)
+    
+    Returns:
+        Validation result with metadata and optional dry-run result
+    """
+    import time
+    from services.pdf_validation_service import pdf_validator, PDFErrorCode
+    from services.stamp_image_service import StampImageService
+    from services.pdf_overlay_service import PDFOverlayService
+    
+    start_time = time.time()
+    
+    # Read file content
+    content = await file.read()
+    
+    # Set Sentry context for monitoring
+    if SENTRY_DSN:
+        sentry_sdk.set_tag("feature", "admin_pdf_validation")
+        sentry_sdk.set_tag("filename", file.filename)
+        sentry_sdk.set_user({"id": str(user.get("_id", user.get("id")))})
+    
+    # Run validation
+    validation_result, pdf_metadata = pdf_validator.validate(content, file.filename)
+    
+    response = {
+        "valid": validation_result.valid,
+        "error_code": validation_result.error_code.value if not validation_result.valid else None,
+        "error_message": validation_result.error_message if not validation_result.valid else None,
+        "meta": None,
+        "stamp_dry_run": None,
+        "validation_time_ms": 0
+    }
+    
+    if pdf_metadata:
+        response["meta"] = {
+            "file_size_bytes": pdf_metadata.file_size_bytes,
+            "file_size_mb": round(pdf_metadata.file_size_bytes / (1024 * 1024), 2),
+            "page_count": pdf_metadata.page_count,
+            "pages": pdf_metadata.pages[:10],  # First 10 pages info
+            "has_rotated_pages": any(p.get("rotation", 0) != 0 for p in pdf_metadata.pages),
+            "rotations": [p.get("rotation", 0) for p in pdf_metadata.pages[:20]],
+            "page_sizes": [
+                {"page": p["page"], "w": p["width_pt"], "h": p["height_pt"]}
+                for p in pdf_metadata.pages[:10]
+            ],
+            "is_linearized": pdf_metadata.is_linearized,
+            "has_annotations": pdf_metadata.has_annotations,
+            "has_forms": pdf_metadata.has_forms,
+            "pdf_version": pdf_metadata.pdf_version,
+            "producer": pdf_metadata.producer,
+            "document_hash": pdf_metadata.document_hash
+        }
+    
+    # Dry-run stamp if requested and PDF is valid
+    if dry_run_stamp and validation_result.valid:
+        try:
+            # Generate test stamp image
+            stamp_image = StampImageService.generate_stamp_image(
+                stamp_id="DRY-RUN-TEST-001",
+                advocate_name="Test Advocate (Dry Run)",
+                verification_url="https://example.com/verify",
+                border_color="#10B981",
+                show_advocate_name=True,
+                show_tls_logo=True,
+                scale=2.0,
+                transparent_background=True
+            )
+            
+            # Attempt to embed stamp (in memory only)
+            position = {
+                "anchor": "bottom_right",
+                "offset_x_pt": 20,
+                "offset_y_pt": 20,
+                "page_mode": "first"
+            }
+            
+            stamped_content = PDFOverlayService.embed_stamp(
+                pdf_content=content,
+                stamp_image=stamp_image,
+                position=position,
+                include_signature=False,
+                signature_data=None,
+                show_signature_placeholder=False,
+                brand_color="#10B981"
+            )
+            
+            # Verify the output is valid
+            output_result, output_meta = pdf_validator.validate(stamped_content, f"stamped_{file.filename}")
+            
+            response["stamp_dry_run"] = {
+                "ok": output_result.valid,
+                "output_size_bytes": len(stamped_content),
+                "output_size_mb": round(len(stamped_content) / (1024 * 1024), 2),
+                "size_increase_bytes": len(stamped_content) - len(content),
+                "output_valid": output_result.valid,
+                "output_page_count": output_meta.page_count if output_meta else None
+            }
+            
+        except Exception as e:
+            logger.error(f"Dry-run stamp failed: {e}")
+            response["stamp_dry_run"] = {
+                "ok": False,
+                "error": str(e)
+            }
+            # Report to Sentry
+            if SENTRY_DSN:
+                sentry_sdk.capture_exception(e)
+    
+    response["validation_time_ms"] = round((time.time() - start_time) * 1000, 2)
+    
+    # Log validation event
+    await db.audit_logs.insert_one({
+        "action": "ADMIN_PDF_VALIDATION",
+        "admin_id": str(user.get("_id", user.get("id"))),
+        "admin_email": user.get("email"),
+        "filename": file.filename,
+        "file_size": len(content),
+        "valid": validation_result.valid,
+        "error_code": validation_result.error_code.value if not validation_result.valid else None,
+        "dry_run_stamp": dry_run_stamp,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return response
+
+
+@api_router.post("/admin/pdf/batch-validate")
+async def admin_batch_validate_pdfs(
+    files: List[UploadFile] = File(...),
+    user: dict = Depends(require_super_admin)
+):
+    """
+    Validate multiple PDFs at once for go-live certification testing.
+    
+    Returns summary report of all validations.
+    """
+    from services.pdf_validation_service import pdf_validator
+    
+    results = []
+    passed = 0
+    failed = 0
+    
+    for file in files:
+        content = await file.read()
+        validation_result, pdf_metadata = pdf_validator.validate(content, file.filename)
+        
+        result = {
+            "filename": file.filename,
+            "valid": validation_result.valid,
+            "error_code": validation_result.error_code.value if not validation_result.valid else None,
+            "error_message": validation_result.error_message if not validation_result.valid else None,
+            "file_size_mb": round(len(content) / (1024 * 1024), 2)
+        }
+        
+        if pdf_metadata:
+            result["page_count"] = pdf_metadata.page_count
+            result["has_rotations"] = any(p.get("rotation", 0) != 0 for p in pdf_metadata.pages)
+        
+        results.append(result)
+        
+        if validation_result.valid:
+            passed += 1
+        else:
+            failed += 1
+    
+    # Log batch validation
+    await db.audit_logs.insert_one({
+        "action": "ADMIN_BATCH_PDF_VALIDATION",
+        "admin_id": str(user.get("_id", user.get("id"))),
+        "admin_email": user.get("email"),
+        "files_count": len(files),
+        "passed": passed,
+        "failed": failed,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "total": len(files),
+        "passed": passed,
+        "failed": failed,
+        "pass_rate": round(passed / len(files) * 100, 1) if files else 0,
+        "results": results,
+        "go_live_ready": failed == 0
+    }
+
+
 # =============== BATCH STAMPING ===============
 
 @api_router.post("/documents/batch-stamp")
