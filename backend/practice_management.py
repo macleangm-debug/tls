@@ -865,10 +865,19 @@ def create_practice_routes(db, get_current_user):
         """Expand TLS event recurrence into calendar instances."""
         recurrence = event.get("recurrence", {})
         
+        # Make from_dt and to_dt timezone-aware if they aren't
+        if from_dt.tzinfo is None:
+            from_dt = from_dt.replace(tzinfo=timezone.utc)
+        if to_dt.tzinfo is None:
+            to_dt = to_dt.replace(tzinfo=timezone.utc)
+        
         # Single event (no recurrence)
         if not recurrence or not recurrence.get("enabled") or not recurrence.get("rule"):
             try:
                 event_start = parse_date(event["start_at"])
+                # Make event_start timezone-aware if needed
+                if event_start.tzinfo is None:
+                    event_start = event_start.replace(tzinfo=timezone.utc)
                 if from_dt <= event_start <= to_dt:
                     return [create_tls_calendar_item(event, event["start_at"], event.get("end_at"))]
             except:
@@ -878,6 +887,10 @@ def create_practice_routes(db, get_current_user):
         try:
             rule_str = recurrence["rule"]
             dtstart = parse_date(event["start_at"])
+            # Make dtstart timezone-aware if needed
+            if dtstart.tzinfo is None:
+                dtstart = dtstart.replace(tzinfo=timezone.utc)
+            
             rr = rrulestr(rule_str, dtstart=dtstart)
             
             until_date = parse_date(recurrence["until"]) if recurrence.get("until") else None
