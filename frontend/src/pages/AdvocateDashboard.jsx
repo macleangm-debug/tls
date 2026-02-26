@@ -611,20 +611,34 @@ const AdvocateDashboard = () => {
         </Card>
 
         {/* Primary CTA - Stamp Document */}
-        <Link to="/documents" className="block">
-          <Card className="h-full glass-card rounded-2xl border-emerald-500/30 hover:border-emerald-500/50 transition-all bg-gradient-to-br from-emerald-500/10 to-green-500/5 cursor-pointer group" data-testid="quick-stamp-document">
+        {isStampingBlocked ? (
+          <Card className="h-full glass-card rounded-2xl border-red-500/30 bg-gradient-to-br from-red-500/5 to-gray-500/5 cursor-not-allowed opacity-70" data-testid="quick-stamp-document-blocked">
             <CardContent className="p-5 h-full flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <FileText className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-red-400" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-white">Stamp Document</h3>
-                <p className="text-white/50 text-xs">Add QR verification</p>
+                <h3 className="font-bold text-white/60">Stamp Document</h3>
+                <p className="text-red-400 text-xs">Membership required</p>
               </div>
-              <ArrowRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
             </CardContent>
           </Card>
-        </Link>
+        ) : (
+          <Link to="/documents" className="block">
+            <Card className="h-full glass-card rounded-2xl border-emerald-500/30 hover:border-emerald-500/50 transition-all bg-gradient-to-br from-emerald-500/10 to-green-500/5 cursor-pointer group" data-testid="quick-stamp-document">
+              <CardContent className="p-5 h-full flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-white">Stamp Document</h3>
+                  <p className="text-white/50 text-xs">Add QR verification</p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
 
       {/* ========== SECTION 2: Quick Actions Row ========== */}
