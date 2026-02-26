@@ -134,3 +134,4 @@ yarl==1.22.0
 zipp==3.23.0
 slowapi==0.1.9
 resend==2.22.0
+sentry-sdk==2.53.0
