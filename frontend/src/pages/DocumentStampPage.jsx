@@ -714,6 +714,24 @@ const DocumentStampPage = () => {
     }
   };
 
+  // Signature canvas dynamic sizing (fixes lag + cutoff issues)
+  useEffect(() => {
+    if (!showSignatureDrawer) return;
+    
+    const updateCanvasSize = () => {
+      const el = sigWrapRef.current;
+      if (!el) return;
+      const w = Math.max(320, Math.floor(el.getBoundingClientRect().width));
+      setSigCanvasSize({ width: w, height: 140 });
+    };
+    
+    updateCanvasSize();
+    const ro = new ResizeObserver(() => updateCanvasSize());
+    if (sigWrapRef.current) ro.observe(sigWrapRef.current);
+    
+    return () => ro.disconnect();
+  }, [showSignatureDrawer]);
+
   // Signature Management Functions
   const clearSignatureCanvas = () => {
     if (signatureCanvasRef.current) {
