@@ -714,6 +714,187 @@ export default function TLSEventsAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Event Details Modal with Tabs */}
+      <Dialog open={!!viewEvent} onOpenChange={(open) => { if (!open) { setViewEvent(null); setAcknowledgements([]); setAttendance({ records: [], counts: {} }); } }}>
+        <DialogContent className="bg-[#0a0d14] border-purple-500/20 max-w-3xl max-h-[85vh] overflow-hidden">
+          {viewEvent && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                    <Building className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-white text-lg">{viewEvent.title}</DialogTitle>
+                    <div className="flex gap-2 mt-1">
+                      <Badge className={eventTypeColors[viewEvent.event_type] || eventTypeColors.other}>
+                        {viewEvent.event_type?.replace(/_/g, ' ').toUpperCase()}
+                      </Badge>
+                      {viewEvent.require_ack && <Badge className="bg-blue-500/20 text-blue-400">Requires Ack</Badge>}
+                      {viewEvent.attendance?.enabled && <Badge className="bg-green-500/20 text-green-400">Attendance Tracked</Badge>}
+                    </div>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="bg-white/5 border-white/10">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500/20">Overview</TabsTrigger>
+                  {viewEvent.require_ack && (
+                    <TabsTrigger value="acknowledgements" className="data-[state=active]:bg-blue-500/20">
+                      Acknowledgements ({acknowledgements.length})
+                    </TabsTrigger>
+                  )}
+                  {viewEvent.attendance?.enabled && (
+                    <TabsTrigger value="attendance" className="data-[state=active]:bg-green-500/20">
+                      Attendance ({attendance.records?.length || 0})
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+
+                <TabsContent value="overview" className="mt-4 space-y-4 max-h-[50vh] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-white/5 rounded-lg">
+                      <p className="text-xs text-white/50 mb-1">Date & Time</p>
+                      <p className="text-white flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-purple-400" />
+                        {new Date(viewEvent.start_at).toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white/5 rounded-lg">
+                      <p className="text-xs text-white/50 mb-1">Audience</p>
+                      <p className="text-white flex items-center gap-2">
+                        {viewEvent.audience?.scope === 'all' ? <Globe className="w-4 h-4 text-green-400" /> : <MapPin className="w-4 h-4 text-amber-400" />}
+                        {viewEvent.audience?.scope === 'all' ? 'Nationwide' : viewEvent.audience?.regions?.join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                  {viewEvent.description && (
+                    <div className="p-3 bg-white/5 rounded-lg">
+                      <p className="text-xs text-white/50 mb-1">Description</p>
+                      <p className="text-white/70">{viewEvent.description}</p>
+                    </div>
+                  )}
+                  {viewEvent.attendance?.cpd_points && (
+                    <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                      <p className="text-green-400 font-medium">{viewEvent.attendance.cpd_points} CPD Points</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {viewEvent.require_ack && (
+                  <TabsContent value="acknowledgements" className="mt-4 max-h-[50vh] overflow-y-auto">
+                    {loadingDetails ? (
+                      <p className="text-white/50 text-center py-4">Loading...</p>
+                    ) : acknowledgements.length === 0 ? (
+                      <p className="text-white/50 text-center py-4">No acknowledgements yet</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center mb-4">
+                          <p className="text-white/70">{acknowledgements.length} advocates acknowledged</p>
+                        </div>
+                        {acknowledgements.map((ack, idx) => (
+                          <div key={idx} className="p-3 bg-white/5 rounded-lg flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <CheckCircle2 className="w-5 h-5 text-green-400" />
+                              <div>
+                                <p className="text-white">{ack.advocate_email}</p>
+                                <p className="text-xs text-white/50">{new Date(ack.acknowledged_at).toLocaleString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                )}
+
+                {viewEvent.attendance?.enabled && (
+                  <TabsContent value="attendance" className="mt-4 max-h-[50vh] overflow-y-auto">
+                    {loadingDetails ? (
+                      <p className="text-white/50 text-center py-4">Loading...</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Stats */}
+                        <div className="grid grid-cols-4 gap-2">
+                          <div className="p-2 bg-blue-500/10 rounded-lg text-center">
+                            <p className="text-2xl font-bold text-blue-400">{attendance.counts?.registered || 0}</p>
+                            <p className="text-xs text-white/50">Registered</p>
+                          </div>
+                          <div className="p-2 bg-green-500/10 rounded-lg text-center">
+                            <p className="text-2xl font-bold text-green-400">{attendance.counts?.attended || 0}</p>
+                            <p className="text-xs text-white/50">Attended</p>
+                          </div>
+                          <div className="p-2 bg-red-500/10 rounded-lg text-center">
+                            <p className="text-2xl font-bold text-red-400">{attendance.counts?.absent || 0}</p>
+                            <p className="text-xs text-white/50">Absent</p>
+                          </div>
+                          <div className="p-2 bg-amber-500/10 rounded-lg text-center">
+                            <p className="text-2xl font-bold text-amber-400">{attendance.counts?.excused || 0}</p>
+                            <p className="text-xs text-white/50">Excused</p>
+                          </div>
+                        </div>
+
+                        {/* Export button */}
+                        {attendance.records?.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleExportAttendance(viewEvent.id)}
+                            className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                          >
+                            <Download className="w-4 h-4 mr-2" /> Export CSV
+                          </Button>
+                        )}
+
+                        {/* Records */}
+                        {attendance.records?.length === 0 ? (
+                          <p className="text-white/50 text-center py-4">No attendance records yet</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {attendance.records.map((record, idx) => (
+                              <div key={idx} className="p-3 bg-white/5 rounded-lg flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  {record.status === 'attended' ? (
+                                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                  ) : record.status === 'absent' ? (
+                                    <XCircle className="w-5 h-5 text-red-400" />
+                                  ) : (
+                                    <UserCheck className="w-5 h-5 text-blue-400" />
+                                  )}
+                                  <div>
+                                    <p className="text-white">{record.advocate_name || record.advocate_email}</p>
+                                    <p className="text-xs text-white/50">{record.advocate_region}</p>
+                                  </div>
+                                </div>
+                                <Badge className={
+                                  record.status === 'attended' ? 'bg-green-500/20 text-green-400' :
+                                  record.status === 'absent' ? 'bg-red-500/20 text-red-400' :
+                                  record.status === 'excused' ? 'bg-amber-500/20 text-amber-400' :
+                                  'bg-blue-500/20 text-blue-400'
+                                }>
+                                  {record.status}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </TabsContent>
+                )}
+              </Tabs>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewEvent(null)} className="border-white/20 text-white">
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
