@@ -420,25 +420,9 @@ const DocumentStampPage = () => {
     });
   }, [pageCanvasUrl, pageDimensions.width, pageDimensions.height, stampPdfDimensions.width, stampPdfDimensions.height, pdfRenderScale, currentPage]);
 
-  // ========== RE-CENTER ON PAGE CHANGE ==========
-  // When user navigates to a new page, center the stamp if no position exists
-  useEffect(() => {
-    if (!pageCanvasUrl || !pageDimensions.width) return;
-    
-    const safePdfScale = Number.isFinite(pdfRenderScale) && pdfRenderScale > 0 ? pdfRenderScale : 1.5;
-    const stampW = stampPdfDimensions.width * safePdfScale;
-    const stampH = stampPdfDimensions.height * safePdfScale;
-    const marginPx = EDGE_MARGIN_PT * safePdfScale;
-    const centerX = Math.max(marginPx, (pageDimensions.width - stampW) / 2);
-    const centerY = Math.max(marginPx, (pageDimensions.height - stampH) / 2);
-    
-    setStampPositions(prev => {
-      if (!prev[currentPage]) {
-        return { ...prev, [currentPage]: { x: centerX, y: centerY } };
-      }
-      return prev;
-    });
-  }, [currentPage]);
+  // NOTE: Removed the old "re-center on page change" effect
+  // getStampPosition() already centers by default if missing
+  // The clamp effect handles everything needed
 
   // NOTE: Removed the old "fixed stamp size based on shape" useEffect
   // stampSize is now ONLY calculated from stampPdfDimensions * pdfRenderScale
