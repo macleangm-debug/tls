@@ -3379,11 +3379,21 @@ async def embed_stamp_in_pdf(content: bytes, stamp_record: dict, user: dict, pos
         stamp_buffer.seek(0)
         
         # TLS FIXED stamp dimensions in PDF POINTS
-        # These are CONSTANT - do not accept width/height from frontend
-        # This ensures consistent, professional stamp size across all documents
-        STAMP_WIDTH_PT = 240   # Fixed TLS official stamp width
-        STAMP_HEIGHT_PT = 128  # Fixed TLS official stamp height (compact card ratio 560:300)
+        # Two variants: Compact (default) and Certification (with signature)
         EDGE_MARGIN_PT = 12    # System safety margin from page edges
+        
+        # Select dimensions based on signature requirements
+        needs_signature_section = include_signature or show_sig_placeholder
+        if needs_signature_section:
+            # CERTIFICATION stamp (taller - includes signature section)
+            # Ratio: 560:420 = 1.33:1
+            STAMP_WIDTH_PT = 200   # Wider for signature legibility
+            STAMP_HEIGHT_PT = 150  # Taller for signature section
+        else:
+            # COMPACT stamp (default - no signature)
+            # Ratio: 560:300 = 1.87:1
+            STAMP_WIDTH_PT = 240   # Fixed TLS official stamp width
+            STAMP_HEIGHT_PT = 128  # Fixed TLS official stamp height
         
         # NOTE: Intentionally ignoring position.get("stamp_width_pt") and position.get("stamp_height_pt")
         # TLS requirement: stamp size must be fixed for consistency
