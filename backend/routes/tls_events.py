@@ -286,6 +286,8 @@ def create_tls_events_routes(db, get_current_user, require_admin, require_super_
             "status": "scheduled",
             "is_mandatory": data.is_mandatory,
             "require_ack": data.require_ack,
+            "ack_deadline_at": data.ack_deadline_at,
+            "attendance": data.attendance.dict() if data.attendance else {"enabled": False, "mode": "admin", "cpd_points": None, "certificate_enabled": False},
             "show_in_sidebar": data.show_in_sidebar,
             "is_read_only": True,
             "links": data.links,
@@ -293,6 +295,16 @@ def create_tls_events_routes(db, get_current_user, require_admin, require_super_
             "created_at": now,
             "updated_at": now
         }
+        
+        # Auto-enable features based on event type
+        if data.event_type in ["agm", "tls_announcement"] and not data.require_ack:
+            # Default to require_ack for AGM and notices
+            event["require_ack"] = True
+        
+        if data.event_type in ["cpd", "agm"]:
+            # Default to attendance enabled for CPD and AGM
+            if not data.attendance or not data.attendance.enabled:
+                event["attendance"] = {"enabled": True, "mode": "admin", "cpd_points": data.attendance.cpd_points if data.attendance else None, "certificate_enabled": False}
         
         await db.tls_global_events.insert_one(event)
         event.pop("_id", None)
