@@ -1940,29 +1940,142 @@ const DocumentStampPage = () => {
                         className="hidden"
                         data-testid="camera-capture-input"
                       />
+                      {/* Hidden scan input for multi-page scanning */}
+                      <input
+                        key={`scan-${fileInputKey}`}
+                        ref={scanInputRef}
+                        id="scan-capture"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        multiple
+                        onChange={handleScanCapture}
+                        className="hidden"
+                        data-testid="scan-capture-input"
+                      />
                       
-                      {!uploading && (
-                        <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
+                      {!uploading && !showScanPreview && (
+                        <div className="flex flex-wrap justify-center gap-3" onClick={(e) => e.stopPropagation()}>
                           <Button 
                             onClick={() => fileInputRef.current?.click()}
                             className="bg-emerald-500 hover:bg-emerald-600 rounded-xl h-11 px-6" 
                             data-testid="upload-btn"
                           >
                             <Upload className="w-4 h-4 mr-2" />
-                            Browse Files
+                            Upload File
                           </Button>
                           
-                          {/* Camera button */}
+                          {/* Scan Doc button - CamScanner-style multi-page */}
                           <Button 
-                            onClick={() => cameraInputRef.current?.click()}
+                            onClick={() => scanInputRef.current?.click()}
                             variant="outline"
-                            className="rounded-xl h-11 px-6 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
-                            data-testid="camera-btn"
+                            className="rounded-xl h-11 px-6 border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                            data-testid="scan-btn"
                           >
                             <Camera className="w-4 h-4 mr-2" />
-                            <span className="hidden sm:inline">Take Photo</span>
-                            <span className="sm:hidden">Camera</span>
+                            <span className="hidden sm:inline">Scan Doc</span>
+                            <span className="sm:hidden">Scan</span>
                           </Button>
+                        </div>
+                      )}
+                      
+                      {/* Multi-page Scan Preview UI */}
+                      {showScanPreview && (
+                        <div className="w-full max-w-md mx-auto" onClick={(e) => e.stopPropagation()}>
+                          <div className="bg-slate-800/60 rounded-xl p-4 border border-white/10">
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-white font-medium flex items-center gap-2">
+                                <Camera className="w-4 h-4 text-blue-400" />
+                                Scanned Pages ({scanPages.length})
+                              </h3>
+                              <select 
+                                value={scanMode}
+                                onChange={(e) => setScanMode(e.target.value)}
+                                className="bg-slate-700 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                              >
+                                <option value="gray">Document (Gray)</option>
+                                <option value="color">Color</option>
+                                <option value="bw">Black & White</option>
+                              </select>
+                            </div>
+                            
+                            {/* Pages strip */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+                              {scanPages.map((page, idx) => (
+                                <div key={page.id} className="relative flex-shrink-0 group">
+                                  <img 
+                                    src={page.previewUrl} 
+                                    alt={`Page ${idx + 1}`}
+                                    className="w-16 h-20 object-cover rounded-lg border-2 border-white/20"
+                                  />
+                                  <div className="absolute -top-1 -left-1 bg-blue-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                                    {idx + 1}
+                                  </div>
+                                  {/* Controls overlay */}
+                                  <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
+                                    <div className="flex gap-1">
+                                      <button 
+                                        onClick={() => moveScanPage(idx, -1)}
+                                        disabled={idx === 0}
+                                        className="p-1 bg-white/20 rounded hover:bg-white/30 disabled:opacity-30"
+                                      >
+                                        <ChevronLeft className="w-3 h-3 text-white" />
+                                      </button>
+                                      <button 
+                                        onClick={() => moveScanPage(idx, 1)}
+                                        disabled={idx === scanPages.length - 1}
+                                        className="p-1 bg-white/20 rounded hover:bg-white/30 disabled:opacity-30"
+                                      >
+                                        <ChevronRight className="w-3 h-3 text-white" />
+                                      </button>
+                                    </div>
+                                    <button 
+                                      onClick={() => removeScanPage(page.id)}
+                                      className="p-1 bg-red-500/80 rounded hover:bg-red-500"
+                                    >
+                                      <X className="w-3 h-3 text-white" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              {/* Add page button */}
+                              <button
+                                onClick={() => scanInputRef.current?.click()}
+                                className="w-16 h-20 flex-shrink-0 border-2 border-dashed border-white/30 rounded-lg flex flex-col items-center justify-center text-white/50 hover:border-blue-400 hover:text-blue-400 transition-colors"
+                              >
+                                <Plus className="w-5 h-5" />
+                                <span className="text-[10px]">Add</span>
+                              </button>
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={cancelScan}
+                                className="flex-1 rounded-lg border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={prepareScannedDocument}
+                                disabled={scanPages.length === 0 || preparingScans}
+                                className="flex-1 rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
+                              >
+                                {preparingScans ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Processing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check className="w-4 h-4 mr-2" />
+                                    Create Document
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
