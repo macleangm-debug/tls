@@ -126,9 +126,26 @@ The `/documents/prepare` endpoint will automatically use Gotenberg for DOC/DOCX 
 
 **Verification:** Stamp now appears at bottom-right corner of document preview immediately after upload.
 
+### Critical Fix #3: Stamp Disappears During Drag (Microsoft Edge)
+**Root Cause:** The Rnd component's controlled `position` prop caused visual glitches during drag as React re-renders tried to reset position.
+
+**Symptom:** On Microsoft Edge, when dragging the stamp to reposition it, the stamp would disappear during the drag motion.
+
+**Fix Applied:**
+1. Added `onDragStart` and `onDrag` handlers to properly manage dragging state
+2. Added `isDragging` state flag to prevent render conflicts during drag
+3. Added GPU rendering optimizations (`will-change: transform`, `backfaceVisibility: hidden`)
+4. Added `touchAction: 'none'` for better touch/pointer event handling
+5. Added visual feedback with `cursor-grabbing` during drag
+
+**Files Modified:** `/app/frontend/src/pages/DocumentStampPage.jsx`
+
+**Verification:** Stamp remains visible throughout drag operation on all browsers.
+
 ## Backlog
 - ✅ ~~P0: Fix stamping failure~~ (COMPLETED)
 - ✅ ~~P1: Fix stamp visibility~~ (COMPLETED)
+- ✅ ~~P1: Fix stamp drag disappearing~~ (COMPLETED)
 - P1: Real-world PDF stress testing (use `/api/admin/pdf/validate`)
 - P1: Add UI dropdown for scan mode selection (gray/color/bw)
 - P2: Deploy Gotenberg for DOCX support
