@@ -2058,22 +2058,18 @@ const DocumentStampPage = () => {
                               
                               return (
                                 <Rnd
-                                  key={`stamp-rnd-page-${currentPage}`}
+                                  key={`stamp-${currentPage}-${rndKey}`}
                                   ref={rndRef}
                                   size={{ 
                                     width: stampW, 
                                     height: stampH
                                   }}
-                                  position={{ x: scaledPosX, y: scaledPosY }}
+                                  default={{ x: scaledPosX, y: scaledPosY, width: stampW, height: stampH }}
                                   onDragStart={() => {
-                                    setIsDragging(true);
-                                  }}
-                                  onDrag={(e, d) => {
-                                    // During drag, don't trigger re-renders
-                                    // The Rnd component handles visual updates internally
+                                    isDraggingRef.current = true;
                                   }}
                                   onDragStop={(e, d) => {
-                                    setIsDragging(false);
+                                    isDraggingRef.current = false;
                                     // Clamp position in scaled coordinates
                                     const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
@@ -2085,11 +2081,9 @@ const DocumentStampPage = () => {
                                   }}
                                   bounds="parent"
                                   enableResizing={false}
-                                  className={`z-[1000] ${isDragging ? 'cursor-grabbing' : ''}`}
+                                  className="z-[1000]"
                                   dragHandleClassName="stamp-drag-handle"
                                   style={{ touchAction: 'none' }}
-                                  cancel=".no-drag"
-                                  disableDragging={false}
                                 >
                                   {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
                                   <div 
