@@ -908,21 +908,35 @@ const DocumentStampPage = () => {
   };
 
   // Signature canvas dynamic sizing (fixes lag + cutoff issues)
+  // OPTIMIZED for maximum responsiveness
   useEffect(() => {
     if (!showSignatureDrawer) return;
     
     const updateCanvasSize = () => {
       const el = sigWrapRef.current;
       if (!el) return;
-      const w = Math.max(320, Math.floor(el.getBoundingClientRect().width));
-      setSigCanvasSize({ width: w, height: 140 });
+      // Use device pixel ratio for crisp rendering on high-DPI displays
+      const rect = el.getBoundingClientRect();
+      const w = Math.max(320, Math.floor(rect.width));
+      // Taller canvas for better signature capture
+      setSigCanvasSize({ width: w, height: 180 });
     };
     
+    // Initial size calculation
     updateCanvasSize();
-    const ro = new ResizeObserver(() => updateCanvasSize());
+    
+    // Debounced resize observer to prevent excessive recalculations
+    let resizeTimeout;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(updateCanvasSize, 100);
+    });
     if (sigWrapRef.current) ro.observe(sigWrapRef.current);
     
-    return () => ro.disconnect();
+    return () => {
+      clearTimeout(resizeTimeout);
+      ro.disconnect();
+    };
   }, [showSignatureDrawer]);
 
   // Signature Management Functions
