@@ -1325,10 +1325,9 @@ const DocumentStampPage = () => {
       }
 
       const response = await axios.post(`${API}/documents/stamp`, formData, {
-        ...getAuthHeaders(),
         headers: {
-          ...getAuthHeaders().headers,
-          'Content-Type': 'multipart/form-data'
+          ...getAuthHeaders().headers
+          // DO NOT set Content-Type manually - axios handles FormData boundary automatically
         }
       });
 
@@ -1357,7 +1356,13 @@ const DocumentStampPage = () => {
         }, 500);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to stamp document");
+      // Show detailed error for debugging
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+      const detail = typeof data === "string" ? data : data?.detail || data?.message || error?.message || "Unknown error";
+      
+      console.error("Stamp failed:", status, data);
+      toast.error(`Failed to stamp (${status || "?"}): ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
     } finally {
       setStamping(false);
     }
