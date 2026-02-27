@@ -3286,7 +3286,9 @@ async def prepare_document(
             "X-Prepared-Original-Type": original_type,
             "X-Prepared-Pages": str(num_pages),
             "X-Prepared-Filename": file.filename or "document.pdf",
-            "X-Prepared-Source": source
+            "X-Prepared-Source": source,
+            "X-Scan-Mode": scan_mode,
+            "X-Scan-Quality": scan_quality
         }
     )
 
