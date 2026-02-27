@@ -2057,12 +2057,18 @@ const DocumentStampPage = () => {
                               
                               return (
                                 <Rnd
+                                  key={`stamp-rnd-${currentPage}-${pos.x.toFixed(1)}-${pos.y.toFixed(1)}`}
+                                  ref={rndRef}
                                   size={{ 
                                     width: stampW, 
                                     height: stampH
                                   }}
-                                  position={{ x: scaledPosX, y: scaledPosY }}
+                                  default={{ x: scaledPosX, y: scaledPosY }}
+                                  onDragStart={() => {
+                                    setIsDragging(true);
+                                  }}
                                   onDragStop={(e, d) => {
+                                    setIsDragging(false);
                                     // Clamp position in scaled coordinates
                                     const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
@@ -2076,6 +2082,7 @@ const DocumentStampPage = () => {
                                   enableResizing={false}
                                   className="z-[1000]"
                                   dragHandleClassName="stamp-drag-handle"
+                                  style={{ touchAction: 'none' }}
                                 >
                                   {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
                                   <div 
