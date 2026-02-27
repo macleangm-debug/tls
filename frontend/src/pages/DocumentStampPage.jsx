@@ -1987,12 +1987,9 @@ const DocumentStampPage = () => {
                     {/* Document Preview with Draggable Stamp */}
                     <div 
                       ref={previewContainerRef}
-                      className="relative bg-gray-800 flex items-center justify-center overflow-auto"
+                      className="relative bg-gray-800 flex items-start justify-center overflow-auto pt-3"
                       style={{ 
-                        // Dynamic height based on scaled PDF dimensions, clamped between 400-600px
-                        height: pageCanvasUrl 
-                          ? `${Math.min(600, Math.max(400, pageDimensions.height * previewScale))}px`
-                          : '500px',
+                        height: '600px',
                         minHeight: '400px',
                         maxHeight: '600px'
                       }}
