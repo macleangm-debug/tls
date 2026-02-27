@@ -2133,7 +2133,6 @@ const DocumentStampPage = () => {
                                 </Rnd>
                               );
                             })()}
-                            </div>
                           </div>
                         </div>
                       ) : pdfRendering ? (
