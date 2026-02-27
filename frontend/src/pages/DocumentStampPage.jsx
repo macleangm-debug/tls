@@ -2023,9 +2023,8 @@ const DocumentStampPage = () => {
                             className="absolute inset-0 w-full h-full object-contain z-0"
                           />
                           
-                          {/* Stamp Overlay Plane - z-[999] ensures it's above everything */}
-                          <div className="absolute inset-0 z-[999] pointer-events-none">
-                            <div className="pointer-events-auto">
+                          {/* Stamp Overlay Plane - positioned above PDF */}
+                          <div className="absolute inset-0 z-[999]">
                             {(() => {
                               // ========== STAMP OVERLAY ==========
                               // Coordinates are in the SCALED preview space (px)
