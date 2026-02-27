@@ -354,11 +354,13 @@ const DocumentStampPage = () => {
   };
 
   // Initialize stamp positions when pages change or file loads
+  // This is the MASTER position initializer - overrides any previous defaults
+  const [isFirstDocLoad, setIsFirstDocLoad] = useState(true);
   useEffect(() => {
-    if (fileData?.pages && pageDimensions.width > 100) {
+    if (fileData?.pages && pageDimensions.width > 100 && pageDimensions.height > 100) {
       const safePdfScale = Number.isFinite(pdfRenderScale) && pdfRenderScale > 0 ? pdfRenderScale : 1.5;
-      const stampW = stampPdfDimensions.width * safePdfScale;
-      const stampH = stampPdfDimensions.height * safePdfScale;
+      const stampW = stampSize.width || (stampPdfDimensions.width * safePdfScale);
+      const stampH = stampSize.height || (stampPdfDimensions.height * safePdfScale);
       
       // Default to BOTTOM-RIGHT corner (common for legal stamps)
       // This ensures stamp is visible within document bounds
@@ -366,14 +368,26 @@ const DocumentStampPage = () => {
       const defaultX = Math.max(marginPx, pageDimensions.width - stampW - marginPx);
       const defaultY = Math.max(marginPx, pageDimensions.height - stampH - marginPx);
       
-      const newPositions = {};
-      for (let i = 1; i <= fileData.pages; i++) {
-        // Keep existing position or use bottom-right default
-        newPositions[i] = stampPositions[i] || { x: defaultX, y: defaultY };
+      // On first document load, FORCE bottom-right positioning
+      // This overrides any template defaults that might have been set before dimensions were known
+      if (isFirstDocLoad) {
+        const newPositions = {};
+        for (let i = 1; i <= fileData.pages; i++) {
+          newPositions[i] = { x: defaultX, y: defaultY };
+        }
+        setStampPositions(newPositions);
+        setIsFirstDocLoad(false);
+        console.log(`[Stamp Position] Initialized to bottom-right: x=${defaultX}, y=${defaultY}`);
       }
-      setStampPositions(newPositions);
     }
-  }, [fileData?.pages, pageDimensions.width, pageDimensions.height, stampPdfDimensions.width, stampPdfDimensions.height, pdfRenderScale]);
+  }, [fileData?.pages, pageDimensions.width, pageDimensions.height, stampSize.width, stampSize.height, pdfRenderScale, isFirstDocLoad]);
+  
+  // Reset first doc load flag when file changes
+  useEffect(() => {
+    if (!file) {
+      setIsFirstDocLoad(true);
+    }
+  }, [file]);
 
   // ========== STAMP SIZE AND CENTERING ==========
   // Calculate stamp size from PDF dimensions
