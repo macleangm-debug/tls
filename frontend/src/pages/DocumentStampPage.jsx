@@ -2175,23 +2175,23 @@ const DocumentStampPage = () => {
                         <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
                           <FileText className="w-5 h-5 text-red-400" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate max-w-[250px]">{file?.name}</p>
                           <p className="text-white/40 text-xs">
                             {fileData?.pages} page{fileData?.pages > 1 ? 's' : ''} • PDF Preview
                             {fileData?.converted && <span className="text-emerald-400 ml-2">• Converted</span>}
                           </p>
                         </div>
-                        {/* Change Document button */}
+                        {/* Change Document button - prominent styling */}
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={resetDocument}
-                          className="text-white/50 hover:text-white hover:bg-white/10 text-xs ml-2"
+                          className="border-2 border-white/20 bg-white/5 hover:bg-white/15 text-white font-medium px-4"
                           data-testid="change-document-btn"
                         >
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                          Change
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Change Document
                         </Button>
                       </div>
                       <div className="flex items-center gap-2">
