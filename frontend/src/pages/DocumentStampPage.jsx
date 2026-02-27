@@ -400,21 +400,24 @@ const DocumentStampPage = () => {
       return prev;
     });
     
-    // Center stamp ONLY if no position exists for this page
+    // Position stamp ONLY if no position exists for this page
     // If position exists, CLAMP to new bounds (don't recenter on type switch)
     const marginPx = EDGE_MARGIN_PT * safePdfScale;
     const maxX = Math.max(marginPx, pageDimensions.width - stampW - marginPx);
     const maxY = Math.max(marginPx, pageDimensions.height - stampH - marginPx);
-    const centerX = Math.max(marginPx, (pageDimensions.width - stampW) / 2);
-    const centerY = Math.max(marginPx, (pageDimensions.height - stampH) / 2);
+    
+    // Default position: BOTTOM-RIGHT corner (common for legal stamps)
+    // This ensures the stamp is visible regardless of container sizing
+    const defaultX = maxX; // Right side with margin
+    const defaultY = maxY; // Bottom with margin
     
     setStampPositions(prev => {
       const currentPos = prev[currentPage];
       if (!currentPos) {
-        // No position yet - center it
+        // No position yet - place at bottom-right
         return {
           ...prev,
-          [currentPage]: { x: centerX, y: centerY }
+          [currentPage]: { x: defaultX, y: defaultY }
         };
       }
       // Position exists - CLAMP to new bounds (preserves user's placement)
