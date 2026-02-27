@@ -348,17 +348,11 @@ const DocumentStampPage = () => {
   };
 
   // Helper to set stamp position for current page
-  // When called from drag, don't increment key (component manages its own position)
-  // When called externally (page change, init), increment key to reset component
   const setStampPosition = (position, pageNum = currentPage, fromDrag = false) => {
     setStampPositions(prev => ({
       ...prev,
       [pageNum]: position
     }));
-    // Only increment key for external position changes, not from drag
-    if (!fromDrag) {
-      setRndKey(k => k + 1);
-    }
   };
 
   // Initialize stamp positions when pages change or file loads
