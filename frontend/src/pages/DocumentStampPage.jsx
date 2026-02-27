@@ -127,7 +127,6 @@ const DocumentStampPage = () => {
   const [stampPositionPreset, setStampPositionPreset] = useState("bottom-right"); // Position preset
   const isDraggingRef = useRef(false); // Use ref to avoid re-renders during drag
   const rndRef = useRef(null); // Ref to Rnd component for imperative updates
-  const [rndKey, setRndKey] = useState(0); // Key to force remount when position changes externally
   
   // Page selection mode
   const [pageSelectionMode, setPageSelectionMode] = useState("first"); // "first", "all", "custom"
