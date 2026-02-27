@@ -198,8 +198,8 @@ const SuperAdminDashboard = () => {
       </header>
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 bottom-0 w-72 bg-[#050810] border-r border-white/5 z-40 transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-white/5">
+      <aside className={`fixed left-0 top-0 bottom-0 w-72 bg-[#050810] border-r border-white/5 z-40 transform transition-transform duration-300 lg:translate-x-0 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 border-b border-white/5 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
@@ -212,7 +212,7 @@ const SuperAdminDashboard = () => {
         </div>
 
         {/* User Info */}
-        <div className="p-4 border-b border-white/5">
+        <div className="p-4 border-b border-white/5 flex-shrink-0">
           <div className="glass-card rounded-xl p-4">
             <p className="text-white font-semibold">{user?.full_name}</p>
             <p className="text-white/40 text-xs">{user?.email}</p>
@@ -222,7 +222,7 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
         
-        <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-4 overflow-y-auto min-h-0">
           {navGroups.map((group, groupIndex) => (
             <div key={group.label}>
               {/* Group Label */}
@@ -259,7 +259,7 @@ const SuperAdminDashboard = () => {
           ))}
         </nav>
         
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 border-t border-white/5 flex-shrink-0">
           <Button
             onClick={handleLogout}
             variant="ghost"
