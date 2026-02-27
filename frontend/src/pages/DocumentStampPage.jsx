@@ -25,7 +25,7 @@ import {
   DollarSign, TrendingUp, Calendar, Hash, Palette, User,
   FileCheck, Briefcase, Building, Globe, ChevronLeft, ChevronRight,
   RotateCcw, Maximize2, Minimize2, PenTool, Camera, Layers, 
-  FileImage, Settings2, SlidersHorizontal, Trash2, WifiOff, Cloud, RefreshCw
+  FileImage, Settings2, SlidersHorizontal, Trash2, WifiOff, Cloud, RefreshCw, Plus
 } from "lucide-react";
 import { storeDocument, queueStampOperation, cacheStamp } from "../lib/offlineDB";
 import { isOnline, syncAll } from "../lib/offlineSync";
