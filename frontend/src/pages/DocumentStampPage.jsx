@@ -358,13 +358,17 @@ const DocumentStampPage = () => {
       const safePdfScale = Number.isFinite(pdfRenderScale) && pdfRenderScale > 0 ? pdfRenderScale : 1.5;
       const stampW = stampPdfDimensions.width * safePdfScale;
       const stampH = stampPdfDimensions.height * safePdfScale;
-      const centerX = Math.max(10, (pageDimensions.width - stampW) / 2);
-      const centerY = Math.max(10, (pageDimensions.height - stampH) / 2);
+      
+      // Default to BOTTOM-RIGHT corner (common for legal stamps)
+      // This ensures stamp is visible within document bounds
+      const marginPx = 15 * safePdfScale; // 15pt margin
+      const defaultX = Math.max(marginPx, pageDimensions.width - stampW - marginPx);
+      const defaultY = Math.max(marginPx, pageDimensions.height - stampH - marginPx);
       
       const newPositions = {};
       for (let i = 1; i <= fileData.pages; i++) {
-        // Keep existing position or use center
-        newPositions[i] = stampPositions[i] || { x: centerX, y: centerY };
+        // Keep existing position or use bottom-right default
+        newPositions[i] = stampPositions[i] || { x: defaultX, y: defaultY };
       }
       setStampPositions(newPositions);
     }
