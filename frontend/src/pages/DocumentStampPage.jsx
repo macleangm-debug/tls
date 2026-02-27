@@ -818,12 +818,13 @@ const DocumentStampPage = () => {
       setPageCanvasUrl(pageCache[pageNum].imageUrl);
       setPageDimensions(pageCache[pageNum].dimensions);
       
-      // Initialize stamp position at CENTER if not already set for this page
+      // Initialize stamp position at BOTTOM-RIGHT if not already set for this page
       if (!stampPositions[pageNum]) {
         const { width, height } = pageCache[pageNum].dimensions;
-        const centerX = (width - stampSize.width) / 2;
-        const centerY = (height - stampSize.height) / 2;
-        setStampPosition({ x: centerX, y: centerY }, pageNum);
+        const marginPx = 15 * 1.5; // 15pt margin at scale 1.5
+        const defaultX = Math.max(marginPx, width - stampSize.width - marginPx);
+        const defaultY = Math.max(marginPx, height - stampSize.height - marginPx);
+        setStampPosition({ x: defaultX, y: defaultY }, pageNum);
       }
       return;
     }
