@@ -1217,7 +1217,8 @@ const DocumentStampPage = () => {
         console.log(`  Clamped pos (pt): (${x_pt.toFixed(1)}, ${y_pt.toFixed(1)})`);
         console.log(`=== END ===`);
         
-        pagePositions[pageNum] = { x: x_pt, y: y_pt };
+        // Use string keys to ensure consistent JSON serialization
+        pagePositions[String(pageNum)] = { x: x_pt, y: y_pt };
       });
       
       // Golden contract: send exact PDF points to backend
