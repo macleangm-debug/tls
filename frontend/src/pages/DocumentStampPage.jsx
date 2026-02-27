@@ -2007,24 +2007,25 @@ const DocumentStampPage = () => {
                       {/* PDF Preview - NO transform wrapper, use real scaled dimensions */}
                       {/* This ensures Rnd bounds math works correctly */}
                       {pageCanvasUrl ? (
-                        <div 
-                          className="bg-white relative shadow-2xl mx-auto"
-                          style={{ 
+                        <div
+                          className="bg-white relative shadow-2xl mx-auto overflow-hidden"
+                          style={{
                             width: pageDimensions.width * previewScale,
                             height: pageDimensions.height * previewScale,
                             maxWidth: '100%'
                           }}
                           id="stamp-preview-area"
                         >
-                          {/* PDF Page Image - z-0 base layer */}
-                          <img 
+                          {/* PDF Page Image - base layer (cannot steal drag) */}
+                          <img
                             src={pageCanvasUrl}
                             alt={`Page ${currentPage}`}
-                            className="absolute inset-0 w-full h-full object-contain z-0"
+                            className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none select-none"
+                            draggable={false}
                           />
                           
-                          {/* Stamp Overlay Plane - positioned above PDF */}
-                          <div className="absolute inset-0 z-[999]">
+                          {/* Stamp Overlay Plane */}
+                          <div className="absolute inset-0 z-[9999]">
                             {(() => {
                               // ========== STAMP OVERLAY ==========
                               // Coordinates are in the SCALED preview space (px)
