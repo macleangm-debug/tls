@@ -2080,10 +2080,11 @@ const DocumentStampPage = () => {
                                     const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
                                     // Convert back to unscaled coordinates for storage
+                                    // Pass fromDrag=true to avoid remounting the component
                                     setStampPosition({ 
                                       x: clampedX / safePreviewScale, 
                                       y: clampedY / safePreviewScale 
-                                    });
+                                    }, currentPage, true);
                                   }}
                                   bounds="parent"
                                   enableResizing={false}
