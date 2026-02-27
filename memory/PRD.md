@@ -96,9 +96,29 @@ GOTENBERG_URL=http://gotenberg:3000
 
 The `/documents/prepare` endpoint will automatically use Gotenberg for DOC/DOCX files.
 
+## Recent Bug Fixes (Feb 27, 2026) ✅
+
+### Critical Fix: Document Stamping Failure
+**Root Cause:** The `File` import from lucide-react was shadowing JavaScript's native `File` constructor.
+
+**Symptom:** When clicking "Generate Verified Stamp", the error "Failed to stamp" occurred with console showing `lucide_react__WEBPACK_IMPORTED_MODULE_35___.default is not a constructor`.
+
+**Fix Applied:**
+1. Renamed import from `File` to `FileIcon` in lucide-react imports
+2. Updated `DOCUMENT_TYPES` array to use `FileIcon` instead of `File`
+3. Fixed the `handleStampDocument` function to properly convert `fileData.document_data` (base64) back to a native `File` object
+
+**Files Modified:** `/app/frontend/src/pages/DocumentStampPage.jsx`
+
+**Verification:** Complete stamping flow tested end-to-end with stamp ID `TLS-20260227-496C9175` generated successfully.
+
 ## Backlog
-- P1: Test full stamping flow end-to-end
-- P1: Real-world PDF stress testing
+- ✅ ~~P0: Fix stamping failure~~ (COMPLETED)
+- ✅ ~~P1: Test full stamping flow end-to-end~~ (COMPLETED)
+- P1: Real-world PDF stress testing (use `/api/admin/pdf/validate`)
+- P1: Add UI dropdown for scan mode selection (gray/color/bw)
 - P2: Deploy Gotenberg for DOCX support
 - P2: Personal recurring events
 - P2: Backend monolith refactoring
+- P2: Google Calendar sync
+- P2: KwikPay payment integration
