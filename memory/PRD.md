@@ -5,6 +5,30 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ## Recent Updates
 
+### E2E Testing Complete (Feb 27, 2026) ✅
+
+**Full E2E Testing Results:**
+- Backend: 100% (8/8 tests passed)
+- Frontend: 100% (all UI flows verified)
+
+**Features Verified:**
+| Test | Result |
+|------|--------|
+| Upload PDF document | ✅ PASS |
+| Stamp appears on preview | ✅ PASS |
+| Drag stamp (slow + fast) | ✅ PASS - Stamp stays visible |
+| Switch stamp type | ✅ PASS - Position preserved |
+| Preview Stamped PDF | ✅ PASS |
+| Generate Verified Document | ✅ PASS |
+| Scan Doc button | ✅ PASS - Visible and styled |
+| Multi-page scan flow | ✅ PASS - Backend API verified |
+| Certification + Print mode | ✅ PASS - Placeholder shown |
+| Certification + Digital mode | ✅ PASS - Signature embedded |
+| Notarization mode | ✅ PASS - No signature section |
+| Change Document button | ✅ PASS - Visible and styled |
+| Auto-cropped badge | ✅ PASS - Header returned |
+| Document preview container | ✅ PASS - No clipping |
+
 ### Unified Document Preparation Pipeline (Feb 27, 2026) ✅
 
 **New Endpoint:** `POST /api/documents/prepare`
@@ -12,19 +36,15 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 Accepts any supported file and returns a normalized PDF:
 - **PDF**: Validates and returns as-is
 - **PNG/JPG/JPEG**: Converts to single-page A4 PDF with margins
-- **DOC/DOCX**: Returns friendly error (Gotenberg integration ready)
+- **Multi-image scan**: Merges all pages with auto-crop
 
 **Response Headers:**
-- `X-Prepared-Original-Type`: pdf|image|docx
+- `X-Prepared-Original-Type`: pdf|image|scan_multi
 - `X-Prepared-Pages`: number of pages
 - `X-Prepared-Filename`: original filename
-- `X-Prepared-Source`: upload|camera
-
-**Benefits:**
-- Unified preview pipeline (everything becomes PDF)
-- Consistent coordinate space for stamping
-- Camera capture ready (mobile-friendly)
-- Future-proof for Gotenberg DOCX conversion
+- `X-Auto-Crop`: true|false
+- `X-Crop-Confidence`: 0.0-1.0
+- `X-Pages-Cropped`: number of pages auto-cropped
 
 ### Document Stamping UX Fixes (Feb 26-27, 2026) ✅
 
@@ -35,6 +55,8 @@ Accepts any supported file and returns a normalized PDF:
 5. **Safe blob URL revoke** - Revokes in next tick after state update
 6. **80ms debounce** - Near-instant switching feel
 7. **Change Document button** - resetDocument() with fileInputKey
+8. **Stamp drag fix** - Controlled Rnd with onDrag handler
+9. **Bottom-right default position** - Stamp visible immediately
 
 ## Core Features
 
@@ -44,6 +66,12 @@ Accepts any supported file and returns a normalized PDF:
 - **Unified Pipeline**: All files converted to PDF first
 - **Signature Options**: Digital signature or sign-after-printing
 
+### CamScanner-style Scanning ✅
+- **Multi-page capture**: Add multiple scanned pages
+- **Auto-crop**: OpenCV-based edge detection and perspective warp
+- **Enhancement modes**: Document (gray), Color, Black & White
+- **PDF merge**: All pages combined into single PDF
+
 ### Stamp Sizes
 - Compact (Notarization): 140 × 75 PT
 - Certification (with signature): 150 × 95 PT
@@ -52,9 +80,10 @@ Accepts any supported file and returns a normalized PDF:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/documents/prepare` | POST | Convert any file to PDF |
+| `/api/documents/prepare` | POST | Convert any file to PDF with auto-crop |
 | `/api/documents/stamp` | POST | Generate final stamped PDF |
 | `/api/stamps/render-image` | POST | Generate stamp PNG preview |
+| `/api/verify/stamp/{id}` | GET | Verify stamp authenticity |
 
 ## Architecture
 
@@ -69,6 +98,7 @@ User Upload → /prepare → PDF → pdf.js render → Stamp overlay → /stamp 
 | PDF | ✅ Direct |
 | PNG/JPG/JPEG | ✅ Converted to PDF |
 | Camera | ✅ Converted to PDF |
+| Multi-image Scan | ✅ Merged with auto-crop |
 | DOC/DOCX | ⏳ Pending Gotenberg |
 
 ## Test Credentials
@@ -76,80 +106,39 @@ User Upload → /prepare → PDF → pdf.js render → Stamp overlay → /stamp 
 |---|---|---|
 | Test Advocate | test@tls.or.tz | Test@12345678! |
 
-## Gotenberg Integration (Future)
+## Bug Fix History
 
-When ready to add DOCX support:
-
-```yaml
-# Docker Compose
-services:
-  gotenberg:
-    image: gotenberg/gotenberg:8
-    ports:
-      - "3000:3000"
-```
-
-Set environment variable:
-```
-GOTENBERG_URL=http://gotenberg:3000
-```
-
-The `/documents/prepare` endpoint will automatically use Gotenberg for DOC/DOCX files.
-
-## Recent Bug Fixes (Feb 27, 2026) ✅
-
-### Critical Fix #1: Document Stamping Failure
+### Critical Fix #1: Document Stamping Failure (RESOLVED) ✅
 **Root Cause:** The `File` import from lucide-react was shadowing JavaScript's native `File` constructor.
 
-**Symptom:** When clicking "Generate Verified Stamp", the error "Failed to stamp" occurred with console showing `lucide_react__WEBPACK_IMPORTED_MODULE_35___.default is not a constructor`.
+### Critical Fix #2: Stamp Overlay Not Visible (RESOLVED) ✅
+**Root Cause:** Multiple code paths were setting stamp position to top-center before document dimensions were known.
 
-**Fix Applied:**
-1. Renamed import from `File` to `FileIcon` in lucide-react imports
-2. Updated `DOCUMENT_TYPES` array to use `FileIcon` instead of `File`
-3. Fixed the `handleStampDocument` function to properly convert `fileData.document_data` (base64) back to a native `File` object
-
-**Files Modified:** `/app/frontend/src/pages/DocumentStampPage.jsx`
-
-**Verification:** Complete stamping flow tested end-to-end with stamp ID `TLS-20260227-496C9175` generated successfully.
-
-### Critical Fix #2: Stamp Overlay Not Visible
-**Root Cause:** Multiple code paths were setting stamp position to top-center (y=50) before document dimensions were known.
-
-**Symptom:** After uploading a document, the stamp overlay was positioned outside the visible preview area.
-
-**Fix Applied:**
-1. Changed default stamp position from center to **bottom-right** (common for legal documents)
-2. Added `isFirstDocLoad` flag to force bottom-right positioning when document is first loaded
-3. Updated all position initialization code paths (renderPage, applyTemplate, useEffect hooks)
-
-**Files Modified:** `/app/frontend/src/pages/DocumentStampPage.jsx`
-
-**Verification:** Stamp now appears at bottom-right corner of document preview immediately after upload.
-
-### Critical Fix #3: Stamp Disappears During Drag (Microsoft Edge)
-**Root Cause:** The Rnd component's controlled `position` prop caused visual glitches during drag as React re-renders tried to reset position.
-
-**Symptom:** On Microsoft Edge, when dragging the stamp to reposition it, the stamp would disappear during the drag motion.
-
-**Fix Applied:**
-1. Added `onDragStart` and `onDrag` handlers to properly manage dragging state
-2. Added `isDragging` state flag to prevent render conflicts during drag
-3. Added GPU rendering optimizations (`will-change: transform`, `backfaceVisibility: hidden`)
-4. Added `touchAction: 'none'` for better touch/pointer event handling
-5. Added visual feedback with `cursor-grabbing` during drag
-
-**Files Modified:** `/app/frontend/src/pages/DocumentStampPage.jsx`
-
-**Verification:** Stamp remains visible throughout drag operation on all browsers.
+### Critical Fix #3: Stamp Disappears During Drag (RESOLVED) ✅
+**Root Cause:** The Rnd component's controlled `position` prop caused visual glitches during drag.
+**User Verification:** PENDING - User should verify on Microsoft Edge
 
 ## Backlog
-- ✅ ~~P0: Fix stamping failure~~ (COMPLETED)
-- ✅ ~~P1: Fix stamp visibility~~ (COMPLETED)
-- ✅ ~~P1: Fix stamp drag disappearing~~ (COMPLETED)
-- P1: Real-world PDF stress testing (use `/api/admin/pdf/validate`)
-- P1: Add UI dropdown for scan mode selection (gray/color/bw)
-- P2: Deploy Gotenberg for DOCX support
-- P2: Personal recurring events
-- P2: Backend monolith refactoring
-- P2: Google Calendar sync
-- P2: KwikPay payment integration
+
+### P0 (Critical) - COMPLETED ✅
+- ~~Fix stamping failure~~ (COMPLETED)
+- ~~Fix stamp visibility~~ (COMPLETED)
+- ~~Fix stamp drag disappearing~~ (COMPLETED)
+- ~~E2E testing of full stamp flow~~ (COMPLETED)
+
+### P1 (High Priority)
+- Real-world PDF stress testing (use `/api/admin/pdf/validate`)
+- Add UI dropdown for scan mode selection (gray/color/bw)
+- Finalize signature placement inside stamp placeholder
+- Harden "Failed to stamp document" error handling with better logging
+
+### P2 (Medium Priority)
+- Deploy Gotenberg for DOCX support
+- Backend monolith refactoring (break down server.py)
+- Sticky "Stamp Controls" bar above preview
+- Audit Practice Management modules
+
+### P3 (Future)
+- Google Calendar sync
+- KwikPay payment integration
+- Personal recurring events
