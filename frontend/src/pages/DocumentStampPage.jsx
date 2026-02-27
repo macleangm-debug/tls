@@ -21,7 +21,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import { 
   Upload, FileText, QrCode, Download, Eye, CheckCircle2, Check,
   AlertTriangle, Lock, Shield, Fingerprint, Move, ZoomIn, ZoomOut,
-  X, File, Image as ImageIcon, Loader2, Copy, Share2,
+  X, File as FileIcon, Image as ImageIcon, Loader2, Copy, Share2,
   DollarSign, TrendingUp, Calendar, Hash, Palette, User,
   FileCheck, Briefcase, Building, Globe, ChevronLeft, ChevronRight,
   RotateCcw, Maximize2, Minimize2, PenTool, Camera, Layers, 
