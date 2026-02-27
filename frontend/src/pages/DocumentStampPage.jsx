@@ -64,7 +64,7 @@ const DOCUMENT_TYPES = [
   { id: "court_filing", name: "Court Filing", icon: Globe },
   { id: "legal_opinion", name: "Legal Opinion", icon: FileText },
   { id: "witness_statement", name: "Witness Statement", icon: User },
-  { id: "other", name: "Other Legal Document", icon: File }
+  { id: "other", name: "Other Legal Document", icon: FileIcon }
 ];
 
 const BRAND_COLORS = [
