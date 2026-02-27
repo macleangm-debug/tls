@@ -3122,61 +3122,6 @@ async def prepare_document(
     if not files or len(files) == 0:
         raise HTTPException(status_code=400, detail="No files uploaded")
     
-    # Helper function to optimize a single image (CamScanner-style)
-    def optimize_scan_image(content: bytes, mode: str, quality: str) -> Image.Image:
-        from PIL import ImageOps, ImageEnhance, ImageFilter
-        
-        img = Image.open(BytesIO(content))
-        
-        # Fix rotation from phone cameras (EXIF)
-        img = ImageOps.exif_transpose(img)
-        
-        # Convert to RGB early
-        if img.mode in ('RGBA', 'LA', 'P'):
-            background = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode == 'P':
-                img = img.convert('RGBA')
-            if img.mode in ('RGBA', 'LA'):
-                background.paste(img, mask=img.split()[-1])
-            else:
-                background.paste(img)
-            img = background
-        elif img.mode not in ('RGB', 'L'):
-            img = img.convert('RGB')
-        
-        # Quality settings
-        if quality == "high":
-            max_long_edge = 2800
-        else:
-            max_long_edge = 2200
-        
-        # Resize down for predictable output
-        w, h = img.size
-        long_edge = max(w, h)
-        if long_edge > max_long_edge:
-            scale = max_long_edge / float(long_edge)
-            img = img.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
-        
-        # Light denoise
-        img = img.filter(ImageFilter.MedianFilter(size=3))
-        
-        # Apply scan mode processing
-        if mode == "gray":
-            img = img.convert("L")
-            img = ImageOps.autocontrast(img, cutoff=2)
-            img = ImageEnhance.Contrast(img).enhance(1.35)
-            img = ImageEnhance.Sharpness(img).enhance(1.4)
-        elif mode == "bw":
-            img = img.convert("L")
-            img = ImageOps.autocontrast(img, cutoff=2)
-            img = ImageEnhance.Contrast(img).enhance(1.6)
-            img = img.point(lambda p: 255 if p > 165 else 0).convert("1")
-        else:  # color
-            img = ImageEnhance.Contrast(img).enhance(1.15)
-            img = ImageEnhance.Sharpness(img).enhance(1.2)
-        
-        return img
-    
     # Helper function to convert image to single-page PDF
     def image_to_pdf_page(img: Image.Image, target_dpi: int, jpeg_quality: int) -> bytes:
         from reportlab.lib.utils import ImageReader
