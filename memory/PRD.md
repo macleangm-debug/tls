@@ -98,7 +98,7 @@ The `/documents/prepare` endpoint will automatically use Gotenberg for DOC/DOCX 
 
 ## Recent Bug Fixes (Feb 27, 2026) ✅
 
-### Critical Fix: Document Stamping Failure
+### Critical Fix #1: Document Stamping Failure
 **Root Cause:** The `File` import from lucide-react was shadowing JavaScript's native `File` constructor.
 
 **Symptom:** When clicking "Generate Verified Stamp", the error "Failed to stamp" occurred with console showing `lucide_react__WEBPACK_IMPORTED_MODULE_35___.default is not a constructor`.
@@ -112,9 +112,23 @@ The `/documents/prepare` endpoint will automatically use Gotenberg for DOC/DOCX 
 
 **Verification:** Complete stamping flow tested end-to-end with stamp ID `TLS-20260227-496C9175` generated successfully.
 
+### Critical Fix #2: Stamp Overlay Not Visible
+**Root Cause:** Multiple code paths were setting stamp position to top-center (y=50) before document dimensions were known.
+
+**Symptom:** After uploading a document, the stamp overlay was positioned outside the visible preview area.
+
+**Fix Applied:**
+1. Changed default stamp position from center to **bottom-right** (common for legal documents)
+2. Added `isFirstDocLoad` flag to force bottom-right positioning when document is first loaded
+3. Updated all position initialization code paths (renderPage, applyTemplate, useEffect hooks)
+
+**Files Modified:** `/app/frontend/src/pages/DocumentStampPage.jsx`
+
+**Verification:** Stamp now appears at bottom-right corner of document preview immediately after upload.
+
 ## Backlog
 - ✅ ~~P0: Fix stamping failure~~ (COMPLETED)
-- ✅ ~~P1: Test full stamping flow end-to-end~~ (COMPLETED)
+- ✅ ~~P1: Fix stamp visibility~~ (COMPLETED)
 - P1: Real-world PDF stress testing (use `/api/admin/pdf/validate`)
 - P1: Add UI dropdown for scan mode selection (gray/color/bw)
 - P2: Deploy Gotenberg for DOCX support
