@@ -3626,7 +3626,7 @@ async def create_document_stamp(
         "stamp_type": stamp_type,
         "stamp_position": position,
         "branding": branding,
-        "signature_data": signature_data,
+        "signature_data": final_signature_data,
         "hash_value": hash_value,
         "qr_code_data": qr_data,
         "status": "active",
