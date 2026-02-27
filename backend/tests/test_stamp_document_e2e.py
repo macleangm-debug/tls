@@ -368,7 +368,7 @@ class TestStampVerification:
         stamp_id = stamp_response.json()["stamp_id"]
         
         # Now verify the stamp
-        verify_response = requests.get(f"{BASE_URL}/api/verify/{stamp_id}")
+        verify_response = requests.get(f"{BASE_URL}/api/verify/stamp/{stamp_id}")
         
         assert verify_response.status_code == 200
         verify_data = verify_response.json()
