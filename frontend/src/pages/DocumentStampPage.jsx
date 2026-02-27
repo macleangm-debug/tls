@@ -719,9 +719,13 @@ const DocumentStampPage = () => {
     const currentShape = template.shape || stampShape;
     setStampSize(fixedSizes[currentShape] || fixedSizes.rectangle);
     
-    // Apply default position from template
-    if (template.default_position) {
-      setStampPosition({ x: template.default_position.x || 50, y: template.default_position.y || 50 });
+    // Apply default position from template ONLY if we have document dimensions
+    // Otherwise, let the PDF render flow set the initial position at bottom-right
+    if (template.default_position && pageDimensions.width > 100) {
+      const marginPx = 22.5; // 15pt * 1.5 scale
+      const defaultX = template.default_position.x ?? Math.max(marginPx, pageDimensions.width - stampSize.width - marginPx);
+      const defaultY = template.default_position.y ?? Math.max(marginPx, pageDimensions.height - stampSize.height - marginPx);
+      setStampPosition({ x: defaultX, y: defaultY });
     }
     
     if (!silent) {
