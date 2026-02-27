@@ -1968,8 +1968,9 @@ const DocumentStampPage = () => {
                             className="absolute inset-0 w-full h-full object-contain z-0"
                           />
                           
-                          {/* Stamp Overlay Plane - z-50 to ensure it's above the PDF */}
-                          <div className="absolute inset-0 z-50">
+                          {/* Stamp Overlay Plane - z-[999] ensures it's above everything */}
+                          <div className="absolute inset-0 z-[999] pointer-events-none">
+                            <div className="pointer-events-auto">
                             {(() => {
                               // ========== STAMP OVERLAY ==========
                               // Coordinates are in the SCALED preview space (px)
@@ -1996,6 +1997,16 @@ const DocumentStampPage = () => {
                               const scaledPosX = pos.x * safePreviewScale;
                               const scaledPosY = pos.y * safePreviewScale;
                               
+                              // Debug logging for position verification
+                              if (process.env.NODE_ENV === 'development') {
+                                console.log('[Stamp Overlay] Position:', { 
+                                  raw: pos, 
+                                  scaled: { x: scaledPosX, y: scaledPosY },
+                                  stampSize: { w: stampW, h: stampH },
+                                  hasImage: !!stampPreviewImage
+                                });
+                              }
+                              
                               return (
                                 <Rnd
                                   size={{ 
@@ -2015,7 +2026,7 @@ const DocumentStampPage = () => {
                                   }}
                                   bounds="parent"
                                   enableResizing={false}
-                                  className="z-[60]"
+                                  className="z-[1000]"
                                   dragHandleClassName="stamp-drag-handle"
                                 >
                                   {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
