@@ -3,84 +3,102 @@
 ## Overview
 A comprehensive Practice Management Suite and Digital Certification Platform for advocates built with React, FastAPI, and MongoDB.
 
-## Recent Fixes (Feb 26, 2026) - Document Stamping UX Polish - FINAL
+## Recent Updates
 
-### A) Backend: Signature Box Alignment (SIG_BOX) ✅
-- **Problem**: Digital signature pasting at different coordinates than placeholder line
-- **Solution**: Single `SIG_BOX` with shared `sig_area_x`, `sig_area_y`, `sig_area_w`, `sig_area_height`
-- **Result**: Signature always lands inside exact placeholder region
+### Unified Document Preparation Pipeline (Feb 27, 2026) ✅
 
-### B) Frontend: Race Condition Guard ✅
-- **Problem**: Stamp preview disappearing when rapidly toggling options
-- **Solution**: 
-  - `previewReqIdRef` to ignore stale API responses
-  - Safe blob URL revoke (revoke AFTER state update in next tick)
-  - 80ms debounce (feels instant)
-- **Result**: Rapid toggling no longer breaks the stamp
+**New Endpoint:** `POST /api/documents/prepare`
 
-### C) Frontend: Signature Validation ✅
-- **Problem**: Invalid signature data breaking preview
-- **Solution**: `hasValidSig` guard checks length > 100 and base64 format
-- **Result**: Prevents "digital signature breaks preview" case
+Accepts any supported file and returns a normalized PDF:
+- **PDF**: Validates and returns as-is
+- **PNG/JPG/JPEG**: Converts to single-page A4 PDF with margins
+- **DOC/DOCX**: Returns friendly error (Gotenberg integration ready)
 
-### D) Frontend: Position Persistence ✅
-- **Problem**: Stamp re-centering when switching types
-- **Solution**: 
-  - Removed page-change recenter effect
-  - Clamp effect only clamps, never recenters
-  - `getStampPosition()` centers by default if missing
-- **Result**: Stamp stays in place when switching types
+**Response Headers:**
+- `X-Prepared-Original-Type`: pdf|image|docx
+- `X-Prepared-Pages`: number of pages
+- `X-Prepared-Filename`: original filename
+- `X-Prepared-Source`: upload|camera
 
-### E) Frontend: Change Document Button ✅
-- **Problem**: User couldn't easily upload a different document
-- **Solution**: 
-  - Added `resetDocument()` function
-  - "Change" button next to filename
-  - `fileInputKey` for input remount
-- **Result**: Users can easily swap documents
+**Benefits:**
+- Unified preview pipeline (everything becomes PDF)
+- Consistent coordinate space for stamping
+- Camera capture ready (mobile-friendly)
+- Future-proof for Gotenberg DOCX conversion
 
-### F) Frontend: Signature Canvas Sizing ✅
-- **Problem**: Canvas lag and cutoff
-- **Solution**: 
-  - `sigWrapRef` + `sigCanvasSize` state
-  - ResizeObserver for dynamic sizing
-  - `touch-none` class
-- **Result**: No lag or clipping
+### Document Stamping UX Fixes (Feb 26-27, 2026) ✅
+
+1. **Z-index stacking** - Overlay plane z-[999], Rnd z-[1000]
+2. **Backend signature_data** - Added Form parameter with DB fallback
+3. **Content-Type fix** - Removed manual header breaking FormData
+4. **Position string keys** - Consistent JSON serialization
+5. **Safe blob URL revoke** - Revokes in next tick after state update
+6. **80ms debounce** - Near-instant switching feel
+7. **Change Document button** - resetDocument() with fileInputKey
 
 ## Core Features
 
 ### Document Stamping ✅
-- **WYSIWYG Preview**: Backend renders exact stamp PNG via `/stamps/render-image`
-- **Race Condition Guard**: Ignores stale responses during rapid toggling
-- **Blob URL Safety**: Revoke after state update, not before
-- **State Normalization**: Notarization forces `signatureMode="none"`
+- **WYSIWYG Preview**: Backend renders exact stamp PNG
+- **Race Condition Guard**: Ignores stale responses
+- **Unified Pipeline**: All files converted to PDF first
+- **Signature Options**: Digital signature or sign-after-printing
 
-### Stamp Sizes (Reduced for quarter-page feel)
+### Stamp Sizes
 - Compact (Notarization): 140 × 75 PT
 - Certification (with signature): 150 × 95 PT
 
-### Signature Options
-- `Use Digital Signature`: Embeds saved signature (certification only)
-- `Sign After Printing`: Shows placeholder line for physical signature
-
 ## Key API Endpoints
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/documents/prepare` | POST | Convert any file to PDF |
 | `/api/documents/stamp` | POST | Generate final stamped PDF |
-| `/api/stamps/render-image` | POST | Generate stamp PNG for preview |
+| `/api/stamps/render-image` | POST | Generate stamp PNG preview |
+
+## Architecture
+
+### Document Flow
+```
+User Upload → /prepare → PDF → pdf.js render → Stamp overlay → /stamp → Final PDF
+```
+
+### Supported File Types
+| Type | Status |
+|------|--------|
+| PDF | ✅ Direct |
+| PNG/JPG/JPEG | ✅ Converted to PDF |
+| Camera | ✅ Converted to PDF |
+| DOC/DOCX | ⏳ Pending Gotenberg |
 
 ## Test Credentials
 | Role | Email | Password |
 |---|---|---|
 | Test Advocate | test@tls.or.tz | Test@12345678! |
 
-## Tech Stack
-- Frontend: React 18, Shadcn UI, TailwindCSS, react-rnd, react-signature-canvas
-- Backend: FastAPI, MongoDB, PIL
+## Gotenberg Integration (Future)
+
+When ready to add DOCX support:
+
+```yaml
+# Docker Compose
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3000:3000"
+```
+
+Set environment variable:
+```
+GOTENBERG_URL=http://gotenberg:3000
+```
+
+The `/documents/prepare` endpoint will automatically use Gotenberg for DOC/DOCX files.
 
 ## Backlog
+- P1: Test full stamping flow end-to-end
 - P1: Real-world PDF stress testing
-- P1: Audit Practice Management modules
+- P2: Deploy Gotenberg for DOCX support
 - P2: Personal recurring events
 - P2: Backend monolith refactoring
-- P2: Google Calendar sync
