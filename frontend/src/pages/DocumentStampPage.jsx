@@ -183,6 +183,13 @@ const DocumentStampPage = () => {
   // Camera capture state
   const cameraInputRef = useRef(null);
   const signatureUploadRef = useRef(null);
+  const scanInputRef = useRef(null);
+  
+  // Multi-page scan state (CamScanner-style)
+  const [scanPages, setScanPages] = useState([]); // [{id, file, previewUrl}]
+  const [scanMode, setScanMode] = useState("gray"); // "gray" | "color" | "bw"
+  const [showScanPreview, setShowScanPreview] = useState(false);
+  const [preparingScans, setPreparingScans] = useState(false);
   
   // Local input state for responsive typing (used directly in input fields)
   const [localDescription, setLocalDescription] = useState("");
