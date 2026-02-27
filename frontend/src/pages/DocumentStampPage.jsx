@@ -335,13 +335,14 @@ const DocumentStampPage = () => {
     if (stampPositions[pageNum]) {
       return stampPositions[pageNum];
     }
-    // Default to CENTER of page (positions are in unscaled page coordinates)
+    // Default to BOTTOM-RIGHT of page (positions are in unscaled page coordinates)
     const safePdfScale = Number.isFinite(pdfRenderScale) && pdfRenderScale > 0 ? pdfRenderScale : 1.5;
     const stampW = stampPdfDimensions.width * safePdfScale;
     const stampH = stampPdfDimensions.height * safePdfScale;
-    const centerX = Math.max(10, (pageDimensions.width - stampW) / 2);
-    const centerY = Math.max(10, (pageDimensions.height - stampH) / 2);
-    return { x: centerX, y: centerY };
+    const marginPx = 15 * safePdfScale; // 15pt margin
+    const defaultX = Math.max(marginPx, pageDimensions.width - stampW - marginPx);
+    const defaultY = Math.max(marginPx, pageDimensions.height - stampH - marginPx);
+    return { x: defaultX, y: defaultY };
   };
 
   // Helper to set stamp position for current page
