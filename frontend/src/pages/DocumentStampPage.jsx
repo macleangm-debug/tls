@@ -2057,15 +2057,19 @@ const DocumentStampPage = () => {
                               
                               return (
                                 <Rnd
-                                  key={`stamp-rnd-${currentPage}-${pos.x.toFixed(1)}-${pos.y.toFixed(1)}`}
+                                  key={`stamp-rnd-page-${currentPage}`}
                                   ref={rndRef}
                                   size={{ 
                                     width: stampW, 
                                     height: stampH
                                   }}
-                                  default={{ x: scaledPosX, y: scaledPosY }}
+                                  position={{ x: scaledPosX, y: scaledPosY }}
                                   onDragStart={() => {
                                     setIsDragging(true);
+                                  }}
+                                  onDrag={(e, d) => {
+                                    // During drag, don't trigger re-renders
+                                    // The Rnd component handles visual updates internally
                                   }}
                                   onDragStop={(e, d) => {
                                     setIsDragging(false);
@@ -2080,9 +2084,11 @@ const DocumentStampPage = () => {
                                   }}
                                   bounds="parent"
                                   enableResizing={false}
-                                  className="z-[1000]"
+                                  className={`z-[1000] ${isDragging ? 'cursor-grabbing' : ''}`}
                                   dragHandleClassName="stamp-drag-handle"
                                   style={{ touchAction: 'none' }}
+                                  cancel=".no-drag"
+                                  disableDragging={false}
                                 >
                                   {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
                                   <div 
