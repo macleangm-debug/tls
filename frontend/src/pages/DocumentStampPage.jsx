@@ -2093,7 +2093,7 @@ const DocumentStampPage = () => {
                                       height: stampH,
                                       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
                                       pointerEvents: 'auto',
-                                      willChange: isDragging ? 'transform' : 'auto',
+                                      willChange: 'transform',
                                       backfaceVisibility: 'hidden',
                                       WebkitBackfaceVisibility: 'hidden'
                                     }}
