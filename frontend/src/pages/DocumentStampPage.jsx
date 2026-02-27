@@ -2065,22 +2065,10 @@ const DocumentStampPage = () => {
                               return (
                                 <Rnd
                                   key={`stamp-${currentPage}-${rndKey}`}
-                                  ref={rndRef}
-                                  size={{ 
-                                    width: stampW, 
-                                    height: stampH
-                                  }}
                                   default={{ x: scaledPosX, y: scaledPosY, width: stampW, height: stampH }}
-                                  onDragStart={() => {
-                                    isDraggingRef.current = true;
-                                  }}
                                   onDragStop={(e, d) => {
-                                    isDraggingRef.current = false;
-                                    // Clamp position in scaled coordinates
                                     const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
-                                    // Convert back to unscaled coordinates for storage
-                                    // Pass fromDrag=true to avoid remounting the component
                                     setStampPosition({ 
                                       x: clampedX / safePreviewScale, 
                                       y: clampedY / safePreviewScale 
@@ -2088,24 +2076,15 @@ const DocumentStampPage = () => {
                                   }}
                                   bounds="parent"
                                   enableResizing={false}
-                                  className="z-[1000]"
-                                  style={{ 
-                                    touchAction: 'none',
-                                    transform: 'translate3d(0,0,0)', // Force GPU layer
-                                    willChange: 'transform'
-                                  }}
                                 >
-                                  {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
+                                  {/* Backend-Generated Stamp Preview */}
                                   <div 
-                                    className="cursor-move stamp-drag-handle relative"
                                     style={{ 
                                       width: stampW,
                                       height: stampH,
-                                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-                                      pointerEvents: 'auto',
-                                      willChange: 'transform',
-                                      backfaceVisibility: 'hidden',
-                                      WebkitBackfaceVisibility: 'hidden'
+                                      cursor: 'move',
+                                      userSelect: 'none',
+                                      WebkitUserSelect: 'none'
                                     }}
                                     data-testid="stamp-preview"
                                   >
