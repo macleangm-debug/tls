@@ -191,6 +191,10 @@ const DocumentStampPage = () => {
   const [showScanPreview, setShowScanPreview] = useState(false);
   const [preparingScans, setPreparingScans] = useState(false);
   
+  // Prepare metadata (auto-crop results from backend)
+  const [prepareMeta, setPrepareMeta] = useState(null);
+  // { autoCrop: bool, cropConfidence: float, pagesCropped: int, scanMode: string }
+  
   // Local input state for responsive typing (used directly in input fields)
   const [localDescription, setLocalDescription] = useState("");
   const [localRecipientName, setLocalRecipientName] = useState("");
