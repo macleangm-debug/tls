@@ -547,7 +547,7 @@ const InstitutionalPortal = () => {
       }`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-white/10 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-white" />
@@ -560,7 +560,7 @@ const InstitutionalPortal = () => {
           </div>
 
           {/* Organization Info */}
-          <div className="p-4 mx-4 mt-4 bg-white/5 rounded-2xl">
+          <div className="p-4 mx-4 mt-4 bg-white/5 rounded-2xl flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className={`w-12 h-12 rounded-xl bg-${OrgType?.color || 'blue'}-500/20 flex items-center justify-center`}>
                 <OrgIcon className={`w-6 h-6 text-${OrgType?.color || 'blue'}-400`} />
@@ -583,7 +583,7 @@ const InstitutionalPortal = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
             {[
               { id: "overview", icon: BarChart3, label: "Overview" },
               { id: "verify", icon: ShieldCheck, label: "Verify Document" },
@@ -607,7 +607,7 @@ const InstitutionalPortal = () => {
           </nav>
 
           {/* Bottom Actions */}
-          <div className="p-4 border-t border-white/10 space-y-2">
+          <div className="p-4 border-t border-white/10 space-y-2 flex-shrink-0">
             <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 hover:bg-white/5 hover:text-white transition-all">
               <HelpCircle className="w-5 h-5" />
               <span>Help & Support</span>
