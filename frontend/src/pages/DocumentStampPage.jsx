@@ -2089,8 +2089,11 @@ const DocumentStampPage = () => {
                                   bounds="parent"
                                   enableResizing={false}
                                   className="z-[1000]"
-                                  dragHandleClassName="stamp-drag-handle"
-                                  style={{ touchAction: 'none' }}
+                                  style={{ 
+                                    touchAction: 'none',
+                                    transform: 'translate3d(0,0,0)', // Force GPU layer
+                                    willChange: 'transform'
+                                  }}
                                 >
                                   {/* Backend-Generated Stamp Preview - SINGLE SOURCE OF TRUTH */}
                                   <div 
