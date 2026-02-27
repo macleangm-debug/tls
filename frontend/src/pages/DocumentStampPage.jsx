@@ -1747,6 +1747,8 @@ const DocumentStampPage = () => {
     setPdfDoc(null);
     // Reset stamp positions for new document
     setStampPositions({});
+    // Clear prepare metadata (auto-crop badge)
+    setPrepareMeta(null);
     // Keep stamp type, signature mode, color (UX: user wants to stamp another doc same way)
     // Force file input remount
     setFileInputKey(Date.now());
