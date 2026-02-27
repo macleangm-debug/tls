@@ -8392,6 +8392,7 @@ CSRF_EXEMPT_PATHS = [
     "/api/admin/login",
     "/api/documents/stamp",  # Document stamping - authenticated via JWT
     "/api/documents/upload",  # Document upload - authenticated via JWT
+    "/api/documents/prepare",  # Document preparation - authenticated via JWT
     "/api/advocate/signature",  # Signature management - authenticated via JWT
     "/api/stamp-templates",  # Stamp templates - authenticated via JWT
     "/api/stamps",  # Stamp ledger operations - authenticated via JWT
