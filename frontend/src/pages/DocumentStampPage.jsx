@@ -2097,7 +2097,10 @@ const DocumentStampPage = () => {
                                       width: stampW,
                                       height: stampH,
                                       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-                                      pointerEvents: 'auto'
+                                      pointerEvents: 'auto',
+                                      willChange: isDragging ? 'transform' : 'auto',
+                                      backfaceVisibility: 'hidden',
+                                      WebkitBackfaceVisibility: 'hidden'
                                     }}
                                     data-testid="stamp-preview"
                                   >
