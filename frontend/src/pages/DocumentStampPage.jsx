@@ -2095,7 +2095,13 @@ const DocumentStampPage = () => {
                                           src={stampPreviewImage} 
                                           alt="TLS Verified Stamp Preview"
                                           className="w-full h-full object-contain"
-                                          style={{ imageRendering: 'crisp-edges' }}
+                                          style={{ 
+                                            imageRendering: 'crisp-edges',
+                                            pointerEvents: 'none',
+                                            userSelect: 'none',
+                                            WebkitUserSelect: 'none',
+                                            MozUserSelect: 'none'
+                                          }}
                                           draggable={false}
                                         />
                                         {/* Tiny "Updating..." indicator in corner when loading */}
