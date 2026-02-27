@@ -2063,38 +2063,49 @@ const DocumentStampPage = () => {
                               
                               return (
                                 <Rnd
-                                  key={`stamp-${currentPage}-${rndKey}`}
-                                  default={{ x: scaledPosX, y: scaledPosY, width: stampW, height: stampH }}
+                                  size={{ width: stampW, height: stampH }}
+                                  position={{ x: scaledPosX, y: scaledPosY }}
+                                  onDrag={(e, d) => {
+                                    const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
+                                    const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
+                                    setStampPosition(
+                                      { x: clampedX / safePreviewScale, y: clampedY / safePreviewScale },
+                                      currentPage,
+                                      true
+                                    );
+                                  }}
                                   onDragStop={(e, d) => {
                                     const clampedX = Math.max(marginPx, Math.min(d.x, maxX));
                                     const clampedY = Math.max(marginPx, Math.min(d.y, maxY));
-                                    setStampPosition({ 
-                                      x: clampedX / safePreviewScale, 
-                                      y: clampedY / safePreviewScale 
-                                    }, currentPage, true);
+                                    setStampPosition(
+                                      { x: clampedX / safePreviewScale, y: clampedY / safePreviewScale },
+                                      currentPage,
+                                      true
+                                    );
                                   }}
                                   bounds="parent"
                                   enableResizing={false}
+                                  className="z-[9999]"
                                 >
-                                  {/* Backend-Generated Stamp Preview */}
-                                  <div 
-                                    style={{ 
+                                  <div
+                                    className="relative stamp-drag-handle"
+                                    style={{
                                       width: stampW,
                                       height: stampH,
                                       cursor: 'move',
                                       userSelect: 'none',
-                                      WebkitUserSelect: 'none'
+                                      WebkitUserSelect: 'none',
+                                      touchAction: 'none'
                                     }}
                                     data-testid="stamp-preview"
                                   >
-                                    {/* Always show stamp image if available (don't blank on loading) */}
                                     {stampPreviewImage ? (
                                       <>
-                                        <img 
-                                          src={stampPreviewImage} 
+                                        <img
+                                          src={stampPreviewImage}
                                           alt="TLS Verified Stamp Preview"
                                           className="w-full h-full object-contain"
-                                          style={{ 
+                                          style={{
                                             imageRendering: 'crisp-edges',
                                             pointerEvents: 'none',
                                             userSelect: 'none',
@@ -2103,25 +2114,15 @@ const DocumentStampPage = () => {
                                           }}
                                           draggable={false}
                                         />
-                                        {/* Tiny "Updating..." indicator in corner when loading */}
                                         {loadingStampPreview && (
-                                          <div className="absolute top-1 right-1 bg-black/60 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-1">
+                                          <div className="absolute top-1 right-1 bg-black/60 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-1 pointer-events-none">
                                             <Loader2 className="w-2 h-2 animate-spin" />
                                             <span>Updating</span>
                                           </div>
                                         )}
                                       </>
-                                    ) : loadingStampPreview ? (
-                                      /* Only show full loader if no image exists yet */
-                                      <div 
-                                        className="w-full h-full flex items-center justify-center rounded-lg"
-                                        style={{ backgroundColor: `${brandColor}20`, border: `2px dashed ${brandColor}` }}
-                                      >
-                                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: brandColor }} />
-                                      </div>
                                     ) : (
-                                      /* Fallback if preview fails to load */
-                                      <div 
+                                      <div
                                         className="w-full h-full flex flex-col items-center justify-center rounded-lg text-center p-2"
                                         style={{ backgroundColor: `${brandColor}10`, border: `2px solid ${brandColor}` }}
                                       >
