@@ -342,8 +342,8 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       </header>
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 bottom-0 w-72 bg-[#050810] border-r border-white/5 z-40 transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-white/5">
+      <aside className={`fixed left-0 top-0 bottom-0 w-72 bg-[#050810] border-r border-white/5 z-40 transform transition-transform duration-300 lg:translate-x-0 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 border-b border-white/5 flex-shrink-0">
           <Link to="/" className="flex items-center gap-3 group">
             <div className="w-11 h-11 rounded-xl bg-white p-1.5">
               <img src="/assets/tls-logo.png" alt="TLS" className="w-full h-full object-contain" />
@@ -357,7 +357,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
         {/* User Card */}
         {!isAdmin && (
-          <div className="p-4 border-b border-white/5">
+          <div className="p-4 border-b border-white/5 flex-shrink-0">
             <div className="glass-card rounded-2xl p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-tls-gold/20 flex items-center justify-center">
@@ -379,7 +379,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           </div>
         )}
         
-        <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-4 overflow-y-auto min-h-0">
           {navGroups.map((group, groupIndex) => (
             <div key={group.label}>
               {/* Group Label */}
@@ -416,7 +416,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           ))}
         </nav>
         
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 border-t border-white/5 flex-shrink-0">
           <Button
             onClick={handleLogout}
             variant="ghost"
