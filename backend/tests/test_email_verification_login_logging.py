@@ -19,7 +19,7 @@ import os
 import uuid
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://scan-and-sign-1.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://doc-prepare.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_EMAIL = "admin@tls.or.tz"
