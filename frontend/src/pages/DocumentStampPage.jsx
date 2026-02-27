@@ -605,6 +605,136 @@ const DocumentStampPage = () => {
     }
   };
 
+  // ========== MULTI-PAGE SCAN (CamScanner-style) ==========
+  
+  // Handle scan capture - append pages to the scan list
+  const handleScanCapture = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    
+    // Validate each file
+    for (const f of files) {
+      if (f.size > 20 * 1024 * 1024) {
+        toast.error(`${f.name} is too large. Maximum 20MB per image.`);
+        return;
+      }
+    }
+    
+    // Append to scan pages
+    setScanPages(prev => {
+      const newPages = files.map(f => ({
+        id: crypto.randomUUID(),
+        file: f,
+        previewUrl: URL.createObjectURL(f)
+      }));
+      return [...prev, ...newPages];
+    });
+    
+    setShowScanPreview(true);
+    e.target.value = ""; // Allow re-scanning same file
+  };
+  
+  // Move scan page up/down
+  const moveScanPage = (idx, direction) => {
+    setScanPages(prev => {
+      const newPages = [...prev];
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= newPages.length) return prev;
+      [newPages[idx], newPages[targetIdx]] = [newPages[targetIdx], newPages[idx]];
+      return newPages;
+    });
+  };
+  
+  // Remove a scan page
+  const removeScanPage = (id) => {
+    setScanPages(prev => {
+      const page = prev.find(p => p.id === id);
+      if (page?.previewUrl) {
+        URL.revokeObjectURL(page.previewUrl);
+      }
+      const remaining = prev.filter(p => p.id !== id);
+      if (remaining.length === 0) {
+        setShowScanPreview(false);
+      }
+      return remaining;
+    });
+  };
+  
+  // Cancel scan session
+  const cancelScan = () => {
+    scanPages.forEach(p => {
+      if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+    });
+    setScanPages([]);
+    setShowScanPreview(false);
+  };
+  
+  // Process all scanned pages into a single PDF
+  const prepareScannedDocument = async () => {
+    if (scanPages.length === 0) return;
+    
+    setPreparingScans(true);
+    
+    try {
+      const fd = new FormData();
+      scanPages.forEach(p => fd.append("files", p.file));
+      fd.append("scan_mode", scanMode);
+      fd.append("dpi", "150");
+      fd.append("source", "scan");
+      
+      const response = await axios.post(`${API}/documents/prepare`, fd, {
+        headers: { ...getAuthHeaders().headers },
+        responseType: "blob"
+      });
+      
+      // Get page count from header
+      const pageCount = parseInt(response.headers['x-prepared-pages'] || '1', 10);
+      
+      // Convert blob → File for our pipeline
+      const pdfBlob = response.data;
+      const pdfFile = new File([pdfBlob], `scan_${Date.now()}.pdf`, { type: "application/pdf" });
+      
+      // Clean up scan previews
+      scanPages.forEach(p => {
+        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+      });
+      setScanPages([]);
+      setShowScanPreview(false);
+      
+      // Set file and load PDF
+      setFile(pdfFile);
+      setDocumentName(`Scanned Document ${new Date().toLocaleDateString()}`);
+      setCurrentPage(1);
+      
+      // Load PDF with PDF.js
+      const arrayBuffer = await pdfBlob.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      setPdfDoc(pdf);
+      
+      // Set file data for stamping
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(pdfBlob);
+      });
+      
+      setFileData({
+        pages: pageCount,
+        document_data: base64,
+        filename: pdfFile.name,
+        original_type: "scan_multi"
+      });
+      
+      toast.success(`${pageCount} page${pageCount > 1 ? 's' : ''} scanned and merged!`);
+      
+    } catch (error) {
+      console.error("Scan prepare error:", error);
+      toast.error(error.response?.data?.detail || "Failed to process scanned pages");
+    } finally {
+      setPreparingScans(false);
+    }
+  };
+
   // Parse custom page selection
   const parseCustomPages = useCallback((input, totalPages) => {
     if (!input || !totalPages) return [1];
