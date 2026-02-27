@@ -3514,6 +3514,7 @@ async def create_document_stamp(
     shape: str = Form("rectangle"),
     include_signature: str = Form("false"),
     show_signature_placeholder: str = Form("false"),
+    signature_data: str = Form(None),  # Accept signature from frontend
     stamp_size: int = Form(100),
     opacity: int = Form(90),
     transparent_background: str = Form("false"),
