@@ -3072,18 +3072,27 @@ GOTENBERG_URL = os.environ.get("GOTENBERG_URL")  # e.g., http://gotenberg:3000
 async def prepare_document(
     file: UploadFile = File(...),
     source: str = Form("upload"),  # "upload" | "camera"
+    scan_mode: str = Form("gray"),  # "gray" | "color" | "bw"
+    scan_quality: str = Form("standard"),  # "standard" | "high"
     user: dict = Depends(get_current_user)
 ):
     """
     Prepare any supported document for stamping by converting to PDF.
     - PDF: validate and return as-is
-    - PNG/JPG/JPEG: convert to single-page PDF
+    - PNG/JPG/JPEG: CamScanner-like optimization → single-page PDF
     - DOC/DOCX: convert via Gotenberg (if available)
+    
+    Scan Modes:
+    - gray: Document scan (grayscale, high contrast, sharp text) - DEFAULT
+    - color: Preserve colors (for documents with seals/photos)
+    - bw: Black & white (smallest files, crispest text)
     
     Returns: application/pdf with headers:
     - X-Prepared-Original-Type: pdf|image|docx
     - X-Prepared-Pages: number of pages
     - X-Prepared-Filename: original filename
+    - X-Scan-Mode: gray|color|bw
+    - X-Scan-Quality: standard|high
     """
     filename = file.filename.lower() if file.filename else "document"
     content = await file.read()
@@ -3092,6 +3101,14 @@ async def prepare_document(
     MAX_SIZE = 50 * 1024 * 1024
     if len(content) > MAX_SIZE:
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 50MB.")
+    
+    # Normalize parameters
+    scan_mode = scan_mode.lower() if scan_mode else "gray"
+    scan_quality = scan_quality.lower() if scan_quality else "standard"
+    if scan_mode not in ("gray", "color", "bw"):
+        scan_mode = "gray"
+    if scan_quality not in ("standard", "high"):
+        scan_quality = "standard"
     
     original_type = "unknown"
     pdf_content = None
@@ -3104,58 +3121,97 @@ async def prepare_document(
             raise HTTPException(status_code=400, detail="Invalid PDF file")
         pdf_content = content
     
-    # ========== 2. Image: convert to single-page PDF ==========
+    # ========== 2. Image: CamScanner-like optimization → PDF ==========
     elif filename.endswith((".png", ".jpg", ".jpeg")) or (file.content_type and file.content_type.startswith("image/")):
         original_type = "image"
         try:
             from reportlab.lib.utils import ImageReader
-            
-            # Open image with Pillow
-            image = Image.open(BytesIO(content))
-            
-            # Convert to RGB if needed (handles PNG transparency, CMYK, etc.)
-            if image.mode in ('RGBA', 'LA', 'P'):
-                # Create white background for transparency
-                background = Image.new('RGB', image.size, (255, 255, 255))
-                if image.mode == 'P':
-                    image = image.convert('RGBA')
-                background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
-                image = background
-            elif image.mode != 'RGB':
-                image = image.convert('RGB')
-            
-            # Create PDF with ReportLab
-            pdf_buffer = BytesIO()
-            from reportlab.lib.pagesizes import letter, A4
+            from PIL import ImageOps, ImageEnhance, ImageFilter
             from reportlab.pdfgen import canvas as pdf_canvas
             
-            # Use A4 for better international compatibility
-            page_width, page_height = A4
-            c = pdf_canvas.Canvas(pdf_buffer, pagesize=A4)
+            # Open image with Pillow
+            img = Image.open(BytesIO(content))
             
-            # Fit image to page while maintaining aspect ratio
-            img_width, img_height = image.size
+            # ========== CamScanner-like optimization pipeline ==========
             
-            # Add margins
-            margin = 36  # 0.5 inch margins
-            available_width = page_width - (2 * margin)
-            available_height = page_height - (2 * margin)
+            # 1) Fix rotation from phone cameras (EXIF)
+            img = ImageOps.exif_transpose(img)
             
-            ratio = min(available_width / img_width, available_height / img_height)
-            new_width = img_width * ratio
-            new_height = img_height * ratio
+            # 2) Convert to RGB early (handles PNG alpha, CMYK, etc.)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                if img.mode in ('RGBA', 'LA'):
+                    background.paste(img, mask=img.split()[-1])
+                else:
+                    background.paste(img)
+                img = background
+            elif img.mode not in ('RGB', 'L'):
+                img = img.convert('RGB')
             
-            # Center image on page
-            x = margin + (available_width - new_width) / 2
-            y = margin + (available_height - new_height) / 2
+            # 3) Quality settings
+            if scan_quality == "high":
+                max_long_edge = 2800
+                jpeg_quality = 80
+            else:
+                max_long_edge = 2200
+                jpeg_quality = 70
             
-            # Save image to buffer for ReportLab
-            img_buffer = BytesIO()
-            image.save(img_buffer, format="PNG", quality=95)
-            img_buffer.seek(0)
+            # 4) Resize down for predictable output (major size reduction)
+            w, h = img.size
+            long_edge = max(w, h)
+            if long_edge > max_long_edge:
+                scale = max_long_edge / float(long_edge)
+                img = img.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
             
-            # Draw image on PDF
-            c.drawImage(ImageReader(img_buffer), x, y, width=new_width, height=new_height)
+            # 5) Light denoise (helps dirty backgrounds)
+            img = img.filter(ImageFilter.MedianFilter(size=3))
+            
+            # 6) Apply scan mode processing
+            if scan_mode == "gray":
+                # Document scan mode - best for legal paperwork
+                img = img.convert("L")
+                img = ImageOps.autocontrast(img, cutoff=2)
+                img = ImageEnhance.Contrast(img).enhance(1.35)
+                img = ImageEnhance.Sharpness(img).enhance(1.4)
+            elif scan_mode == "bw":
+                # Black & white - smallest files, crispest text
+                img = img.convert("L")
+                img = ImageOps.autocontrast(img, cutoff=2)
+                img = ImageEnhance.Contrast(img).enhance(1.6)
+                # Threshold binarization
+                img = img.point(lambda p: 255 if p > 165 else 0).convert("1")
+            else:  # color
+                # Color mode - preserve colors but enhance slightly
+                img = ImageEnhance.Contrast(img).enhance(1.15)
+                img = ImageEnhance.Sharpness(img).enhance(1.2)
+            
+            # 7) Convert to JPEG bytes (optimized compression)
+            # For gray/bw, convert to RGB for JPEG compatibility
+            jpeg_img = img
+            if jpeg_img.mode == "1":
+                jpeg_img = jpeg_img.convert("L")
+            if jpeg_img.mode == "L":
+                jpeg_img = jpeg_img.convert("RGB")
+            
+            jpeg_buffer = BytesIO()
+            jpeg_img.save(jpeg_buffer, format="JPEG", quality=jpeg_quality, optimize=True, progressive=True)
+            jpeg_bytes = jpeg_buffer.getvalue()
+            
+            # 8) Create PDF with the optimized image
+            # Calculate page size based on image aspect ratio (like real scans)
+            jpeg_img_for_size = Image.open(BytesIO(jpeg_bytes))
+            w_px, h_px = jpeg_img_for_size.size
+            
+            # Use 150 DPI for PDF sizing (standard for scanned documents)
+            dpi = 150.0
+            w_pt = (w_px / dpi) * 72.0
+            h_pt = (h_px / dpi) * 72.0
+            
+            pdf_buffer = BytesIO()
+            c = pdf_canvas.Canvas(pdf_buffer, pagesize=(w_pt, h_pt))
+            c.drawImage(ImageReader(BytesIO(jpeg_bytes)), 0, 0, width=w_pt, height=h_pt, mask='auto')
             c.showPage()
             c.save()
             
