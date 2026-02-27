@@ -21,7 +21,7 @@ import json
 import time
 
 # Get BASE_URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://tls-stamping-suite.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://scan-and-sign-1.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "test@tls.or.tz"

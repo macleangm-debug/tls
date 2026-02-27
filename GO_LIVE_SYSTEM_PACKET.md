@@ -89,7 +89,7 @@
 ```
 MONGO_URL=mongodb://localhost:27017
 DB_NAME=test_database
-CORS_ORIGINS=https://tls-stamping-suite.preview.emergentagent.com,http://localhost:3000
+CORS_ORIGINS=https://scan-and-sign-1.preview.emergentagent.com,http://localhost:3000
 SENDER_EMAIL=onboarding@resend.dev
 RESEND_API_KEY=re_*** (redacted)
 TLS_PRIVATE_KEY_B64=*** (ECDSA private key, base64)
@@ -99,7 +99,7 @@ SECRET_KEY=*** (JWT signing key)
 
 **Frontend (`/app/frontend/.env`):**
 ```
-REACT_APP_BACKEND_URL=https://tls-stamping-suite.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://scan-and-sign-1.preview.emergentagent.com
 WDS_SOCKET_PORT=443
 ```
 
@@ -330,7 +330,7 @@ verification_tiers, verification_transactions, webhook_logs
 
 ### 5.4 CORS Configuration
 ```python
-CORS_ORIGINS = "https://tls-stamping-suite.preview.emergentagent.com,http://localhost:3000"
+CORS_ORIGINS = "https://scan-and-sign-1.preview.emergentagent.com,http://localhost:3000"
 allow_credentials = True
 allow_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 allow_headers = ["Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"]

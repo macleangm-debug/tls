@@ -128,7 +128,7 @@
 
   "console_logs_observed": [
     "IndexedDB initialized - Multiple instances as components initialize",
-    "Service Worker registered: https://tls-stamping-suite.preview.emergentagent.com/",
+    "Service Worker registered: https://scan-and-sign-1.preview.emergentagent.com/",
     "PWA initialized successfully",
     "Offline database initialized"
   ]
