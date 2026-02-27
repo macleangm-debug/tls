@@ -3070,16 +3070,19 @@ GOTENBERG_URL = os.environ.get("GOTENBERG_URL")  # e.g., http://gotenberg:3000
 
 @api_router.post("/documents/prepare")
 async def prepare_document(
-    file: UploadFile = File(...),
-    source: str = Form("upload"),  # "upload" | "camera"
+    files: List[UploadFile] = File(...),
+    source: str = Form("upload"),  # "upload" | "camera" | "scan"
     scan_mode: str = Form("gray"),  # "gray" | "color" | "bw"
     scan_quality: str = Form("standard"),  # "standard" | "high"
+    dpi: int = Form(150),
     user: dict = Depends(get_current_user)
 ):
     """
     Prepare any supported document for stamping by converting to PDF.
+    Now supports MULTIPLE files for multi-page scans (CamScanner-style).
+    
     - PDF: validate and return as-is
-    - PNG/JPG/JPEG: CamScanner-like optimization → single-page PDF
+    - PNG/JPG/JPEG: CamScanner-like optimization → single or multi-page PDF
     - DOC/DOCX: convert via Gotenberg (if available)
     
     Scan Modes:
@@ -3088,19 +3091,13 @@ async def prepare_document(
     - bw: Black & white (smallest files, crispest text)
     
     Returns: application/pdf with headers:
-    - X-Prepared-Original-Type: pdf|image|docx
+    - X-Prepared-Original-Type: pdf|image|scan_multi
     - X-Prepared-Pages: number of pages
     - X-Prepared-Filename: original filename
     - X-Scan-Mode: gray|color|bw
     - X-Scan-Quality: standard|high
     """
-    filename = file.filename.lower() if file.filename else "document"
-    content = await file.read()
-    
-    # Validate file size (max 50MB)
-    MAX_SIZE = 50 * 1024 * 1024
-    if len(content) > MAX_SIZE:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 50MB.")
+    from pypdf import PdfWriter, PdfReader
     
     # Normalize parameters
     scan_mode = scan_mode.lower() if scan_mode else "gray"
@@ -3109,183 +3106,189 @@ async def prepare_document(
         scan_mode = "gray"
     if scan_quality not in ("standard", "high"):
         scan_quality = "standard"
+    dpi = max(100, min(300, dpi))  # Clamp between 100-300
     
-    original_type = "unknown"
-    pdf_content = None
+    if not files or len(files) == 0:
+        raise HTTPException(status_code=400, detail="No files uploaded")
     
-    # ========== 1. PDF: validate and return as-is ==========
-    if filename.endswith(".pdf") or file.content_type == "application/pdf":
-        original_type = "pdf"
+    # Helper function to optimize a single image (CamScanner-style)
+    def optimize_scan_image(content: bytes, mode: str, quality: str) -> Image.Image:
+        from PIL import ImageOps, ImageEnhance, ImageFilter
+        
+        img = Image.open(BytesIO(content))
+        
+        # Fix rotation from phone cameras (EXIF)
+        img = ImageOps.exif_transpose(img)
+        
+        # Convert to RGB early
+        if img.mode in ('RGBA', 'LA', 'P'):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            if img.mode in ('RGBA', 'LA'):
+                background.paste(img, mask=img.split()[-1])
+            else:
+                background.paste(img)
+            img = background
+        elif img.mode not in ('RGB', 'L'):
+            img = img.convert('RGB')
+        
+        # Quality settings
+        if quality == "high":
+            max_long_edge = 2800
+        else:
+            max_long_edge = 2200
+        
+        # Resize down for predictable output
+        w, h = img.size
+        long_edge = max(w, h)
+        if long_edge > max_long_edge:
+            scale = max_long_edge / float(long_edge)
+            img = img.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
+        
+        # Light denoise
+        img = img.filter(ImageFilter.MedianFilter(size=3))
+        
+        # Apply scan mode processing
+        if mode == "gray":
+            img = img.convert("L")
+            img = ImageOps.autocontrast(img, cutoff=2)
+            img = ImageEnhance.Contrast(img).enhance(1.35)
+            img = ImageEnhance.Sharpness(img).enhance(1.4)
+        elif mode == "bw":
+            img = img.convert("L")
+            img = ImageOps.autocontrast(img, cutoff=2)
+            img = ImageEnhance.Contrast(img).enhance(1.6)
+            img = img.point(lambda p: 255 if p > 165 else 0).convert("1")
+        else:  # color
+            img = ImageEnhance.Contrast(img).enhance(1.15)
+            img = ImageEnhance.Sharpness(img).enhance(1.2)
+        
+        return img
+    
+    # Helper function to convert image to single-page PDF
+    def image_to_pdf_page(img: Image.Image, target_dpi: int, jpeg_quality: int) -> bytes:
+        from reportlab.lib.utils import ImageReader
+        from reportlab.pdfgen import canvas as pdf_canvas
+        
+        # For gray/bw, convert to RGB for JPEG compatibility
+        jpeg_img = img
+        if jpeg_img.mode == "1":
+            jpeg_img = jpeg_img.convert("L")
+        if jpeg_img.mode == "L":
+            jpeg_img = jpeg_img.convert("RGB")
+        
+        jpeg_buffer = BytesIO()
+        jpeg_img.save(jpeg_buffer, format="JPEG", quality=jpeg_quality, optimize=True, progressive=True)
+        jpeg_bytes = jpeg_buffer.getvalue()
+        
+        # Calculate page size based on image aspect ratio
+        jpeg_img_for_size = Image.open(BytesIO(jpeg_bytes))
+        w_px, h_px = jpeg_img_for_size.size
+        w_pt = (w_px / target_dpi) * 72.0
+        h_pt = (h_px / target_dpi) * 72.0
+        
+        pdf_buffer = BytesIO()
+        c = pdf_canvas.Canvas(pdf_buffer, pagesize=(w_pt, h_pt))
+        c.drawImage(ImageReader(BytesIO(jpeg_bytes)), 0, 0, width=w_pt, height=h_pt, mask='auto')
+        c.showPage()
+        c.save()
+        
+        pdf_buffer.seek(0)
+        return pdf_buffer.read()
+    
+    # ========== CASE 1: Single PDF file ==========
+    first_file = files[0]
+    first_filename = first_file.filename.lower() if first_file.filename else "document"
+    
+    if len(files) == 1 and (first_filename.endswith(".pdf") or first_file.content_type == "application/pdf"):
+        content = await first_file.read()
+        
+        # Validate file size (max 50MB)
+        MAX_SIZE = 50 * 1024 * 1024
+        if len(content) > MAX_SIZE:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 50MB.")
+        
         # Basic PDF validation
         if not content.startswith(b'%PDF'):
             raise HTTPException(status_code=400, detail="Invalid PDF file")
-        pdf_content = content
-    
-    # ========== 2. Image: CamScanner-like optimization → PDF ==========
-    elif filename.endswith((".png", ".jpg", ".jpeg")) or (file.content_type and file.content_type.startswith("image/")):
-        original_type = "image"
-        try:
-            from reportlab.lib.utils import ImageReader
-            from PIL import ImageOps, ImageEnhance, ImageFilter
-            from reportlab.pdfgen import canvas as pdf_canvas
-            
-            # Open image with Pillow
-            img = Image.open(BytesIO(content))
-            
-            # ========== CamScanner-like optimization pipeline ==========
-            
-            # 1) Fix rotation from phone cameras (EXIF)
-            img = ImageOps.exif_transpose(img)
-            
-            # 2) Convert to RGB early (handles PNG alpha, CMYK, etc.)
-            if img.mode in ('RGBA', 'LA', 'P'):
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'P':
-                    img = img.convert('RGBA')
-                if img.mode in ('RGBA', 'LA'):
-                    background.paste(img, mask=img.split()[-1])
-                else:
-                    background.paste(img)
-                img = background
-            elif img.mode not in ('RGB', 'L'):
-                img = img.convert('RGB')
-            
-            # 3) Quality settings
-            if scan_quality == "high":
-                max_long_edge = 2800
-                jpeg_quality = 80
-            else:
-                max_long_edge = 2200
-                jpeg_quality = 70
-            
-            # 4) Resize down for predictable output (major size reduction)
-            w, h = img.size
-            long_edge = max(w, h)
-            if long_edge > max_long_edge:
-                scale = max_long_edge / float(long_edge)
-                img = img.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
-            
-            # 5) Light denoise (helps dirty backgrounds)
-            img = img.filter(ImageFilter.MedianFilter(size=3))
-            
-            # 6) Apply scan mode processing
-            if scan_mode == "gray":
-                # Document scan mode - best for legal paperwork
-                img = img.convert("L")
-                img = ImageOps.autocontrast(img, cutoff=2)
-                img = ImageEnhance.Contrast(img).enhance(1.35)
-                img = ImageEnhance.Sharpness(img).enhance(1.4)
-            elif scan_mode == "bw":
-                # Black & white - smallest files, crispest text
-                img = img.convert("L")
-                img = ImageOps.autocontrast(img, cutoff=2)
-                img = ImageEnhance.Contrast(img).enhance(1.6)
-                # Threshold binarization
-                img = img.point(lambda p: 255 if p > 165 else 0).convert("1")
-            else:  # color
-                # Color mode - preserve colors but enhance slightly
-                img = ImageEnhance.Contrast(img).enhance(1.15)
-                img = ImageEnhance.Sharpness(img).enhance(1.2)
-            
-            # 7) Convert to JPEG bytes (optimized compression)
-            # For gray/bw, convert to RGB for JPEG compatibility
-            jpeg_img = img
-            if jpeg_img.mode == "1":
-                jpeg_img = jpeg_img.convert("L")
-            if jpeg_img.mode == "L":
-                jpeg_img = jpeg_img.convert("RGB")
-            
-            jpeg_buffer = BytesIO()
-            jpeg_img.save(jpeg_buffer, format="JPEG", quality=jpeg_quality, optimize=True, progressive=True)
-            jpeg_bytes = jpeg_buffer.getvalue()
-            
-            # 8) Create PDF with the optimized image
-            # Calculate page size based on image aspect ratio (like real scans)
-            jpeg_img_for_size = Image.open(BytesIO(jpeg_bytes))
-            w_px, h_px = jpeg_img_for_size.size
-            
-            # Use 150 DPI for PDF sizing (standard for scanned documents)
-            dpi = 150.0
-            w_pt = (w_px / dpi) * 72.0
-            h_pt = (h_px / dpi) * 72.0
-            
-            pdf_buffer = BytesIO()
-            c = pdf_canvas.Canvas(pdf_buffer, pagesize=(w_pt, h_pt))
-            c.drawImage(ImageReader(BytesIO(jpeg_bytes)), 0, 0, width=w_pt, height=h_pt, mask='auto')
-            c.showPage()
-            c.save()
-            
-            pdf_buffer.seek(0)
-            pdf_content = pdf_buffer.read()
-            
-        except Exception as e:
-            print(f"Image conversion error: {e}")
-            raise HTTPException(status_code=400, detail=f"Image conversion failed: {str(e)}")
-    
-    # ========== 3. DOC/DOCX: try Gotenberg ==========
-    elif filename.endswith((".doc", ".docx")):
-        original_type = "docx"
         
-        if not GOTENBERG_URL:
-            raise HTTPException(
-                status_code=400,
-                detail="DOC/DOCX conversion is not available yet. Please convert to PDF first, or upload a PDF/image."
-            )
-        
+        # Count pages
+        num_pages = 1
         try:
-            import httpx
-            
-            async with httpx.AsyncClient(timeout=60) as client:
-                files = {
-                    "files": (file.filename, content, file.content_type or "application/octet-stream")
-                }
-                
-                response = await client.post(
-                    f"{GOTENBERG_URL}/forms/libreoffice/convert",
-                    files=files
-                )
-                
-                if response.status_code != 200:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="DOCX conversion failed. Please try converting to PDF first."
-                    )
-                
-                pdf_content = response.content
-                
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=400, detail="Document conversion timed out. Please try a smaller file.")
-        except Exception as e:
-            print(f"Gotenberg conversion error: {e}")
-            raise HTTPException(
-                status_code=400,
-                detail="DOC/DOCX conversion is temporarily unavailable. Please convert to PDF first."
-            )
-    
-    # ========== Unsupported type ==========
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported file type. Please upload PDF, PNG, JPG, or JPEG files."
+            import fitz
+            doc = fitz.open(stream=content, filetype="pdf")
+            num_pages = len(doc)
+            doc.close()
+        except:
+            pass
+        
+        return Response(
+            content=content,
+            media_type="application/pdf",
+            headers={
+                "X-Prepared-Original-Type": "pdf",
+                "X-Prepared-Pages": str(num_pages),
+                "X-Prepared-Filename": first_file.filename or "document.pdf",
+                "X-Prepared-Source": source,
+                "X-Scan-Mode": scan_mode,
+                "X-Scan-Quality": scan_quality
+            }
         )
     
-    # Count pages in the resulting PDF
-    num_pages = 1
-    try:
-        import fitz  # PyMuPDF
-        doc = fitz.open(stream=pdf_content, filetype="pdf")
-        num_pages = len(doc)
-        doc.close()
-    except:
-        pass
+    # ========== CASE 2: Single or Multiple Images → Multi-page PDF ==========
+    jpeg_quality = 80 if scan_quality == "high" else 70
+    page_pdfs: List[bytes] = []
+    original_filename = first_file.filename or "scan"
+    
+    for f in files:
+        fname = f.filename.lower() if f.filename else ""
+        is_image = fname.endswith((".png", ".jpg", ".jpeg")) or (f.content_type and f.content_type.startswith("image/"))
+        
+        if not is_image:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {f.filename}. For multi-page scans, all files must be images."
+            )
+        
+        content = await f.read()
+        
+        # Validate file size (max 20MB per image)
+        if len(content) > 20 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail=f"Image too large: {f.filename}. Maximum size is 20MB per image.")
+        
+        try:
+            optimized_img = optimize_scan_image(content, scan_mode, scan_quality)
+            page_pdf = image_to_pdf_page(optimized_img, dpi, jpeg_quality)
+            page_pdfs.append(page_pdf)
+        except Exception as e:
+            print(f"Image conversion error for {f.filename}: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to process image: {f.filename}")
+    
+    # Merge all pages into single PDF
+    if len(page_pdfs) == 1:
+        merged_pdf = page_pdfs[0]
+        original_type = "image"
+    else:
+        # Multi-page merge
+        writer = PdfWriter()
+        for pdf_bytes in page_pdfs:
+            reader = PdfReader(BytesIO(pdf_bytes))
+            for page in reader.pages:
+                writer.add_page(page)
+        
+        output_buffer = BytesIO()
+        writer.write(output_buffer)
+        merged_pdf = output_buffer.getvalue()
+        original_type = "scan_multi"
     
     return Response(
-        content=pdf_content,
+        content=merged_pdf,
         media_type="application/pdf",
         headers={
             "X-Prepared-Original-Type": original_type,
-            "X-Prepared-Pages": str(num_pages),
-            "X-Prepared-Filename": file.filename or "document.pdf",
+            "X-Prepared-Pages": str(len(page_pdfs)),
+            "X-Prepared-Filename": original_filename.rsplit('.', 1)[0] + ".pdf",
             "X-Prepared-Source": source,
             "X-Scan-Mode": scan_mode,
             "X-Scan-Quality": scan_quality
