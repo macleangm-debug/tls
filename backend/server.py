@@ -3249,8 +3249,10 @@ async def prepare_document(
     
     # ========== CASE 2: Single or Multiple Images → Multi-page PDF ==========
     jpeg_quality = 80 if scan_quality == "high" else 70
+    max_dimension = 2800 if scan_quality == "high" else 2200
     page_pdfs: List[bytes] = []
     original_filename = first_file.filename or "scan"
+    crop_results = []  # Track auto-crop results for each page
     
     for f in files:
         fname = f.filename.lower() if f.filename else ""
@@ -3269,12 +3271,31 @@ async def prepare_document(
             raise HTTPException(status_code=400, detail=f"Image too large: {f.filename}. Maximum size is 20MB per image.")
         
         try:
-            optimized_img = optimize_scan_image(content, scan_mode, scan_quality)
-            page_pdf = image_to_pdf_page(optimized_img, dpi, jpeg_quality)
+            # Use the new CamScanner-style processing with auto-crop
+            processed_img, metadata = process_scan_image(
+                content=content,
+                auto_crop=auto_crop,
+                min_crop_confidence=min_crop_confidence,
+                enhance_mode=scan_mode,
+                max_dimension=max_dimension
+            )
+            
+            crop_results.append({
+                "cropped": metadata.get("auto_cropped", False),
+                "confidence": metadata.get("crop_confidence", 0.0),
+                "message": metadata.get("crop_message", "")
+            })
+            
+            page_pdf = image_to_pdf_page(processed_img, dpi, jpeg_quality)
             page_pdfs.append(page_pdf)
+            
         except Exception as e:
             print(f"Image conversion error for {f.filename}: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to process image: {f.filename}")
+    
+    # Calculate overall crop stats
+    pages_cropped = sum(1 for r in crop_results if r["cropped"])
+    avg_confidence = sum(r["confidence"] for r in crop_results) / len(crop_results) if crop_results else 0.0
     
     # Merge all pages into single PDF
     if len(page_pdfs) == 1:
@@ -3302,7 +3323,10 @@ async def prepare_document(
             "X-Prepared-Filename": original_filename.rsplit('.', 1)[0] + ".pdf",
             "X-Prepared-Source": source,
             "X-Scan-Mode": scan_mode,
-            "X-Scan-Quality": scan_quality
+            "X-Scan-Quality": scan_quality,
+            "X-Auto-Crop": str(auto_crop).lower(),
+            "X-Pages-Cropped": str(pages_cropped),
+            "X-Crop-Confidence": f"{avg_confidence:.2f}"
         }
     )
 
