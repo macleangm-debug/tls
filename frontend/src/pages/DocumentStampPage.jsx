@@ -683,6 +683,7 @@ const DocumentStampPage = () => {
       const fd = new FormData();
       scanPages.forEach(p => fd.append("files", p.file));
       fd.append("scan_mode", scanMode);
+      fd.append("auto_crop", "true");
       fd.append("dpi", "150");
       fd.append("source", "scan");
       
@@ -691,8 +692,20 @@ const DocumentStampPage = () => {
         responseType: "blob"
       });
       
-      // Get page count from header
+      // Get metadata from headers
       const pageCount = parseInt(response.headers['x-prepared-pages'] || '1', 10);
+      const autoCrop = response.headers['x-auto-crop'] === 'true';
+      const cropConfidence = parseFloat(response.headers['x-crop-confidence'] || '0');
+      const pagesCropped = parseInt(response.headers['x-pages-cropped'] || '0', 10);
+      const responseScanMode = response.headers['x-scan-mode'] || 'document';
+      
+      // Store prepare metadata for UI badge
+      setPrepareMeta({
+        autoCrop,
+        cropConfidence,
+        pagesCropped,
+        scanMode: responseScanMode
+      });
       
       // Convert blob → File for our pipeline
       const pdfBlob = response.data;
@@ -729,7 +742,11 @@ const DocumentStampPage = () => {
         original_type: "scan_multi"
       });
       
-      toast.success(`${pageCount} page${pageCount > 1 ? 's' : ''} scanned and merged!`);
+      // Show success with auto-crop info
+      const cropMsg = autoCrop && pagesCropped > 0 
+        ? ` (${pagesCropped} auto-cropped)` 
+        : '';
+      toast.success(`${pageCount} page${pageCount > 1 ? 's' : ''} scanned${cropMsg}!`);
       
     } catch (error) {
       console.error("Scan prepare error:", error);
