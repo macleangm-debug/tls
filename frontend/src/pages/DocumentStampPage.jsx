@@ -1286,7 +1286,7 @@ const DocumentStampPage = () => {
       
       // DEBUG: Log signature settings
       console.log(`DEBUG SIGNATURE: selectedType=${selectedType}, signatureMode=${signatureMode}`);
-      console.log(`DEBUG SIGNATURE: requiresSignature=${stampTypeConfig?.requiresSignature}, includeSignature=${includeSignature}, showPlaceholder=${showSignaturePlaceholder}`);
+      console.log(`DEBUG SIGNATURE: requiresSignature=${stampType?.requiresSignature}, includeSignature=${includeSignature}, showPlaceholder=${showSignaturePlaceholder}`);
       
       formData.append('include_signature', includeSignature.toString());
       formData.append('show_signature_placeholder', showSignaturePlaceholder.toString());
