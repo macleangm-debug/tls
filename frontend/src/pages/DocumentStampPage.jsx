@@ -2265,6 +2265,15 @@ const DocumentStampPage = () => {
                         </div>
                       )}
                       
+                      {/* Auto-cropped badge (CamScanner indicator) */}
+                      {prepareMeta?.autoCrop && prepareMeta?.pagesCropped > 0 && pageCanvasUrl && (
+                        <div className="absolute top-2 left-3 z-20 px-3 py-1 bg-emerald-600/90 rounded-full text-white text-xs flex items-center gap-2 shadow-lg">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Auto-cropped</span>
+                          <span className="opacity-70">{Math.round(prepareMeta.cropConfidence * 100)}%</span>
+                        </div>
+                      )}
+                      
                       {/* PDF Preview - NO transform wrapper, use real scaled dimensions */}
                       {/* This ensures Rnd bounds math works correctly */}
                       {pageCanvasUrl ? (
