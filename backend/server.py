@@ -3582,12 +3582,17 @@ async def create_document_stamp(
         include_sig_bool = False
         show_placeholder_bool = False
     
-    # Get user's signature only if certification with digital signature
-    signature_data = None
+    # Get user's signature - prefer from frontend form, fallback to database
+    final_signature_data = None
     if include_sig_bool and stamp_type == "certification":
-        user_full = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1})
-        if user_full:
-            signature_data = user_full.get("signature_data")
+        # First try the signature data from the frontend form
+        if signature_data and len(signature_data) > 100:
+            final_signature_data = signature_data
+        else:
+            # Fallback to database
+            user_full = await db.advocates.find_one({"id": user["id"]}, {"_id": 0, "signature_data": 1})
+            if user_full:
+                final_signature_data = user_full.get("signature_data")
     
     # Branding options with normalized values
     branding = {
