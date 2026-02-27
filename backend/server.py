@@ -3072,8 +3072,10 @@ GOTENBERG_URL = os.environ.get("GOTENBERG_URL")  # e.g., http://gotenberg:3000
 async def prepare_document(
     files: List[UploadFile] = File(...),
     source: str = Form("upload"),  # "upload" | "camera" | "scan"
-    scan_mode: str = Form("gray"),  # "gray" | "color" | "bw"
+    scan_mode: str = Form("gray"),  # "gray" | "color" | "bw" (maps to "document", "color", "bw")
     scan_quality: str = Form("standard"),  # "standard" | "high"
+    auto_crop: bool = Form(True),  # Auto-detect edges and perspective crop
+    min_crop_confidence: float = Form(0.25),  # Minimum confidence for auto-crop
     dpi: int = Form(150),
     user: dict = Depends(get_current_user)
 ):
@@ -3081,12 +3083,14 @@ async def prepare_document(
     Prepare any supported document for stamping by converting to PDF.
     Now supports MULTIPLE files for multi-page scans (CamScanner-style).
     
-    - PDF: validate and return as-is
-    - PNG/JPG/JPEG: CamScanner-like optimization → single or multi-page PDF
-    - DOC/DOCX: convert via Gotenberg (if available)
+    CamScanner Features:
+    - Auto-detect document edges (4-point contour detection)
+    - Perspective warp -> flat "scanned page"
+    - Auto-orient using EXIF
+    - Document enhancement (grayscale, contrast, sharpness)
     
     Scan Modes:
-    - gray: Document scan (grayscale, high contrast, sharp text) - DEFAULT
+    - gray/document: Document scan (grayscale, high contrast, sharp text) - DEFAULT
     - color: Preserve colors (for documents with seals/photos)
     - bw: Black & white (smallest files, crispest text)
     
@@ -3094,19 +3098,26 @@ async def prepare_document(
     - X-Prepared-Original-Type: pdf|image|scan_multi
     - X-Prepared-Pages: number of pages
     - X-Prepared-Filename: original filename
-    - X-Scan-Mode: gray|color|bw
-    - X-Scan-Quality: standard|high
+    - X-Scan-Mode: document|color|bw
+    - X-Auto-Crop: true|false
+    - X-Crop-Confidence: 0.0-1.0
     """
     from pypdf import PdfWriter, PdfReader
+    from services.scan_enhance_service import process_scan_image
     
-    # Normalize parameters
-    scan_mode = scan_mode.lower() if scan_mode else "gray"
+    # Normalize scan_mode: "gray" -> "document"
+    scan_mode = scan_mode.lower() if scan_mode else "document"
+    if scan_mode == "gray":
+        scan_mode = "document"
+    if scan_mode not in ("document", "color", "bw"):
+        scan_mode = "document"
+    
     scan_quality = scan_quality.lower() if scan_quality else "standard"
-    if scan_mode not in ("gray", "color", "bw"):
-        scan_mode = "gray"
     if scan_quality not in ("standard", "high"):
         scan_quality = "standard"
+    
     dpi = max(100, min(300, dpi))  # Clamp between 100-300
+    min_crop_confidence = max(0.1, min(0.9, min_crop_confidence))
     
     if not files or len(files) == 0:
         raise HTTPException(status_code=400, detail="No files uploaded")
