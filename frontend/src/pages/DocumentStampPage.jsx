@@ -1163,7 +1163,25 @@ const DocumentStampPage = () => {
     
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      
+      // CRITICAL: Use the processed PDF from fileData.document_data, not the original file
+      // This ensures we send the backend-processed PDF (e.g., image converted to PDF)
+      let fileToStamp;
+      if (fileData?.document_data) {
+        // Convert base64 PDF back to a File object
+        const pdfData = atob(fileData.document_data);
+        const pdfArray = new Uint8Array(pdfData.length);
+        for (let i = 0; i < pdfData.length; i++) {
+          pdfArray[i] = pdfData.charCodeAt(i);
+        }
+        const pdfBlob = new Blob([pdfArray], { type: 'application/pdf' });
+        fileToStamp = new File([pdfBlob], documentName + '.pdf', { type: 'application/pdf' });
+      } else {
+        // Fallback to original file if no processed data
+        fileToStamp = file;
+      }
+      
+      formData.append('file', fileToStamp);
       formData.append('stamp_type', selectedType);
       
       // Handle page selection for multi-page stamping with per-page positions
