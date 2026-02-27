@@ -2839,19 +2839,33 @@ const DocumentStampPage = () => {
                             </div>
                           </div>
                           
-                          {/* Inline signature drawing area */}
+                          {/* Inline signature drawing area - OPTIMIZED for responsiveness */}
                           {showSignatureDrawer ? (
                             <div className="space-y-3">
-                              <div ref={sigWrapRef} className="bg-white rounded-lg overflow-hidden">
+                              <div ref={sigWrapRef} className="bg-white rounded-lg overflow-hidden relative">
                                 <SignatureCanvas
                                   ref={signatureCanvasRef}
                                   penColor="#1a1a1a"
+                                  minWidth={1.5}
+                                  maxWidth={3.5}
+                                  throttle={0}
+                                  velocityFilterWeight={0.4}
+                                  dotSize={2}
                                   canvasProps={{
                                     width: sigCanvasSize.width,
                                     height: sigCanvasSize.height,
-                                    className: "w-full cursor-crosshair touch-none"
+                                    className: "w-full cursor-crosshair touch-none",
+                                    style: {
+                                      touchAction: 'none',
+                                      userSelect: 'none',
+                                      WebkitUserSelect: 'none',
+                                      WebkitTouchCallout: 'none',
+                                    }
                                   }}
                                 />
+                                {/* Signature guidelines */}
+                                <div className="absolute bottom-6 left-4 right-4 border-b border-dashed border-gray-300 pointer-events-none" />
+                                <p className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] text-gray-400 pointer-events-none">Sign above the line</p>
                               </div>
                               <div className="flex gap-2">
                                 <Button
