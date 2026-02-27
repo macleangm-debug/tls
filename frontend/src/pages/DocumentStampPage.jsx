@@ -174,7 +174,7 @@ const DocumentStampPage = () => {
   const sigWrapRef = useRef(null);
   const [showSignatureDrawer, setShowSignatureDrawer] = useState(false);
   const [savingSignature, setSavingSignature] = useState(false);
-  const [sigCanvasSize, setSigCanvasSize] = useState({ width: 520, height: 140 });
+  const [sigCanvasSize, setSigCanvasSize] = useState({ width: 520, height: 180 });
 
   // Page selection state
   const [pageSelection, setPageSelection] = useState("first"); // first, all, last, custom
