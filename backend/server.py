@@ -3064,6 +3064,176 @@ class StampPreviewRequest(BaseModel):
     width: int = 350  # Target width in PDF points
     height: int = 310  # Target height in PDF points
 
+# ========== DOCUMENT PREPARATION ENDPOINT ==========
+# Unified pipeline: everything becomes PDF for consistent stamping
+GOTENBERG_URL = os.environ.get("GOTENBERG_URL")  # e.g., http://gotenberg:3000
+
+@api_router.post("/documents/prepare")
+async def prepare_document(
+    file: UploadFile = File(...),
+    source: str = Form("upload"),  # "upload" | "camera"
+    user: dict = Depends(get_current_user)
+):
+    """
+    Prepare any supported document for stamping by converting to PDF.
+    - PDF: validate and return as-is
+    - PNG/JPG/JPEG: convert to single-page PDF
+    - DOC/DOCX: convert via Gotenberg (if available)
+    
+    Returns: application/pdf with headers:
+    - X-Prepared-Original-Type: pdf|image|docx
+    - X-Prepared-Pages: number of pages
+    - X-Prepared-Filename: original filename
+    """
+    filename = file.filename.lower() if file.filename else "document"
+    content = await file.read()
+    
+    # Validate file size (max 50MB)
+    MAX_SIZE = 50 * 1024 * 1024
+    if len(content) > MAX_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 50MB.")
+    
+    original_type = "unknown"
+    pdf_content = None
+    
+    # ========== 1. PDF: validate and return as-is ==========
+    if filename.endswith(".pdf") or file.content_type == "application/pdf":
+        original_type = "pdf"
+        # Basic PDF validation
+        if not content.startswith(b'%PDF'):
+            raise HTTPException(status_code=400, detail="Invalid PDF file")
+        pdf_content = content
+    
+    # ========== 2. Image: convert to single-page PDF ==========
+    elif filename.endswith((".png", ".jpg", ".jpeg")) or (file.content_type and file.content_type.startswith("image/")):
+        original_type = "image"
+        try:
+            from reportlab.lib.utils import ImageReader
+            
+            # Open image with Pillow
+            image = Image.open(BytesIO(content))
+            
+            # Convert to RGB if needed (handles PNG transparency, CMYK, etc.)
+            if image.mode in ('RGBA', 'LA', 'P'):
+                # Create white background for transparency
+                background = Image.new('RGB', image.size, (255, 255, 255))
+                if image.mode == 'P':
+                    image = image.convert('RGBA')
+                background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+                image = background
+            elif image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Create PDF with ReportLab
+            pdf_buffer = BytesIO()
+            from reportlab.lib.pagesizes import letter, A4
+            from reportlab.pdfgen import canvas as pdf_canvas
+            
+            # Use A4 for better international compatibility
+            page_width, page_height = A4
+            c = pdf_canvas.Canvas(pdf_buffer, pagesize=A4)
+            
+            # Fit image to page while maintaining aspect ratio
+            img_width, img_height = image.size
+            
+            # Add margins
+            margin = 36  # 0.5 inch margins
+            available_width = page_width - (2 * margin)
+            available_height = page_height - (2 * margin)
+            
+            ratio = min(available_width / img_width, available_height / img_height)
+            new_width = img_width * ratio
+            new_height = img_height * ratio
+            
+            # Center image on page
+            x = margin + (available_width - new_width) / 2
+            y = margin + (available_height - new_height) / 2
+            
+            # Save image to buffer for ReportLab
+            img_buffer = BytesIO()
+            image.save(img_buffer, format="PNG", quality=95)
+            img_buffer.seek(0)
+            
+            # Draw image on PDF
+            c.drawImage(ImageReader(img_buffer), x, y, width=new_width, height=new_height)
+            c.showPage()
+            c.save()
+            
+            pdf_buffer.seek(0)
+            pdf_content = pdf_buffer.read()
+            
+        except Exception as e:
+            print(f"Image conversion error: {e}")
+            raise HTTPException(status_code=400, detail=f"Image conversion failed: {str(e)}")
+    
+    # ========== 3. DOC/DOCX: try Gotenberg ==========
+    elif filename.endswith((".doc", ".docx")):
+        original_type = "docx"
+        
+        if not GOTENBERG_URL:
+            raise HTTPException(
+                status_code=400,
+                detail="DOC/DOCX conversion is not available yet. Please convert to PDF first, or upload a PDF/image."
+            )
+        
+        try:
+            import httpx
+            
+            async with httpx.AsyncClient(timeout=60) as client:
+                files = {
+                    "files": (file.filename, content, file.content_type or "application/octet-stream")
+                }
+                
+                response = await client.post(
+                    f"{GOTENBERG_URL}/forms/libreoffice/convert",
+                    files=files
+                )
+                
+                if response.status_code != 200:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="DOCX conversion failed. Please try converting to PDF first."
+                    )
+                
+                pdf_content = response.content
+                
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=400, detail="Document conversion timed out. Please try a smaller file.")
+        except Exception as e:
+            print(f"Gotenberg conversion error: {e}")
+            raise HTTPException(
+                status_code=400,
+                detail="DOC/DOCX conversion is temporarily unavailable. Please convert to PDF first."
+            )
+    
+    # ========== Unsupported type ==========
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Please upload PDF, PNG, JPG, or JPEG files."
+        )
+    
+    # Count pages in the resulting PDF
+    num_pages = 1
+    try:
+        import fitz  # PyMuPDF
+        doc = fitz.open(stream=pdf_content, filetype="pdf")
+        num_pages = len(doc)
+        doc.close()
+    except:
+        pass
+    
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={
+            "X-Prepared-Original-Type": original_type,
+            "X-Prepared-Pages": str(num_pages),
+            "X-Prepared-Filename": file.filename or "document.pdf",
+            "X-Prepared-Source": source
+        }
+    )
+
 @api_router.post("/documents/stamp-preview")
 async def generate_stamp_preview(
     request: StampPreviewRequest,
