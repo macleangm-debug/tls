@@ -125,6 +125,8 @@ const DocumentStampPage = () => {
   const [stampSizePercent, setStampSizePercent] = useState(100); // Size as percentage
   const [stampMargin, setStampMargin] = useState(20); // Margin from edge in preview pixels
   const [stampPositionPreset, setStampPositionPreset] = useState("bottom-right"); // Position preset
+  const [isDragging, setIsDragging] = useState(false); // Track if stamp is being dragged
+  const rndRef = useRef(null); // Ref to Rnd component for imperative updates
   
   // Page selection mode
   const [pageSelectionMode, setPageSelectionMode] = useState("first"); // "first", "all", "custom"
