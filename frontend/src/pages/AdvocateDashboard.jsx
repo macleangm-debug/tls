@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useConfirmation } from "../components/SecurityModals";
 import axios from "axios";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -15,7 +16,7 @@ import {
   Stamp, CreditCard, Truck, Award, Lock, Fingerprint, Layers,
   Sparkles, ArrowRight, Globe, TrendingUp, Share2, BookOpen,
   Play, ChevronRight, ExternalLink, Zap, Target, BarChart3,
-  Info, HelpCircle, MousePointer, Upload, Scan, LinkIcon, DollarSign
+  Info, HelpCircle, MousePointer, Upload, Scan, LinkIcon, DollarSign, Shield
 } from "lucide-react";
 import { NotificationBell } from "../components/NotificationBell";
 import { MembershipStatusBanner, useMembershipStatus } from "../components/MembershipStatusBanner";
