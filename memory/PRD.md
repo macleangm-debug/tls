@@ -156,9 +156,10 @@ User Upload → /prepare → PDF → pdf.js render → Stamp overlay → /stamp 
 - ~~E2E testing of full stamp flow~~ (COMPLETED)
 
 ### P1 (High Priority)
+- Finalize Case Hearings/To-Do Feature (form submission + calendar sync)
+- Fill Test Profile Content (populate test user's public profile)
+- Implement "Scan Mode" Selector dropdown (gray/color/bw)
 - Real-world PDF stress testing (use `/api/admin/pdf/validate`)
-- Add UI dropdown for scan mode selection (gray/color/bw)
-- Finalize signature placement inside stamp placeholder
 - Harden "Failed to stamp document" error handling with better logging
 
 ### P2 (Medium Priority)
