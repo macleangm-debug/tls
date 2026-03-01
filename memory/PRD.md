@@ -5,6 +5,35 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ## Recent Updates
 
+### Security Features & UI Improvements (Mar 1, 2026) ✅
+
+**Features Implemented:**
+1. **Confirmation Modal System** - Global confirmation modal provider for critical actions
+   - Sign Out button now shows confirmation dialog
+   - Reusable `useConfirmation()` hook for any component
+   - Supports danger/warning/success/info variants
+
+2. **PIN Lock Security Feature** - Full PIN-based security system
+   - `/pin-settings` page for PIN management
+   - Setup, change, and disable PIN flows
+   - Auto-lock after inactivity (configurable 1-30 minutes)
+   - Per-page locking (Practice Management, Stamp Ledger, Profile)
+   - PIN stored in localStorage for device-level protection
+
+3. **Sidebar Navigation Updated**
+   - Added "PIN & Security" link under Account section
+   - All navigation groups visible with scrollable sidebar
+
+4. **Profile Photo Upload Fix**
+   - Removed manual Content-Type header that caused CSRF errors
+   - FormData now correctly handled by browser
+
+**Files Created/Modified:**
+- `frontend/src/components/SecurityModals.jsx` - ConfirmationProvider, PinLockProvider, PageLockGuard
+- `frontend/src/pages/PinSettingsPage.jsx` - PIN settings UI
+- `frontend/src/App.js` - Added providers and routes
+- `frontend/src/pages/AdvocateDashboard.jsx` - Sign out confirmation, sidebar nav
+
 ### E2E Testing Complete (Feb 27, 2026) ✅
 
 **Full E2E Testing Results:**
