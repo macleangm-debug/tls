@@ -557,23 +557,23 @@ const BatchStampPage = () => {
             </div>
 
             {/* Document Details */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileCheck className="w-5 h-5" />
+            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/10">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                  <FileCheck className="w-5 h-5 text-emerald-400" />
                   Document Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h3>
+              </div>
+              <div className="p-4 space-y-4">
                 <div>
-                  <Label className="text-sm font-medium">Document Type</Label>
+                  <Label className="text-sm font-medium text-white/70">Document Type</Label>
                   <Select value={documentType} onValueChange={setDocumentType}>
-                    <SelectTrigger className="mt-1" data-testid="document-type-select">
+                    <SelectTrigger className="mt-1 bg-white/5 border-white/10 text-white" data-testid="document-type-select">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#0a0f1a] border-white/10">
                       {DOCUMENT_TYPES.map(type => (
-                        <SelectItem key={type.id} value={type.id}>
+                        <SelectItem key={type.id} value={type.id} className="text-white hover:bg-white/10">
                           {type.name}
                         </SelectItem>
                       ))}
@@ -582,41 +582,41 @@ const BatchStampPage = () => {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Recipient Name *</Label>
+                  <Label className="text-sm font-medium text-white/70">Recipient Name *</Label>
                   <Input
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
                     placeholder="Enter recipient name"
-                    className="mt-1"
+                    className="mt-1 bg-white/5 border-white/10 text-white placeholder:text-white/40"
                     data-testid="recipient-name-input"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Organization</Label>
+                  <Label className="text-sm font-medium text-white/70">Organization</Label>
                   <Input
                     value={recipientOrg}
                     onChange={(e) => setRecipientOrg(e.target.value)}
                     placeholder="Enter organization (optional)"
-                    className="mt-1"
+                    className="mt-1 bg-white/5 border-white/10 text-white placeholder:text-white/40"
                     data-testid="recipient-org-input"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Description</Label>
+                  <Label className="text-sm font-medium text-white/70">Description</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Batch description (optional)"
-                    className="mt-1"
+                    className="mt-1 bg-white/5 border-white/10 text-white placeholder:text-white/40"
                     rows={2}
                     data-testid="description-input"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Border Color</Label>
+                  <Label className="text-sm font-medium text-white/70">Border Color</Label>
                   <div className="flex gap-2 mt-2 flex-wrap">
                     {BRAND_COLORS.map(color => (
                       <button
@@ -624,7 +624,7 @@ const BatchStampPage = () => {
                         onClick={() => setBorderColor(color.color)}
                         className={`w-8 h-8 rounded-full border-2 transition-transform ${
                           borderColor === color.color 
-                            ? 'border-gray-900 scale-110' 
+                            ? 'border-white scale-110' 
                             : 'border-transparent hover:scale-105'
                         }`}
                         style={{ backgroundColor: color.color }}
@@ -634,8 +634,8 @@ const BatchStampPage = () => {
                     ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Process Button */}
             <Button
