@@ -7816,6 +7816,36 @@ async def cancel_subscription(institution: dict = Depends(get_current_institutio
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
+
+@api_router.get("/admin/services/status")
+async def get_services_status(user: dict = Depends(get_current_user)):
+    """Get status of external services (admin only)"""
+    if user.get("role") not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from services.gotenberg_service import gotenberg_service
+    
+    services = {
+        "gotenberg": {
+            "configured": gotenberg_service.is_available,
+            "url": GOTENBERG_URL or "Not configured",
+            "healthy": False
+        },
+        "mongodb": {
+            "configured": True,
+            "healthy": True  # We're connected if this endpoint works
+        }
+    }
+    
+    # Check Gotenberg health
+    if gotenberg_service.is_available:
+        services["gotenberg"]["healthy"] = await gotenberg_service.health_check()
+    
+    return {
+        "services": services,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
 # =============== PUSH NOTIFICATIONS ===============
 
 class PushSubscription(BaseModel):
