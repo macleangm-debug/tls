@@ -95,6 +95,8 @@ class StampingService:
             "advocate_id": str(user.get("_id", user.get("id", ""))),
             "advocate_name": user.get("full_name", ""),
             "advocate_email": user.get("email", ""),
+            "advocate_roll_number": user.get("roll_number", ""),
+            "advocate_tls_number": user.get("tls_member_number", ""),
             "document_name": document_name,
             "document_type": document_type,
             "document_hash": document_hash,
@@ -112,6 +114,7 @@ class StampingService:
             "expires_at": expires_at,
             "verification_url": self.create_verification_url(stamp_id),
             "batch_id": batch_id,
+            "verification_count": 0,
         }
         
         # Add cryptographic signature
