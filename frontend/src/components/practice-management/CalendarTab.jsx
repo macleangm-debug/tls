@@ -719,18 +719,18 @@ export const CalendarTab = ({ token }) => {
             <CardContent className="p-4">
               <h3 className="text-xs font-semibold text-white/50 mb-2">Event Types</h3>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> <span className="text-white/60">Meeting</span></span>
-                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> <span className="text-white/60">Court</span></span>
-                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> <span className="text-white/60">Deadline</span></span>
-                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span className="text-white/60">Appointment</span></span>
-                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span> <span className="text-white/60">Reminder</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span> <span className="text-white/60">Meeting</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-600"></span> <span className="text-white/60">Court</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-600"></span> <span className="text-white/60">Deadline</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> <span className="text-white/60">Appointment</span></span>
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span> <span className="text-white/60">Reminder</span></span>
                 <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-gray-500"></span> <span className="text-white/60">Completed</span></span>
               </div>
               <div className="mt-3 pt-3 border-t border-white/10">
                 <h4 className="text-xs font-semibold text-white/50 mb-2">TLS Events</h4>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-violet-500"></span> <span className="text-white/60">AGM/CPD</span></span>
-                  <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> <span className="text-white/60">TLS Notice</span></span>
+                  <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-violet-600"></span> <span className="text-white/60">AGM/CPD</span></span>
+                  <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> <span className="text-white/60">TLS Notice</span></span>
                 </div>
                 <p className="text-[10px] text-white/30 mt-1 flex items-center gap-1">
                   <Building className="w-3 h-3" /> TLS events are read-only
