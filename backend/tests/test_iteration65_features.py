@@ -17,6 +17,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-and-manage.pre
 TEST_EMAIL = "test@tls.or.tz"
 TEST_PASSWORD = "Test@12345678!"
 TEST_ROLL_NUMBER = "ADV/TEST/001"
+TEST_USER_ID = "test-advocate-persistent-001"  # Actual user ID in DB
 
 
 class TestAuth:
