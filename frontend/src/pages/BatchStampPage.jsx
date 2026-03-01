@@ -481,16 +481,16 @@ const BatchStampPage = () => {
           {/* Right Column - Configuration */}
           <div className="space-y-4">
             {/* Position Settings */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Move className="w-5 h-5" />
+            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/10">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                  <Move className="w-5 h-5 text-emerald-400" />
                   Stamp Position
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h3>
+              </div>
+              <div className="p-4 space-y-4">
                 <div>
-                  <Label className="text-sm font-medium">Anchor Point</Label>
+                  <Label className="text-sm font-medium text-white/70">Anchor Point</Label>
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {POSITION_ANCHORS.map(pos => (
                       <Button
@@ -498,7 +498,10 @@ const BatchStampPage = () => {
                         variant={anchor === pos.id ? "default" : "outline"}
                         size="sm"
                         onClick={() => setAnchor(pos.id)}
-                        className={anchor === pos.id ? "bg-emerald-600" : ""}
+                        className={anchor === pos.id 
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                          : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                        }
                         data-testid={`anchor-${pos.id}`}
                       >
                         <span className="mr-1">{pos.icon}</span>
@@ -510,48 +513,48 @@ const BatchStampPage = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-sm">Offset X (pt)</Label>
+                    <Label className="text-sm text-white/70">Offset X (pt)</Label>
                     <Input
                       type="number"
                       value={offsetX}
                       onChange={(e) => setOffsetX(Number(e.target.value))}
                       min={0}
                       max={100}
-                      className="mt-1"
+                      className="mt-1 bg-white/5 border-white/10 text-white"
                       data-testid="offset-x-input"
                     />
                   </div>
                   <div>
-                    <Label className="text-sm">Offset Y (pt)</Label>
+                    <Label className="text-sm text-white/70">Offset Y (pt)</Label>
                     <Input
                       type="number"
                       value={offsetY}
                       onChange={(e) => setOffsetY(Number(e.target.value))}
                       min={0}
                       max={100}
-                      className="mt-1"
+                      className="mt-1 bg-white/5 border-white/10 text-white"
                       data-testid="offset-y-input"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Page Mode</Label>
+                  <Label className="text-sm font-medium text-white/70">Page Mode</Label>
                   <Select value={pageMode} onValueChange={setPageMode}>
-                    <SelectTrigger className="mt-1" data-testid="page-mode-select">
+                    <SelectTrigger className="mt-1 bg-white/5 border-white/10 text-white" data-testid="page-mode-select">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#0a0f1a] border-white/10">
                       {PAGE_MODES.map(mode => (
-                        <SelectItem key={mode.id} value={mode.id}>
+                        <SelectItem key={mode.id} value={mode.id} className="text-white hover:bg-white/10">
                           {mode.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Document Details */}
             <Card>
