@@ -378,42 +378,42 @@ const BatchStampPage = () => {
 
             {/* File List */}
             {selectedFiles.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
+              <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                <div className="p-4 border-b border-white/10">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
+                    <h3 className="text-lg font-medium text-white">
                       Selected Files ({selectedFiles.length}/{MAX_FILES})
-                    </CardTitle>
+                    </h3>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={clearFiles}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                       data-testid="clear-files-btn"
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
                       Clear All
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-white/50">
                     Total size: {formatSize(totalSize)}
                   </p>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div className="p-4">
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {selectedFiles.map((f, index) => (
                       <div 
                         key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl"
                         data-testid={`file-item-${index}`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                          <FileText className="w-5 h-5 text-red-400 flex-shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-white truncate">
                               {f.name}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-white/50">
                               {formatSize(f.size)}
                             </p>
                           </div>
@@ -422,7 +422,7 @@ const BatchStampPage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFile(index)}
-                          className="flex-shrink-0"
+                          className="flex-shrink-0 text-white/50 hover:text-white hover:bg-white/10"
                           data-testid={`remove-file-${index}`}
                         >
                           <X className="w-4 h-4" />
@@ -430,8 +430,8 @@ const BatchStampPage = () => {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
             {/* Results */}
