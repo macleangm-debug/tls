@@ -8503,6 +8503,7 @@ CSRF_EXEMPT_PATHS = [
     "/api/advocate/signature",  # Signature management - authenticated via JWT
     "/api/stamp-templates",  # Stamp templates - authenticated via JWT
     "/api/stamps",  # Stamp ledger operations - authenticated via JWT
+    "/api/documents/batch-stamp",  # Batch stamping - authenticated via JWT
     "/health",
     "/docs",
     "/openapi.json",
