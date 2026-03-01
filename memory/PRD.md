@@ -8,10 +8,17 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 ### Feature Completion (Mar 1, 2026) ✅
 
 **Four Features Verified:**
-1. **Batch Stamping Fix** - Fixed endpoint URL (was `/documents/batch-history`, now `/documents/batch-stamps`)
-2. **Case Hearings/To-Do Calendar Sync** - Fixed endpoint for calendar sync (was `/api/practice/calendar/events`, now `/api/practice/events`)
+1. **Batch Stamping Fix** - Fixed endpoint URL and axios headers. CSRF exemption added for batch-stamp endpoint.
+2. **Case Hearings/To-Do Calendar Sync** - Fixed endpoint for calendar sync (`/api/practice/events`)
 3. **Test Profile Content** - Populated test user's public profile with full professional content
 4. **Scan Mode Dropdown** - Already implemented in DocumentStampPage (Gray/Color/B&W options)
+
+**Gotenberg Integration (Mar 1, 2026) ✅**
+- Created `backend/services/gotenberg_service.py` for DOCX/DOC to PDF conversion
+- Supports LibreOffice endpoint (`/forms/libreoffice/convert`)
+- Falls back to python-docx when Gotenberg unavailable
+- Admin endpoint `/api/admin/services/status` to check Gotenberg health
+- Environment variable: `GOTENBERG_URL` (e.g., `http://gotenberg:3000`)
 
 ### Security Features & UI Improvements (Mar 1, 2026) ✅
 
