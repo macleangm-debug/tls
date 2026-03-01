@@ -682,39 +682,39 @@ const BatchStampPage = () => {
 
         {/* Batch History */}
         {batchHistory.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Batches</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-white/10">
+              <h3 className="text-lg font-medium text-white">Recent Batches</h3>
+            </div>
+            <div className="p-4">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-3">Batch ID</th>
-                      <th className="text-left py-2 px-3">Date</th>
-                      <th className="text-center py-2 px-3">Files</th>
-                      <th className="text-center py-2 px-3">Success</th>
-                      <th className="text-center py-2 px-3">Failed</th>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-2 px-3 text-white/60">Batch ID</th>
+                      <th className="text-left py-2 px-3 text-white/60">Date</th>
+                      <th className="text-center py-2 px-3 text-white/60">Files</th>
+                      <th className="text-center py-2 px-3 text-white/60">Success</th>
+                      <th className="text-center py-2 px-3 text-white/60">Failed</th>
                     </tr>
                   </thead>
                   <tbody>
                     {batchHistory.slice(0, 10).map((batch, idx) => (
-                      <tr key={idx} className="border-b hover:bg-gray-50">
-                        <td className="py-2 px-3 font-mono text-xs">{batch.batch_id}</td>
-                        <td className="py-2 px-3">
+                      <tr key={idx} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="py-2 px-3 font-mono text-xs text-cyan-400">{batch.batch_id}</td>
+                        <td className="py-2 px-3 text-white/70">
                           {new Date(batch.created_at).toLocaleDateString()}
                         </td>
-                        <td className="py-2 px-3 text-center">{batch.file_count}</td>
-                        <td className="py-2 px-3 text-center text-emerald-600">{batch.success_count}</td>
-                        <td className="py-2 px-3 text-center text-red-500">{batch.failed_count}</td>
+                        <td className="py-2 px-3 text-center text-white">{batch.file_count}</td>
+                        <td className="py-2 px-3 text-center text-emerald-400">{batch.success_count}</td>
+                        <td className="py-2 px-3 text-center text-red-400">{batch.failed_count}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
