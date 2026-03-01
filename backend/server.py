@@ -2918,7 +2918,7 @@ async def confirm_payment(payment_ref: str, user: dict = Depends(get_current_use
 # =============== DOCUMENT STAMP ROUTES ===============
 
 def convert_docx_to_pdf(docx_content: bytes) -> bytes:
-    """Convert DOCX to PDF"""
+    """Convert DOCX to PDF using basic python-docx (fallback when Gotenberg unavailable)"""
     if not DOCX_SUPPORTED:
         raise HTTPException(status_code=400, detail="DOCX conversion not supported")
     
@@ -2946,6 +2946,31 @@ def convert_docx_to_pdf(docx_content: bytes) -> bytes:
     except Exception as e:
         logger.error(f"DOCX conversion error: {e}")
         raise HTTPException(status_code=400, detail="Failed to convert DOCX to PDF")
+
+
+async def convert_docx_to_pdf_async(docx_content: bytes, filename: str) -> bytes:
+    """
+    Convert DOCX to PDF using Gotenberg if available, fallback to basic conversion.
+    Gotenberg provides better formatting preservation.
+    """
+    from services.gotenberg_service import gotenberg_service
+    
+    # Try Gotenberg first (better quality conversion)
+    if gotenberg_service.is_available:
+        try:
+            success, pdf_bytes, error = await gotenberg_service.convert_office_to_pdf(
+                docx_content, filename
+            )
+            if success and pdf_bytes:
+                logger.info(f"DOCX converted via Gotenberg: {filename}")
+                return pdf_bytes
+            else:
+                logger.warning(f"Gotenberg conversion failed, using fallback: {error}")
+        except Exception as e:
+            logger.warning(f"Gotenberg error, using fallback: {e}")
+    
+    # Fallback to basic conversion
+    return convert_docx_to_pdf(docx_content)
 
 def convert_image_to_pdf(image_content: bytes, content_type: str) -> bytes:
     """Convert image to PDF"""
