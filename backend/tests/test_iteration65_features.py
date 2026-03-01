@@ -207,24 +207,24 @@ class TestCaseHearingsAndCalendar(TestAuth):
         print(f"PASS: Hearing found in case hearings list")
     
     def test_calendar_events_endpoint(self, session, auth_headers):
-        """Test that calendar events can be created"""
+        """Test that calendar events can be created via /events endpoint"""
         event_data = {
             "title": "TEST_Calendar_Event_Iteration65",
-            "start": "2026-03-16T09:00:00",
-            "end": "2026-03-16T11:00:00",
-            "type": "court_hearing",
+            "start_datetime": "2026-03-16T09:00:00",
+            "end_datetime": "2026-03-16T11:00:00",
+            "event_type": "court_hearing",
             "priority": "high",
             "location": "High Court",
-            "notes": "Test calendar event"
+            "description": "Test calendar event"
         }
         
         response = session.post(
-            f"{BASE_URL}/api/practice/calendar/events",
+            f"{BASE_URL}/api/practice/events",
             json=event_data,
             headers=auth_headers
         )
         assert response.status_code in [200, 201], f"Calendar event creation failed: {response.text}"
-        print(f"PASS: Calendar event created successfully")
+        print(f"PASS: Calendar event created successfully via /api/practice/events")
 
 
 class TestPublicProfile(TestAuth):
