@@ -1,0 +1,75 @@
+{
+  "summary": "Iteration 65: Verified 4 features - batch stamping, case hearings, public profile content, and scan mode dropdown. All features working correctly with 100% backend test pass rate.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/practice/calendar/events",
+        "issue": "Frontend CasesTab.jsx line 145 calls /api/practice/calendar/events which doesn't exist - should be /api/practice/events. Calendar sync fails silently with fallback toast message.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Case hearing calendar sync",
+        "issue": "CasesTab.jsx handleAddHearing function calls incorrect endpoint /api/practice/calendar/events instead of /api/practice/events. Hearing creation works but calendar sync fails silently.",
+        "affected_selectors": [],
+        "priority": "LOW"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration65_features.py",
+    "/app/test_reports/pytest/pytest_iteration65.xml"
+  ],
+  "action_items": [
+    "Fix CasesTab.jsx line 145: change '/api/practice/calendar/events' to '/api/practice/events' for proper calendar sync"
+  ],
+  "critical_code_review_comments": [
+    "CasesTab.jsx calls wrong endpoint for calendar events - should use /api/practice/events instead of /api/practice/calendar/events"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration65_features.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "95%"
+  },
+  "test_credentials": {
+    "email": "test@tls.or.tz",
+    "password": "Test@12345678!",
+    "roll_number": "ADV/TEST/001",
+    "user_id": "test-advocate-persistent-001"
+  },
+  "seed_data_creation": "Created test cases and hearings via API during testing - cleaned up automatically",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 4 features verified: 1) Batch stamps endpoint /api/documents/batch-stamps works and returns batch history list. 2) Case hearings POST to /api/practice/cases/{case_id}/hearings works - Add Hearing button visible in case detail modal. 3) Public profile at /advocate/{user_id} displays all populated content (bio, education, practice areas, experience, achievements, memberships, bar admissions). 4) Scan mode dropdown exists in DocumentStampPage.jsx lines 2028-2036 with options: Document (Gray), Color, Black & White. The dropdown appears when showScanPreview is true (after scanning documents).",
+  "features_verified": {
+    "batch_stamps": {
+      "status": "PASS",
+      "endpoint": "GET /api/documents/batch-stamps",
+      "notes": "Returns list of batch stamp records with batch_id, created_at, file_count fields"
+    },
+    "case_hearings": {
+      "status": "PASS",
+      "endpoint": "POST /api/practice/cases/{case_id}/hearings",
+      "notes": "Hearing creation works. Add Hearing button visible in case detail modal. Calendar sync has minor bug (wrong endpoint call)."
+    },
+    "public_profile": {
+      "status": "PASS",
+      "endpoint": "GET /api/advocates/public/{advocate_id}",
+      "notes": "All profile sections populated: bio, education (2 entries), practice areas (5 areas), experience, achievements (2), memberships (3), bar admissions (2), languages"
+    },
+    "scan_mode_dropdown": {
+      "status": "PASS",
+      "location": "DocumentStampPage.jsx lines 2028-2036",
+      "options": ["Document (Gray)", "Color", "Black & White"],
+      "notes": "Dropdown renders when showScanPreview is true (after adding scanned pages)"
+    }
+  }
+}
