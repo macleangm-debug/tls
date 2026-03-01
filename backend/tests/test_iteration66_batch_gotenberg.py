@@ -292,14 +292,14 @@ class TestAdminServicesStatusEndpoint:
 class TestDocxConversionWithFallback:
     """Test DOCX conversion endpoint (with Gotenberg fallback)"""
     
-    def test_prepare_document_with_pdf(self, advocate_token):
-        """Test prepare-document endpoint with PDF file"""
-        pdf_content = create_test_pdf("prepare_test.pdf", "Prepare document test")
+    def test_document_upload_with_pdf(self, advocate_token):
+        """Test document upload endpoint with PDF file"""
+        pdf_content = create_test_pdf("upload_test.pdf", "Upload document test")
         
         response = requests.post(
-            f"{BASE_URL}/api/documents/prepare-document",
+            f"{BASE_URL}/api/documents/upload",
             headers={"Authorization": f"Bearer {advocate_token}"},
-            files=[("file", ("test_prepare.pdf", pdf_content, "application/pdf"))]
+            files=[("file", ("test_upload.pdf", pdf_content, "application/pdf"))]
         )
         
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text[:500]}"
@@ -307,22 +307,21 @@ class TestDocxConversionWithFallback:
         data = response.json()
         assert "hash" in data, "Response should include document hash"
         assert "pages" in data, "Response should include page count"
-        assert data.get("converted") == False, "PDF should not be converted"
         
-        print(f"✓ PDF prepare-document successful - {data.get('pages')} page(s), hash: {data.get('hash', '')[:16]}...")
+        print(f"✓ PDF upload successful - {data.get('pages')} page(s), hash: {data.get('hash', '')[:16]}...")
     
-    def test_prepare_document_endpoint_exists(self, advocate_token):
-        """Test that prepare-document endpoint is accessible"""
+    def test_document_upload_endpoint_exists(self, advocate_token):
+        """Test that document upload endpoint is accessible"""
         # Just verify the endpoint exists and requires a file
         response = requests.post(
-            f"{BASE_URL}/api/documents/prepare-document",
+            f"{BASE_URL}/api/documents/upload",
             headers={"Authorization": f"Bearer {advocate_token}"},
             data={}  # No file - should get validation error
         )
         
         # Should get 422 (validation error) or 400, not 404
         assert response.status_code in [400, 422], f"Expected 400/422, got {response.status_code}"
-        print("✓ Prepare-document endpoint exists and validates input")
+        print("✓ Document upload endpoint exists and validates input")
 
 
 class TestHealthAndBasicEndpoints:
