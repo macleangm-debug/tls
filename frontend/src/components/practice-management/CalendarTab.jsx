@@ -517,12 +517,13 @@ export const CalendarTab = ({ token }) => {
   };
 
   const getEventTypeColor = (type) => {
+    // Muted background colors with better contrast
     const colors = { 
-      court_hearing: "bg-red-500 text-red-100", 
-      meeting: "bg-blue-500 text-blue-100", 
-      deadline: "bg-amber-500 text-amber-100", 
-      reminder: "bg-purple-500 text-purple-100", 
-      appointment: "bg-emerald-500 text-emerald-100" 
+      court_hearing: "bg-red-600/80 text-white", 
+      meeting: "bg-blue-600/80 text-white", 
+      deadline: "bg-amber-600/80 text-white", 
+      reminder: "bg-purple-600/80 text-white", 
+      appointment: "bg-emerald-600/80 text-white" 
     };
     return colors[type] || colors.meeting;
   };
