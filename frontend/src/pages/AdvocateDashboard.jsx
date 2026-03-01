@@ -297,6 +297,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       label: "Account",
       items: [
         { icon: User, label: "My Profile", path: "/profile" },
+        { icon: HelpCircle, label: "Help Center", path: "/help" },
       ]
     }
   ];
