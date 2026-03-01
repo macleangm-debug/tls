@@ -227,28 +227,16 @@ class TestPublicProfile(TestAuth):
     
     def test_public_profile_by_id(self, session):
         """Test public profile endpoint returns populated data"""
-        # First, we need to find the test user's ID
-        # Try by roll number path
-        response = session.get(f"{BASE_URL}/api/advocates/public/{TEST_ROLL_NUMBER}")
-        
-        if response.status_code == 404:
-            # Try getting via advocates list
-            list_response = session.get(f"{BASE_URL}/api/advocates")
-            if list_response.status_code == 200:
-                advocates = list_response.json().get("advocates", [])
-                test_advocate = next(
-                    (a for a in advocates if a.get("roll_number") == TEST_ROLL_NUMBER or a.get("email") == TEST_EMAIL), 
-                    None
-                )
-                if test_advocate:
-                    advocate_id = test_advocate.get("id")
-                    response = session.get(f"{BASE_URL}/api/advocates/public/{advocate_id}")
+        # Use the known user ID directly
+        response = session.get(f"{BASE_URL}/api/advocates/public/{TEST_USER_ID}")
         
         assert response.status_code == 200, f"Public profile endpoint failed: {response.text}"
         data = response.json()
         
-        # Verify populated fields exist
-        print(f"PASS: Public profile endpoint returns status 200")
+        # Verify basic fields exist
+        assert "full_name" in data, "Missing full_name in profile"
+        assert "roll_number" in data, "Missing roll_number in profile"
+        print(f"PASS: Public profile endpoint returns status 200 for {data.get('full_name')}")
         return data
     
     def test_public_profile_has_bio(self, session):
