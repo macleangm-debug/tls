@@ -711,6 +711,101 @@ def create_practice_routes(db, get_current_user):
             raise HTTPException(status_code=404, detail="Case not found")
         
         return {"message": f"Case status updated to {data.status}"}
+
+    # ===================== CASE HEARINGS =====================
+    
+    @practice_router.get("/cases/{case_id}/hearings")
+    async def get_case_hearings(case_id: str, user: dict = Depends(get_current_user)):
+        """Get all hearings for a case"""
+        # Verify case belongs to user
+        case = await db.cases.find_one({"id": case_id, "advocate_id": user["id"]})
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        hearings = await db.case_hearings.find(
+            {"case_id": case_id, "advocate_id": user["id"]},
+            {"_id": 0}
+        ).sort("hearing_datetime", 1).to_list(100)
+        
+        return {"hearings": hearings}
+    
+    @practice_router.post("/cases/{case_id}/hearings")
+    async def add_case_hearing(case_id: str, data: dict, user: dict = Depends(get_current_user)):
+        """Add a hearing to a case"""
+        # Verify case belongs to user
+        case = await db.cases.find_one({"id": case_id, "advocate_id": user["id"]})
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        hearing_id = f"HRG-{uuid.uuid4().hex[:8].upper()}"
+        now = datetime.now(timezone.utc).isoformat()
+        
+        hearing = {
+            "id": hearing_id,
+            "case_id": case_id,
+            "advocate_id": user["id"],
+            "title": data.get("title", "Court Hearing"),
+            "hearing_datetime": data.get("hearing_datetime"),
+            "court": data.get("court") or case.get("court"),
+            "courtroom": data.get("courtroom"),
+            "judge": data.get("judge") or case.get("judge"),
+            "purpose": data.get("purpose"),
+            "notes": data.get("notes"),
+            "status": "scheduled",
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.case_hearings.insert_one(hearing)
+        
+        # Update next hearing date on case
+        await db.cases.update_one(
+            {"id": case_id},
+            {"$set": {"next_hearing_date": data.get("hearing_datetime"), "updated_at": now}}
+        )
+        
+        return {"message": "Hearing added", "hearing_id": hearing_id}
+    
+    @practice_router.delete("/cases/{case_id}/hearings/{hearing_id}")
+    async def delete_case_hearing(case_id: str, hearing_id: str, user: dict = Depends(get_current_user)):
+        """Delete a hearing from a case"""
+        result = await db.case_hearings.delete_one({
+            "id": hearing_id,
+            "case_id": case_id,
+            "advocate_id": user["id"]
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Hearing not found")
+        
+        # Update next hearing date on case
+        next_hearing = await db.case_hearings.find_one(
+            {"case_id": case_id, "advocate_id": user["id"], "hearing_datetime": {"$gte": datetime.now(timezone.utc).isoformat()}},
+            sort=[("hearing_datetime", 1)]
+        )
+        
+        await db.cases.update_one(
+            {"id": case_id},
+            {"$set": {"next_hearing_date": next_hearing["hearing_datetime"] if next_hearing else None}}
+        )
+        
+        return {"message": "Hearing deleted"}
+    
+    @practice_router.get("/cases/{case_id}/tasks")
+    async def get_case_tasks(case_id: str, user: dict = Depends(get_current_user)):
+        """Get all tasks for a case"""
+        # Verify case belongs to user
+        case = await db.cases.find_one({"id": case_id, "advocate_id": user["id"]})
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        tasks = await db.tasks.find(
+            {"case_id": case_id, "advocate_id": user["id"]},
+            {"_id": 0}
+        ).sort("due_date", 1).to_list(100)
+        
+        return {"tasks": tasks}
+
     
     # ===================== CALENDAR & EVENTS =====================
     
