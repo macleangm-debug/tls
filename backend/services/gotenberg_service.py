@@ -84,7 +84,7 @@ class GotenbergService:
                     try:
                         error_detail = response.json()
                         error_msg = f"{error_msg} - {error_detail}"
-                    except:
+                    except Exception:
                         error_msg = f"{error_msg} - {response.text[:200]}"
                     logger.error(error_msg)
                     return False, b"", error_msg
