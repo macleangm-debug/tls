@@ -270,7 +270,7 @@ const BatchStampPage = () => {
         `${API}/documents/batch-stamp`,
         formData,
         {
-          ...getAuthHeaders(),
+          headers: getAuthHeaders().headers,
           responseType: 'blob',
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
