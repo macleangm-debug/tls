@@ -142,7 +142,7 @@ export const CasesTab = ({ token }) => {
       // Add to calendar if requested
       if (hearingData.add_to_calendar) {
         try {
-          await axios.post(`${API}/api/practice/calendar/events`, {
+          await axios.post(`${API}/api/practice/events`, {
             title: `Court: ${hearingData.title}`,
             start: `${hearingData.hearing_date}T${hearingData.hearing_time}:00`,
             end: `${hearingData.hearing_date}T${parseInt(hearingData.hearing_time.split(':')[0]) + 2}:00:00`,
