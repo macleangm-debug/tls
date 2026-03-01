@@ -139,6 +139,8 @@ function App() {
           <Route path="/stamp-settings" element={<ProtectedRoute><MyStampsPage /></ProtectedRoute>} />
           <Route path="/my-stamps" element={<ProtectedRoute><MyStampsPage /></ProtectedRoute>} />
           <Route path="/stamp-verification" element={<ProtectedRoute><StampVerificationPage /></ProtectedRoute>} />
+          <Route path="/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
+          <Route path="/help-center" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
           
           {/* Institutional Portal (separate login system) */}
           <Route path="/institutional" element={<InstitutionalPortal />} />
