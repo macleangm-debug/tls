@@ -38,6 +38,7 @@ import AdvocateProfilePage from "./pages/AdvocateProfilePage";
 import AdvocateDirectoryPage from "./pages/AdvocateDirectoryPage";
 import PracticeManagementPage from "./pages/PracticeManagementPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import HelpCenterPage from "./pages/HelpCenterPage";
 import "./App.css";
 
 const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
