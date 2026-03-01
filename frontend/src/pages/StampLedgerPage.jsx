@@ -5,6 +5,7 @@ import axios from "axios";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
@@ -14,12 +15,13 @@ import {
   FileText, Download, Search, Copy, ExternalLink,
   CheckCircle2, XCircle, Clock, AlertTriangle, Eye, Trash2,
   Calendar, Hash, User, Building, Shield, RefreshCw,
-  ChevronLeft, ChevronRight, Loader2, BookOpen, BarChart3
+  ChevronLeft, ChevronRight, Loader2, BookOpen, BarChart3,
+  DollarSign, TrendingUp, QrCode, ShieldCheck, ScanLine
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Status badge component - dark theme
+// Status badge component
 const StatusBadge = ({ status }) => {
   const config = {
     active: { label: "Valid", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", icon: CheckCircle2 },
@@ -36,7 +38,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Truncate hash with copy button - dark theme
+// Hash display with copy
 const HashDisplay = ({ hash, length = 12 }) => {
   const truncated = hash ? `${hash.slice(0, length)}...` : "-";
   
@@ -57,13 +59,14 @@ const HashDisplay = ({ hash, length = 12 }) => {
   );
 };
 
-// Circular stat icon component
+// Circular stat icon
 const CircularStatIcon = ({ Icon, color }) => {
   const colorClasses = {
     gray: "text-white/40 border-white/20",
     green: "text-emerald-400 border-emerald-400/50",
     red: "text-red-400 border-red-400/50",
-    yellow: "text-amber-400 border-amber-400/50"
+    yellow: "text-amber-400 border-amber-400/50",
+    blue: "text-blue-400 border-blue-400/50"
   };
   
   return (
@@ -75,18 +78,15 @@ const CircularStatIcon = ({ Icon, color }) => {
 
 const StampLedgerPage = () => {
   const { user, getAuthHeaders } = useAuth();
+  const [activeTab, setActiveTab] = useState("ledger");
   
-  // Data state
+  // Ledger state
   const [stamps, setStamps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [stats, setStats] = useState({ valid: 0, revoked: 0, expired: 0 });
-  
-  // Pagination
+  const [stats, setStats] = useState({ valid: 0, revoked: 0, expired: 0, totalRevenue: 0 });
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
-  
-  // Filters
   const [statusFilter, setStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -102,6 +102,11 @@ const StampLedgerPage = () => {
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [revokeReason, setRevokeReason] = useState("");
   const [revoking, setRevoking] = useState(false);
+  
+  // Verification state
+  const [verifyQuery, setVerifyQuery] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState(null);
 
   // Fetch stamps
   const fetchStamps = useCallback(async () => {
@@ -119,15 +124,13 @@ const StampLedgerPage = () => {
       setStamps(response.data.items);
       setTotal(response.data.total);
       
-      // Calculate stats from response or use separate endpoint
       if (response.data.stats) {
         setStats(response.data.stats);
       } else {
-        // Fallback: calculate from current page data (not accurate for total)
         const valid = response.data.items.filter(s => s.status === 'active').length;
         const revoked = response.data.items.filter(s => s.status === 'revoked').length;
         const expired = response.data.items.filter(s => s.status === 'expired').length;
-        setStats({ valid, revoked, expired });
+        setStats({ valid, revoked, expired, totalRevenue: 0 });
       }
     } catch (error) {
       console.error("Failed to load stamps:", error);
@@ -143,15 +146,54 @@ const StampLedgerPage = () => {
     try {
       const [detailRes, eventsRes] = await Promise.all([
         axios.get(`${API}/stamps/${stampId}`, getAuthHeaders()),
-        axios.get(`${API}/stamps/${stampId}/events`, getAuthHeaders())
+        axios.get(`${API}/stamps/${stampId}/events`, getAuthHeaders()).catch(() => ({ data: [] }))
       ]);
       setStampDetail(detailRes.data);
-      setStampEvents(eventsRes.data);
+      setStampEvents(eventsRes.data || []);
     } catch (error) {
       console.error("Failed to load stamp detail:", error);
       toast.error("Failed to load stamp details");
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  // Verify stamp
+  const handleVerify = async (e) => {
+    e?.preventDefault();
+    if (!verifyQuery.trim()) {
+      toast.error("Please enter a stamp ID or document hash");
+      return;
+    }
+    
+    setVerifying(true);
+    setVerificationResult(null);
+    
+    try {
+      // Try stamp ID first
+      let response;
+      const query = verifyQuery.trim();
+      
+      if (query.startsWith("TLS-")) {
+        response = await axios.get(`${API}/verify/stamp/${query}`);
+      } else {
+        // Try as document hash
+        response = await axios.post(`${API}/verify/hash`, { hash: query });
+      }
+      
+      setVerificationResult(response.data);
+      
+      if (response.data.valid) {
+        toast.success("Stamp verified successfully!");
+      } else {
+        toast.warning(response.data.message || "Stamp verification failed");
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || "Verification failed";
+      setVerificationResult({ valid: false, message: errorMsg });
+      toast.error(errorMsg);
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -208,30 +250,22 @@ const StampLedgerPage = () => {
     }
   };
 
-  // Load stamps on mount and filter change
   useEffect(() => {
     fetchStamps();
   }, [fetchStamps]);
 
-  // Open detail modal
   const openDetail = (stamp) => {
     setSelectedStamp(stamp);
     fetchStampDetail(stamp.stamp_id);
   };
 
-  // Format date
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   };
 
-  // Total pages
   const totalPages = Math.ceil(total / pageSize);
 
   return (
@@ -245,7 +279,7 @@ const StampLedgerPage = () => {
               Stamp Ledger
             </h1>
             <p className="text-white/50 mt-1">
-              View and manage all your issued stamps
+              View, verify, and manage all your issued stamps
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -253,15 +287,13 @@ const StampLedgerPage = () => {
               variant="outline" 
               onClick={fetchStamps} 
               className="bg-white/5 border-white/10 text-white hover:bg-white/10"
-              data-testid="refresh-btn"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
             <Button 
               onClick={handleExportCSV} 
-              className="bg-emerald-600 hover:bg-emerald-700 text-white" 
-              data-testid="export-csv-btn"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               <Download className="w-4 h-4 mr-2" />
               Export CSV
@@ -269,8 +301,8 @@ const StampLedgerPage = () => {
           </div>
         </div>
 
-        {/* Stats Cards - Dark Theme */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -307,187 +339,287 @@ const StampLedgerPage = () => {
               <CircularStatIcon Icon={Clock} color="yellow" />
             </div>
           </div>
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white/50">Revenue</p>
+                <p className="text-2xl font-bold text-blue-400 mt-1">
+                  TZS {(stats.totalRevenue || 0).toLocaleString()}
+                </p>
+              </div>
+              <CircularStatIcon Icon={DollarSign} color="blue" />
+            </div>
+          </div>
         </div>
 
-        {/* Filters - Dark Theme */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        {/* Tabs: Ledger | Verify */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="bg-white/5 border border-white/10 p-1">
+            <TabsTrigger 
+              value="ledger" 
+              className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-white/60"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              All Stamps
+            </TabsTrigger>
+            <TabsTrigger 
+              value="verify" 
+              className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-white/60"
+            >
+              <ShieldCheck className="w-4 h-4 mr-2" />
+              Verify Stamp
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Ledger Tab */}
+          <TabsContent value="ledger" className="space-y-4">
+            {/* Filters */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="md:col-span-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                    <Input
+                      placeholder="Search stamp ID or document hash..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                    />
+                  </div>
+                </div>
+                <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0a0f1a] border-white/10">
+                    <SelectItem value="all" className="text-white hover:bg-white/10">All Status</SelectItem>
+                    <SelectItem value="active" className="text-white hover:bg-white/10">Valid</SelectItem>
+                    <SelectItem value="revoked" className="text-white hover:bg-white/10">Revoked</SelectItem>
+                    <SelectItem value="expired" className="text-white hover:bg-white/10">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
-                  placeholder="Search stamp ID or document hash..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-emerald-500/50"
-                  data-testid="search-input"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
+                />
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
                 />
               </div>
             </div>
-            <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-              <SelectTrigger 
-                className="bg-white/5 border-white/10 text-white"
-                data-testid="status-filter"
-              >
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0a0f1a] border-white/10">
-                <SelectItem value="all" className="text-white hover:bg-white/10">All Status</SelectItem>
-                <SelectItem value="active" className="text-white hover:bg-white/10">Valid</SelectItem>
-                <SelectItem value="revoked" className="text-white hover:bg-white/10">Revoked</SelectItem>
-                <SelectItem value="expired" className="text-white hover:bg-white/10">Expired</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              placeholder="From date"
-              className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
-              data-testid="from-date"
-            />
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              placeholder="To date"
-              className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
-              data-testid="to-date"
-            />
-          </div>
-        </div>
 
-        {/* Table - Dark Theme */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-            </div>
-          ) : stamps.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
-              <p className="text-white/50">No stamps found</p>
-              <p className="text-white/30 text-sm">Try adjusting your filters</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full" data-testid="stamps-table">
-                <thead className="bg-white/5 border-b border-white/10">
-                  <tr>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Stamp ID</th>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Issued</th>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Status</th>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Document</th>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Recipient</th>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Doc Hash</th>
-                    <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Verifications</th>
-                    <th className="text-right py-4 px-4 text-sm font-medium text-white/60">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {stamps.map((stamp) => (
-                    <tr 
-                      key={stamp.stamp_id} 
-                      className="hover:bg-white/5 transition-colors" 
-                      data-testid={`stamp-row-${stamp.stamp_id}`}
-                    >
-                      <td className="py-4 px-4">
-                        <button 
-                          onClick={() => openDetail(stamp)}
-                          className="font-mono text-sm text-cyan-400 hover:text-cyan-300 hover:underline"
-                        >
-                          {stamp.stamp_id}
-                        </button>
-                      </td>
-                      <td className="py-4 px-4 text-sm text-white/70">
-                        {formatDate(stamp.issued_at)}
-                      </td>
-                      <td className="py-4 px-4">
-                        <StatusBadge status={stamp.status} />
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="text-sm text-cyan-400 truncate max-w-[150px]" title={stamp.doc_filename}>
-                          {stamp.doc_filename || "-"}
-                        </div>
-                        <div className="text-xs text-white/40">{stamp.document_type}</div>
-                      </td>
-                      <td className="py-4 px-4 text-sm text-white/70 truncate max-w-[120px]" title={stamp.recipient_name}>
-                        {stamp.recipient_name || "-"}
-                      </td>
-                      <td className="py-4 px-4">
-                        <HashDisplay hash={stamp.doc_hash} />
-                      </td>
-                      <td className="py-4 px-4 text-sm text-center">
-                        <span className="inline-flex items-center gap-1 text-white/60">
-                          <Eye className="w-3 h-3" />
-                          {stamp.verification_count || 0}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => openDetail(stamp)} 
-                            title="View details"
-                            className="text-white/60 hover:text-white hover:bg-white/10"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {stamp.status === 'active' && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => { setSelectedStamp(stamp); setShowRevokeModal(true); }}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                              title="Revoke stamp"
+            {/* Table */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+                </div>
+              ) : stamps.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                  <p className="text-white/50">No stamps found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/5 border-b border-white/10">
+                      <tr>
+                        <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Stamp ID</th>
+                        <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Issued</th>
+                        <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Status</th>
+                        <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Document</th>
+                        <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Recipient</th>
+                        <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Doc Hash</th>
+                        <th className="text-left py-4 px-4 text-sm font-medium text-white/60">Verifications</th>
+                        <th className="text-right py-4 px-4 text-sm font-medium text-white/60">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {stamps.map((stamp) => (
+                        <tr key={stamp.stamp_id} className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-4">
+                            <button 
+                              onClick={() => openDetail(stamp)}
+                              className="font-mono text-sm text-cyan-400 hover:text-cyan-300 hover:underline"
                             >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
+                              {stamp.stamp_id}
+                            </button>
+                          </td>
+                          <td className="py-4 px-4 text-sm text-white/70">{formatDate(stamp.issued_at || stamp.created_at)}</td>
+                          <td className="py-4 px-4"><StatusBadge status={stamp.status} /></td>
+                          <td className="py-4 px-4">
+                            <div className="text-sm text-cyan-400 truncate max-w-[150px]">{stamp.doc_filename || stamp.document_name || "-"}</div>
+                            <div className="text-xs text-white/40">{stamp.document_type}</div>
+                          </td>
+                          <td className="py-4 px-4 text-sm text-white/70 truncate max-w-[120px]">{stamp.recipient_name || "-"}</td>
+                          <td className="py-4 px-4"><HashDisplay hash={stamp.doc_hash || stamp.document_hash} /></td>
+                          <td className="py-4 px-4 text-sm text-center">
+                            <span className="inline-flex items-center gap-1 text-white/60">
+                              <Eye className="w-3 h-3" />
+                              {stamp.verification_count || 0}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => openDetail(stamp)} className="text-white/60 hover:text-white hover:bg-white/10">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              {stamp.status === 'active' && (
+                                <Button variant="ghost" size="sm" onClick={() => { setSelectedStamp(stamp); setShowRevokeModal(true); }} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-white/50">
+                  Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="bg-white/5 border-white/10 text-white hover:bg-white/10">
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm text-white/60">Page {page} of {totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="bg-white/5 border-white/10 text-white hover:bg-white/10">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Verify Tab */}
+          <TabsContent value="verify" className="space-y-6">
+            {/* Quick Verify */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                <ScanLine className="w-5 h-5 text-emerald-400" />
+                Quick Verification
+              </h3>
+              <form onSubmit={handleVerify} className="flex gap-3">
+                <div className="relative flex-1">
+                  <QrCode className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                  <Input
+                    placeholder="Enter Stamp ID (TLS-XXXXXXXX-XXXXXXXX) or Document Hash..."
+                    value={verifyQuery}
+                    onChange={(e) => setVerifyQuery(e.target.value)}
+                    className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-white/40 h-12"
+                  />
+                </div>
+                <Button type="submit" disabled={verifying} className="bg-emerald-600 hover:bg-emerald-700 h-12 px-6">
+                  {verifying ? <Loader2 className="w-5 h-5 animate-spin" /> : <>
+                    <ShieldCheck className="w-5 h-5 mr-2" />
+                    Verify
+                  </>}
+                </Button>
+              </form>
+            </div>
+
+            {/* Verification Result */}
+            {verificationResult && (
+              <div className={`rounded-2xl p-6 border ${
+                verificationResult.valid 
+                  ? "bg-emerald-500/10 border-emerald-500/30" 
+                  : "bg-red-500/10 border-red-500/30"
+              }`}>
+                <div className="flex items-start gap-4">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                    verificationResult.valid ? "bg-emerald-500/20" : "bg-red-500/20"
+                  }`}>
+                    {verificationResult.valid 
+                      ? <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+                      : <XCircle className="w-7 h-7 text-red-400" />
+                    }
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`text-xl font-semibold ${verificationResult.valid ? "text-emerald-400" : "text-red-400"}`}>
+                      {verificationResult.valid ? "Document Verified" : "Verification Failed"}
+                    </h3>
+                    <p className="text-white/60 mt-1">{verificationResult.message}</p>
+                    
+                    {verificationResult.valid && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-white/10">
+                        <div>
+                          <p className="text-xs text-white/50">Stamp ID</p>
+                          <p className="text-sm font-mono text-cyan-400">{verificationResult.stamp_id}</p>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        <div>
+                          <p className="text-xs text-white/50">Advocate</p>
+                          <p className="text-sm text-white">{verificationResult.advocate_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/50">Status</p>
+                          <StatusBadge status={verificationResult.stamp_status} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/50">Issued</p>
+                          <p className="text-sm text-white/70">{formatDate(verificationResult.created_at)}</p>
+                        </div>
+                        {verificationResult.document_name && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-white/50">Document</p>
+                            <p className="text-sm text-white">{verificationResult.document_name}</p>
+                          </div>
+                        )}
+                        {verificationResult.recipient_name && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-white/50">Recipient</p>
+                            <p className="text-sm text-white">{verificationResult.recipient_name}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {/* Pagination - Dark Theme */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-white/50">
-              Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total} stamps
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="bg-white/5 border-white/10 text-white hover:bg-white/10 disabled:opacity-30"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm text-white/60">
-                Page {page} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="bg-white/5 border-white/10 text-white hover:bg-white/10 disabled:opacity-30"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+            {/* How to Verify */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-lg font-medium text-white mb-4">How to Verify Documents</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-4 bg-white/5 rounded-xl">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-3">
+                    <span className="text-emerald-400 font-bold">1</span>
+                  </div>
+                  <h4 className="font-medium text-white mb-1">Find the Stamp ID</h4>
+                  <p className="text-sm text-white/50">Look for the TLS stamp on the document. The Stamp ID is printed below the QR code.</p>
+                </div>
+                <div className="p-4 bg-white/5 rounded-xl">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-3">
+                    <span className="text-emerald-400 font-bold">2</span>
+                  </div>
+                  <h4 className="font-medium text-white mb-1">Enter the ID</h4>
+                  <p className="text-sm text-white/50">Type or scan the Stamp ID into the verification field above.</p>
+                </div>
+                <div className="p-4 bg-white/5 rounded-xl">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-3">
+                    <span className="text-emerald-400 font-bold">3</span>
+                  </div>
+                  <h4 className="font-medium text-white mb-1">View Results</h4>
+                  <p className="text-sm text-white/50">See the verification status, advocate details, and document information.</p>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
 
-        {/* Detail Modal - Dark Theme */}
+        {/* Detail Modal */}
         <Dialog open={!!selectedStamp && !showRevokeModal} onOpenChange={(open) => !open && setSelectedStamp(null)}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0a0f1a] border-white/10 text-white">
             <DialogHeader>
@@ -503,7 +635,6 @@ const StampLedgerPage = () => {
               </div>
             ) : stampDetail && (
               <div className="space-y-6">
-                {/* Status & ID */}
                 <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
                   <div>
                     <p className="text-sm text-white/50">Stamp ID</p>
@@ -512,137 +643,50 @@ const StampLedgerPage = () => {
                   <StatusBadge status={stampDetail.status} />
                 </div>
                 
-                {/* Details Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-white/50 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" /> Issued At
-                    </p>
-                    <p className="font-medium text-white">{formatDate(stampDetail.issued_at)}</p>
+                    <p className="text-sm text-white/50 flex items-center gap-1"><Calendar className="w-3 h-3" /> Issued</p>
+                    <p className="font-medium text-white">{formatDate(stampDetail.issued_at || stampDetail.created_at)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-white/50 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Expires At
-                    </p>
+                    <p className="text-sm text-white/50 flex items-center gap-1"><Clock className="w-3 h-3" /> Expires</p>
                     <p className="font-medium text-white">{formatDate(stampDetail.expires_at)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-white/50 flex items-center gap-1">
-                      <User className="w-3 h-3" /> Advocate
-                    </p>
+                    <p className="text-sm text-white/50 flex items-center gap-1"><User className="w-3 h-3" /> Advocate</p>
                     <p className="font-medium text-white">{stampDetail.advocate_name}</p>
-                    <p className="text-xs text-white/40">{stampDetail.advocate_roll_number}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-white/50 flex items-center gap-1">
-                      <Building className="w-3 h-3" /> Recipient
-                    </p>
+                    <p className="text-sm text-white/50 flex items-center gap-1"><Building className="w-3 h-3" /> Recipient</p>
                     <p className="font-medium text-white">{stampDetail.recipient_name || "-"}</p>
-                    <p className="text-xs text-white/40">{stampDetail.recipient_org}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-sm text-white/50 flex items-center gap-1">
-                      <FileText className="w-3 h-3" /> Document
-                    </p>
-                    <p className="font-medium text-cyan-400">{stampDetail.doc_filename || "-"}</p>
-                    <p className="text-xs text-white/40">{stampDetail.document_type}</p>
+                    <p className="text-sm text-white/50 flex items-center gap-1"><FileText className="w-3 h-3" /> Document</p>
+                    <p className="font-medium text-cyan-400">{stampDetail.doc_filename || stampDetail.document_name || "-"}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-sm text-white/50 flex items-center gap-1">
-                      <Hash className="w-3 h-3" /> Document Hash
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-white/5 border border-white/10 p-2 rounded flex-1 overflow-x-auto text-white/70">
-                        {stampDetail.doc_hash}
-                      </code>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => {
-                          navigator.clipboard.writeText(stampDetail.doc_hash);
-                          toast.success("Hash copied");
-                        }}
-                        className="text-white/60 hover:text-white hover:bg-white/10"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-white/50 flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" /> Verification URL
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-white/5 border border-white/10 p-2 rounded flex-1 overflow-x-auto text-white/70">
-                        {stampDetail.verification_url}
-                      </code>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => {
-                          navigator.clipboard.writeText(stampDetail.verification_url);
-                          toast.success("URL copied");
-                        }}
-                        className="text-white/60 hover:text-white hover:bg-white/10"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <p className="text-sm text-white/50 flex items-center gap-1"><Hash className="w-3 h-3" /> Document Hash</p>
+                    <code className="text-xs bg-white/5 border border-white/10 p-2 rounded block overflow-x-auto text-white/70">
+                      {stampDetail.doc_hash || stampDetail.document_hash}
+                    </code>
                   </div>
                 </div>
                 
-                {/* Revoke reason if revoked */}
                 {stampDetail.status === 'revoked' && (
                   <div className="p-4 bg-red-500/10 rounded-xl border border-red-500/30">
                     <p className="text-sm font-medium text-red-400">Revoked</p>
                     <p className="text-sm text-red-300">{stampDetail.revoke_reason}</p>
-                    <p className="text-xs text-red-400/70 mt-1">At: {formatDate(stampDetail.revoked_at)}</p>
                   </div>
                 )}
                 
-                {/* Audit Events */}
-                {stampEvents.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-white/70 mb-2">Audit Trail</h4>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {stampEvents.map((event, idx) => (
-                        <div key={idx} className="flex items-start gap-3 text-sm p-2 bg-white/5 rounded-lg border border-white/5">
-                          <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                            event.event_type === 'STAMP_ISSUED' ? 'bg-emerald-500' :
-                            event.event_type === 'STAMP_VERIFIED' ? 'bg-blue-500' :
-                            event.event_type === 'STAMP_REVOKED' ? 'bg-red-500' : 'bg-white/40'
-                          }`} />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-white">{event.event_type.replace('STAMP_', '')}</p>
-                            <p className="text-xs text-white/50">
-                              {formatDate(event.created_at)} - {event.actor_type}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Actions */}
                 <div className="flex justify-end gap-2 pt-4 border-t border-white/10">
                   {stampDetail.status === 'active' && (
-                    <Button 
-                      variant="outline" 
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                      onClick={() => setShowRevokeModal(true)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Revoke Stamp
+                    <Button variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => setShowRevokeModal(true)}>
+                      <Trash2 className="w-4 h-4 mr-2" /> Revoke
                     </Button>
                   )}
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open(stampDetail.verification_url, '_blank')}
-                    className="border-white/10 text-white hover:bg-white/10"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Verify
+                  <Button variant="outline" onClick={() => window.open(`${process.env.REACT_APP_BACKEND_URL}/verify/${stampDetail.stamp_id}`, '_blank')} className="border-white/10 text-white hover:bg-white/10">
+                    <ExternalLink className="w-4 h-4 mr-2" /> Public Verify
                   </Button>
                 </div>
               </div>
@@ -650,7 +694,7 @@ const StampLedgerPage = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Revoke Modal - Dark Theme */}
+        {/* Revoke Modal */}
         <Dialog open={showRevokeModal} onOpenChange={setShowRevokeModal}>
           <DialogContent className="bg-[#0a0f1a] border-white/10 text-white">
             <DialogHeader>
@@ -659,55 +703,30 @@ const StampLedgerPage = () => {
                 Revoke Stamp
               </DialogTitle>
               <DialogDescription className="text-white/50">
-                This action cannot be undone. The stamp will be marked as revoked and any future verification attempts will show a warning.
+                This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
-            
             <div className="space-y-4 py-4">
               <div className="p-3 bg-white/5 rounded-lg border border-white/10">
                 <p className="text-sm text-white/50">Stamp ID</p>
                 <p className="font-mono font-medium text-cyan-400">{selectedStamp?.stamp_id}</p>
               </div>
-              
               <div>
-                <Label htmlFor="revoke-reason" className="text-white/70">Reason for Revocation *</Label>
+                <Label className="text-white/70">Reason *</Label>
                 <Textarea
-                  id="revoke-reason"
                   value={revokeReason}
                   onChange={(e) => setRevokeReason(e.target.value)}
-                  placeholder="Enter reason for revoking this stamp..."
+                  placeholder="Enter reason for revoking..."
                   className="mt-1 bg-white/5 border-white/10 text-white placeholder:text-white/40"
                   rows={3}
-                  data-testid="revoke-reason-input"
                 />
               </div>
             </div>
-            
             <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => { setShowRevokeModal(false); setRevokeReason(""); }}
-                className="border-white/10 text-white hover:bg-white/10"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleRevoke}
-                disabled={!revokeReason.trim() || revoking}
-                className="bg-red-600 hover:bg-red-700"
-                data-testid="confirm-revoke-btn"
-              >
-                {revoking ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Revoking...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Revoke Stamp
-                  </>
-                )}
+              <Button variant="outline" onClick={() => { setShowRevokeModal(false); setRevokeReason(""); }} className="border-white/10 text-white hover:bg-white/10">Cancel</Button>
+              <Button onClick={handleRevoke} disabled={!revokeReason.trim() || revoking} className="bg-red-600 hover:bg-red-700">
+                {revoking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Revoke
               </Button>
             </DialogFooter>
           </DialogContent>
