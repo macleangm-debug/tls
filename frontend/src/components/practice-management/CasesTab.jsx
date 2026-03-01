@@ -192,7 +192,7 @@ export const CasesTab = ({ token }) => {
       // Add to calendar if requested and has due date
       if (taskData.add_to_calendar && taskData.due_date) {
         try {
-          await axios.post(`${API}/api/practice/calendar/events`, {
+          await axios.post(`${API}/api/practice/events`, {
             title: `Task: ${taskData.title}`,
             start: `${taskData.due_date}T09:00:00`,
             end: `${taskData.due_date}T10:00:00`,
