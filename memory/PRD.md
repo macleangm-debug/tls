@@ -5,6 +5,14 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 
 ## Recent Updates
 
+### Feature Completion (Mar 1, 2026) ✅
+
+**Four Features Verified:**
+1. **Batch Stamping Fix** - Fixed endpoint URL (was `/documents/batch-history`, now `/documents/batch-stamps`)
+2. **Case Hearings/To-Do Calendar Sync** - Fixed endpoint for calendar sync (was `/api/practice/calendar/events`, now `/api/practice/events`)
+3. **Test Profile Content** - Populated test user's public profile with full professional content
+4. **Scan Mode Dropdown** - Already implemented in DocumentStampPage (Gray/Color/B&W options)
+
 ### Security Features & UI Improvements (Mar 1, 2026) ✅
 
 **Features Implemented:**
