@@ -333,22 +333,22 @@ const BatchStampPage = () => {
           {/* Left Column - File Upload */}
           <div className="lg:col-span-2 space-y-4">
             {/* Dropzone */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
+            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/10">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-emerald-400" />
                   Upload Documents
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-white/50 text-sm mt-1">
                   Drag & drop PDF files or click to browse
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </p>
+              </div>
+              <div className="p-4">
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
                     isDragging 
-                      ? 'border-emerald-500 bg-emerald-50' 
-                      : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                      ? 'border-emerald-500 bg-emerald-500/10' 
+                      : 'border-white/20 hover:border-emerald-400/50 hover:bg-white/5'
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -365,16 +365,16 @@ const BatchStampPage = () => {
                     className="hidden"
                     data-testid="batch-file-input"
                   />
-                  <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 font-medium">
+                  <Upload className="w-10 h-10 text-white/30 mx-auto mb-3" />
+                  <p className="text-white/70 font-medium">
                     Drop PDF files here
                   </p>
-                  <p className="text-gray-400 text-sm mt-1">
+                  <p className="text-white/40 text-sm mt-1">
                     or click to browse (max {MAX_FILE_SIZE_MB}MB each)
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* File List */}
             {selectedFiles.length > 0 && (
