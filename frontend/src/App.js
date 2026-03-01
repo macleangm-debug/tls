@@ -145,6 +145,8 @@ function App() {
           <Route path="/stamp-verification" element={<ProtectedRoute><StampVerificationPage /></ProtectedRoute>} />
           <Route path="/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
           <Route path="/help-center" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
+          <Route path="/pin-settings" element={<ProtectedRoute><PinSettingsPage /></ProtectedRoute>} />
+          <Route path="/security-settings" element={<ProtectedRoute><PinSettingsPage /></ProtectedRoute>} />
           
           {/* Institutional Portal (separate login system) */}
           <Route path="/institutional" element={<InstitutionalPortal />} />
@@ -165,7 +167,9 @@ function App() {
         <PWAInstallBanner />
         <OfflineIndicator />
         <BottomNavBar />
-      </BrowserRouter>
+          </BrowserRouter>
+        </PinLockProvider>
+      </ConfirmationProvider>
     </AuthProvider>
   );
 }
