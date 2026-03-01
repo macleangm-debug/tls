@@ -204,41 +204,51 @@ export const CalendarTab = ({ token }) => {
   }, [events, tasks, tlsEvents]);
   
   function getTLSEventColor(eventType, isMandatory) {
-    // TLS events get distinctive purple/indigo colors
-    if (isMandatory) return "#7c3aed"; // Purple for mandatory
+    // TLS events get distinctive muted purple/indigo colors
+    if (isMandatory) return "#6d28d9"; // Muted purple for mandatory
     const colors = {
-      agm: "#7c3aed",           // Purple
-      cpd: "#6366f1",           // Indigo
-      deadline: "#dc2626",       // Red
-      holiday: "#059669",        // Emerald
-      branch_meeting: "#0891b2", // Cyan
-      tls_announcement: "#8b5cf6" // Violet
+      agm: "#6d28d9",           // Muted purple
+      cpd: "#4f46e5",           // Muted indigo
+      deadline: "#b91c1c",       // Muted red
+      holiday: "#047857",        // Muted emerald
+      branch_meeting: "#0e7490", // Muted cyan
+      tls_announcement: "#7c3aed" // Muted violet
     };
-    return colors[eventType] || "#8b5cf6";
+    return colors[eventType] || "#7c3aed";
   }
 
   function getEventColor(type, status, priority) {
-    if (status === 'completed') return "#6b7280";
-    if (status === 'cancelled') return "#6b7280";
+    if (status === 'completed') return "#4b5563"; // Muted gray
+    if (status === 'cancelled') return "#4b5563";
     
-    // Priority-based colors for high priority
+    // Priority-based muted colors for high priority
     if (priority === 'high') {
-      const highColors = { court_hearing: "#dc2626", deadline: "#dc2626", meeting: "#dc2626" };
+      const highColors = { 
+        court_hearing: "#b91c1c", // Muted red
+        deadline: "#b91c1c", 
+        meeting: "#b91c1c" 
+      };
       if (highColors[type]) return highColors[type];
     }
     
+    // Muted/pastel colors for better readability
     const colors = { 
-      court_hearing: "#ef4444", 
-      meeting: "#3b82f6", 
-      deadline: "#f59e0b", 
-      reminder: "#a855f7", 
-      appointment: "#10b981" 
+      court_hearing: "#dc2626",  // Slightly muted red
+      meeting: "#2563eb",        // Muted blue
+      deadline: "#d97706",       // Muted amber
+      reminder: "#7c3aed",       // Muted purple
+      appointment: "#059669"     // Muted emerald
     };
     return colors[type] || colors.meeting;
   }
 
   function getPriorityColor(priority) {
-    const colors = { high: "#ef4444", medium: "#f59e0b", low: "#22c55e" };
+    // Muted priority colors
+    const colors = { 
+      high: "#dc2626",    // Muted red
+      medium: "#d97706",  // Muted amber
+      low: "#059669"      // Muted green
+    };
     return colors[priority] || colors.medium;
   }
 
