@@ -316,15 +316,15 @@ const BatchStampPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Layers className="w-6 h-6 text-emerald-600" />
+            <h1 className="text-2xl font-bold text-emerald-400 flex items-center gap-2">
+              <Layers className="w-6 h-6" />
               Batch Stamp Documents
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-white/50 mt-1">
               Stamp multiple documents at once with unique verification for each
             </p>
           </div>
-          <Badge variant="outline" className="text-emerald-600 border-emerald-200">
+          <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
             Max {MAX_FILES} files
           </Badge>
         </div>
