@@ -178,8 +178,9 @@ const ProfilePage = () => {
       formData.append("photo", file);
 
       const response = await axios.post(`${API}/user/profile-photo`, formData, {
-        ...getAuthHeaders(),
-        headers: { ...getAuthHeaders().headers, "Content-Type": "multipart/form-data" }
+        headers: { 
+          Authorization: getAuthHeaders().headers.Authorization
+        }
       });
 
       setProfilePhoto(response.data.profile_photo);
