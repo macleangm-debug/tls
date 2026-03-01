@@ -333,7 +333,7 @@ const BatchStampPage = () => {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const res = await axios.get(`${API}/documents/batch-history`, getAuthHeaders());
+        const res = await axios.get(`${API}/documents/batch-stamps`, getAuthHeaders());
         setBatchHistory(res.data || []);
       } catch (error) {
         console.error("Failed to load batch history:", error);
