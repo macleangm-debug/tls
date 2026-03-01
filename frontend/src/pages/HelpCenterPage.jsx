@@ -543,7 +543,7 @@ const HelpCenterPage = () => {
 
         {/* Quick Links */}
         {!searchQuery && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 ">
             {[
               { icon: Stamp, label: "Stamp Documents", link: "/stamp-document" },
               { icon: Shield, label: "Verify Stamps", link: "/stamp-ledger" },
@@ -563,7 +563,7 @@ const HelpCenterPage = () => {
         )}
 
         {/* Categories */}
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className=" space-y-4">
           {filteredCategories.map((category) => (
             <div key={category.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
               {/* Category Header */}
@@ -681,7 +681,7 @@ const HelpCenterPage = () => {
         </div>
 
         {/* Contact Support */}
-        <div className="max-w-4xl mx-auto bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-2xl p-6">
+        <div className=" bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-2xl p-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="flex-1 text-center md:text-left">
               <h3 className="text-lg font-semibold text-white mb-2">Still need help?</h3>
