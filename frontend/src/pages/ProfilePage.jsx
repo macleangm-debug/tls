@@ -142,8 +142,9 @@ const ProfilePage = () => {
       formDataObj.append("bar_admissions", JSON.stringify(publicProfile.bar_admissions || []));
 
       await axios.put(`${API}/user/public-profile`, formDataObj, {
-        ...getAuthHeaders(),
-        headers: { ...getAuthHeaders().headers, "Content-Type": "multipart/form-data" }
+        headers: { 
+          Authorization: getAuthHeaders().headers.Authorization
+        }
       });
       await fetchUser();
       toast.success("Public profile updated successfully");
