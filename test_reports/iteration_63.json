@@ -32,8 +32,8 @@
       "email": "test@tls.or.tz",
       "password": "Test@12345678!"
     },
-    "frontend_url": "https://doc-prepare.preview.emergentagent.com",
-    "api_url": "https://doc-prepare.preview.emergentagent.com/api"
+    "frontend_url": "https://stamp-and-manage.preview.emergentagent.com",
+    "api_url": "https://stamp-and-manage.preview.emergentagent.com/api"
   },
   "seed_data_creation": "Test PDF created at /tmp/test_document.pdf",
   "retest_needed": false,

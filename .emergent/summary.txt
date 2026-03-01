@@ -1,162 +1,329 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to build a Practice Management Suite for advocates. The project has since evolved into a sophisticated, secure digital stamping platform. The most recent requests focus on adding high-value features for the Tanganyika Law Society (TLS) and its governing body (IDC) to manage members and drive digital adoption. This includes implementing TLS-wide calendar events, tracking member compliance (acknowledgements, attendance), creating a centralized membership billing and enforcement system, and perfecting the core document stamping user experience.
+The initial request was to build a Practice Management Suite which evolved into a secure digital stamping platform for the Tanganyika Law Society (TLS). The current focus is on creating a best-in-class document preparation and stamping experience, along with robust practice management tools.
 
-PRODUCT REQUIREMENTS have been defined through a series of strategic conversations:
-1.  **TLS Global Events:** A system for TLS admins to publish events that automatically appear on all relevant advocate calendars as read-only.
-2.  **Compliance Tracking:** Mechanisms for advocates to Acknowledge mandatory notices and for admins to track attendance at events.
-3.  **Membership Billing Controls:** A centralized settings panel for the Super Admin (IDC) to define and enforce membership fee policies (e.g., subscription vs. fixed price, and enforcement actions like blocking stamping for unpaid members).
-4.  **Personal Recurring Events:** Allowing advocates to create recurring events in their own calendars.
-5.  **Rock-Solid Stamping UX:** The document stamping flow, being the core selling point, must be trustworthy, effortless, and predictable. This includes robust error handling, a WYSIWYG preview, and a polished user interface.
+PRODUCT REQUIREMENTS:
+1.  **Unified Document Pipeline:** A single backend endpoint for document preparation (PDF, PNG, JPG) and stamping.
+2.  **CamScanner-like Functionality:** Multi-page scanning with automatic perspective cropping and image enhancement.
+3.  **Rock-Solid Stamping UX:** A stable and intuitive document stamping interface.
+4.  **Practice Management:** Features for managing cases, clients, calendars, and tasks. Includes adding case hearings and to-do lists that sync with a calendar.
+5.  **UI/UX & Security:** A consistent dark-theme UI, left-aligned pages, confirmation modals for critical actions, and a PIN-based locking mechanism for sensitive areas.
+6.  **Help & Support:** A comprehensive, searchable Help Center.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A comprehensive full-stack digital certification and practice management platform built with React, FastAPI, and MongoDB. The application features a secure stamping engine, an interactive professional calendar, admin tooling, and a newly implemented membership billing system.
+A full-stack application (React, FastAPI, MongoDB) with a suite of features for legal practice management and digital document stamping. The application has a dark-themed UI.
 
-In this session, the agent successfully completed the Membership Billing Settings feature by implementing the advocate-facing UI (grace period/expiry banners) and the logic to disable stamping controls.
-
-Subsequently, the agent undertook a major refactoring and debugging of the Document Stamping page to improve its UX and fix several critical bugs. This included:
--   Implementing a WYSIWYG preview by creating a dedicated backend endpoint () that generates the exact stamp PNG.
--   Creating two distinct stamp variants (a larger Certification stamp with a signature area and a Compact stamp without) to handle different use cases.
--   Adding a Preview Stamped PDF feature with a watermarked output.
--   Fixing backend normalization logic to ensure stamp types (e.g., Notarization) cannot have signatures.
--   Resolving a major UI bug where the stamp preview would disappear due to incorrect CSS  usage.
+-   **Core Stamping:** Single and batch document stamping functionalities are implemented. The verification flow for batch stamps has been fixed.
+-   **Document Prep:** A CamScanner-like multi-page scanning flow with auto-cropping is functional.
+-   **Practice Management:**
+    -   A calendar with muted, readable colors for events.
+    -   A Cases tab with UI for adding case hearings and tasks. Backend endpoints for this have been created.
+    -   A merged Stamp Ledger page that combines stamp history and a verification tool.
+-   **UI/UX:**
+    -   The signature pad's performance has been optimized.
+    -   Sidebars across all dashboards are now correctly scrollable.
+    -   A new comprehensive Help Center page has been created and integrated.
 
 **Last working item**:
--   **Last item agent was working:** The agent was debugging a persistent and complex bug where the stamp preview on the  would disappear or become unstable after the user toggled between stamp types (Certification/Notarization) or signature modes (Digital/Print). While several underlying causes were fixed (CSS scaling, incorrect state updates), the core issue of state management during rapid UI changes remains.
+The agent was in the process of implementing a large batch of user requests simultaneously.
+
+-   **Last item agent was working:**
+    1.  **Left-Align All Pages:** Modified the main  to remove center alignment.
+    2.  **Fix Profile Picture Upload:** Identified and attempted to fix a CSRF error caused by an incorrect  header in .
+    3.  **Implement Confirmation Modals:** Created a  and a reusable modal component.
+    4.  **Implement PIN Lock Feature:** Created a , a , and a  to secure sensitive pages.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** Y
--   **Which testing method agent to use?** both. The frontend's complex state logic requires the  to run through all permutations of stamp type and signature mode toggles. The backend  endpoint should be re-verified with  after the final backend tweaks are made.
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** Frontend testing agent. The agent needs to verify the successful implementation of all four features: page alignment, profile picture uploads, the appearance of confirmation modals, and the functionality of the PIN lock system.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Finalize and Stabilize the Document Stamping UX (P0)**
-    -   **Description:** The stamp preview () becomes unstable or disappears after a user toggles options. The root causes are race conditions from multiple  calls firing in quick succession, improper handling of blob URLs, and state not being normalized correctly on certain UI interactions. The user has provided a detailed final implementation plan to fix this.
-    -   **Attempted fixes:** The agent correctly identified and fixed a re-render loop by removing  from the  dependency array. It also fixed a separate bug where a fallback  was overwriting the stamp size. However, these fixes did not address the race conditions or blob URL lifecycle issues.
+-   **Issue 1: Profile picture upload fails with CSRF error (P0)**
+    -   **Description:** Uploading a profile picture in the public profile settings fails with a CSRF error.
+    -   **Attempted fixes:** The agent identified that manually setting the  header for a  request in  was causing the issue. A fix to remove this header has been applied.
     -   **Next debug checklist:**
-        1.  In , implement a request sequence guard using  to ignore stale responses from the  endpoint.
-        2.  Refactor blob URL handling to use a  () to prevent premature revocation and memory leaks.
-        3.  Ensure the UI state for  is forced to  when the  is , and hide the signature UI controls.
-        4.  In the  function on the backend (), reduce the stamp's point (pt) sizes and replace the advocate's phone number with their name for a more professional and compact design.
-        5.  Ensure the Use Digital Signature option is disabled with a toast message if the user has not yet uploaded a signature.
-        6.  Confirm the logic for  and  is a strict truth table based on  and , removing any ambiguity.
-    -   **Why fix this issue and what will be achieved with the fix?** This is the core selling point of the application. Fixing it will create a reliable, trustworthy, and predictable user experience, which is critical for go-live.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
+        1.  Log in as a test user and navigate to the public profile page.
+        2.  Attempt to upload a profile picture.
+        3.  Check the browser's network tab to confirm the request succeeds with a 2xx status code.
+        4.  Verify the new profile picture is displayed.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a core functionality for user profile completion and personalization.
+    -   **Status:** IN PROGRESS (Fix applied, testing pending).
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
 
 **In progress Task List**:
--   **Task 1: Stabilize and Polish Document Stamping UX**
-    -   **Where to resume:** . Start by implementing the  and  pattern in the  function as detailed by the user.
-    -   **What will be achieved with this?** A rock-solid, bug-free stamping interface that provides a WYSIWYG preview under all conditions.
+-   **Task 1: Integrate and Finalize Confirmation Modals (P0)**
+    -   **Where to resume:** The context provider () and component have been created. The next step is to wrap the main  with the provider and then use the  hook in components that need it, starting with the Sign Out button in .
+    -   **What will be achieved with this?** Prevents accidental critical actions like signing out or deleting data.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on something:** None
+
+-   **Task 2: Integrate and Finalize PIN Lock Feature (P0)**
+    -   **Where to resume:** The provider () and settings page () are created. Next steps are:
+        1.  Wrap  with .
+        2.  Add a route and a sidebar link for the PIN Settings page.
+        3.  Implement the logic in a protected route component or wrapper using  to check against user settings and show the .
+    -   **What will be achieved with this?** Adds a layer of security to sensitive practice management sections.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on something:** None
+
+-   **Task 3: Verify Left-Alignment of All Pages (P1)**
+    -   **Where to resume:** The change was made in . The agent needs to visually inspect multiple pages (e.g., Stamp Ledger, Cases, Calendar, Settings) to confirm the layout change has been applied universally and correctly.
+    -   **What will be achieved with this?** Fulfills a direct UI/UX request for layout consistency.
+    -   **Status:** IN PROGRESS (Fix applied, verification pending).
+    -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Real-world PDF Stress Testing Campaign:** Use the admin endpoint () to test 30-50 diverse, real-world PDF documents.
-    -   **(P1) Audit Practice Management Modules:** Review all tabs in the Practice Management section (Clients, Cases, Invoices) for go-live readiness.
-    -   **(P2) Personal Recurring Events:** Implement recurring events for advocates' personal calendars, including the UI for creating recurrence rules and editing series.
+    -   **(P0) Finalize Case Hearings/To-Do Feature:** The UI and backend endpoints are created. The frontend logic to handle form submission for adding new hearings/tasks and syncing them to the calendar needs to be implemented and tested.
+    -   **(P1) Fill Test Profile Content:** Once the picture upload is fixed, populate a test user's public profile and verify it's displayed correctly on the public-facing page.
+    -   **(P2) Implement Scan Mode Selector:** Add a UI dropdown for the  (document, color, bw) in the document preparation flow.
 
 -   **Future Tasks:**
-    -   **(P2) Backend Monolith Refactoring:** Continue breaking down  into the  directory.
-    -   **(P2) Google Calendar Sync:** Allow users to sync their practice calendar.
-    -   **(P2) CPD Compliance Module:** Build out a full module for CPD tracking, including certificates.
-    -   **(P2) Stamp Expiry Job:** Create a background task to handle expired stamps.
-    -   **(P2) KwikPay Integration:** Replace the mocked payment gateway.
+    -   **(P2) Gotenberg Integration:** For DOC/DOCX to PDF conversion.
+    -   **(P2) Backend Monolith Refactoring:** Continue breaking down  into dedicated route and service files.
+    -   **(P2) Google Calendar Sync.**
+    -   **(P2) KwikPay Integration.**
+    -   **(P2) Auto-updating Help Center:** Investigate a mechanism for admins to update Help Center content without code changes.
 
 **Completed work in this session**
--   **Membership Billing Settings Feature (COMPLETE)**
-    -   Implemented the advocate-facing UI, including a  to show grace period/expired warnings.
-    -   Integrated enforcement logic into the frontend to disable stamping buttons and show warnings based on an advocate's membership status.
-    -   Verified the entire feature end-to-end via  tests and screenshots.
--   **Document Stamping UX Refactor (IN PROGRESS)**
-    -   **WYSIWYG Preview:** Created a  endpoint to generate a PNG of the stamp, ensuring the draggable preview matches the final output.
-    -   **Stamp Variants:** Implemented logic for two stamp sizes: a taller Certification variant (180x120pt) that includes a signature area, and a Compact variant (170x90pt).
-    -   **Preview PDF:** Added a  endpoint to generate a watermarked preview PDF without creating a billable stamp record.
-    -   **Bug Fixes:** Resolved several critical bugs, including a CSS  issue that made the stamp disappear, a re-render loop caused by incorrect  dependencies, and an incorrect  that was overwriting the stamp size.
-    -   **Backend Normalization:** Added logic to backend endpoints to enforce rules, such as preventing Notarization stamps from having signatures.
-    -   **CORS Fix:** Added  to the backend CORS middleware to allow the frontend to read custom headers from the  API response.
+-   **Batch Stamping Verification Fix:** Resolved an issue where batch-stamped documents failed verification due to missing .
+-   **Major UI Overhaul (Dark Theme & Layout):**
+    -   Redesigned and left-aligned the  and .
+    -   Added a feature to the  to select between applying one stamp configuration to all documents or different stamps per document.
+-   **New Practice Management Features Implemented:**
+    -   Merged the Stamp Ledger and Stamp Verification pages into a single tabbed interface.
+    -   Created and integrated a comprehensive, searchable Help Center page.
+    -   Enhanced the Cases tab with UI and backend endpoints for adding Hearings and Tasks.
+-   **General UX/UI Improvements:**
+    -   Optimized the performance and responsiveness of the digital signature pad.
+    -   Fixed sidebar scrolling issues across all user dashboards.
+    -   Updated calendar event colors to a muted, more readable palette.
+-   **Deployment Support:** Provided the user with extensive guidance on deploying the application to a custom domain on a VPS using usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]
+           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]
+           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]
+           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]
+           [--super-prefix=<path>] [--config-env=<name>=<envvar>]
+           <command> [<args>]
+
+These are common Git commands used in various situations:
+
+start a working area (see also: git help tutorial)
+   clone     Clone a repository into a new directory
+   init      Create an empty Git repository or reinitialize an existing one
+
+work on the current change (see also: git help everyday)
+   add       Add file contents to the index
+   mv        Move or rename a file, a directory, or a symlink
+   restore   Restore working tree files
+   rm        Remove files from the working tree and from the index
+
+examine the history and state (see also: git help revisions)
+   bisect    Use binary search to find the commit that introduced a bug
+   diff      Show changes between commits, commit and working tree, etc
+   grep      Print lines matching a pattern
+   log       Show commit logs
+   show      Show various types of objects
+   status    Show the working tree status
+
+grow, mark and tweak your common history
+   branch    List, create, or delete branches
+   commit    Record changes to the repository
+   merge     Join two or more development histories together
+   rebase    Reapply commits on top of another base tip
+   reset     Reset current HEAD to the specified state
+   switch    Switch branches
+   tag       Create, list, delete or verify a tag object signed with GPG
+
+collaborate (see also: git help workflows)
+   fetch     Download objects and refs from another repository
+   pull      Fetch from and integrate with another repository or a local branch
+   push      Update remote refs along with associated objects
+
+'git help -a' and 'git help -g' list available subcommands and some
+concept guides. See 'git help <command>' or 'git help <concept>'
+to read about a specific subcommand or concept.
+See 'git help git' for an overview of the system., , and .
 
 **Earlier issues found/mentioned but not fixed**
--   None.
+-   **Batch Stamping Actions Not Completing:** The user reported that These action are all not completing on the batch stamp page. The agent redesigned the page but did not explicitly diagnose or confirm a fix for this underlying processing issue. This needs to be re-verified end-to-end.
 
 **Known issue recurrence from previous fork**
--   None.
+-   **Stamp Disappears When Dragged on Microsoft Edge:** This was a critical recurring bug. Agent E2E tests passed, but final verification from the user on the Edge browser is still pending to confirm the fix is effective.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **WYSIWYG Preview via Backend Rendering:** Using a dedicated API endpoint () to generate a PNG of the stamp. This makes the frontend preview a single source of truth that is identical to the final embedded stamp, eliminating a whole class of UI/backend mismatch bugs.
--   **State Normalization:** Enforcing business rules on both the frontend (disabling UI) and backend (overwriting invalid parameters) to maintain a consistent application state. E.g., ensuring a notarization stamp type can never include a signature.
--   **React State & Lifecycle Bug Management:** Debugging and fixing complex React issues, including infinite re-render loops ( dependencies), race conditions from async calls, and improper state management for blob URLs (/).
--   **CSS  vs. Layout Sizing:** Understanding that CSS  creates a separate rendering layer and does not alter the layout coordinate space, which can break libraries like . The fix was to remove the transform and apply scaling directly to the element's  and .
+-   **React Context for Global State:** Using providers (, ) for application-wide UI state management.
+-   **Axios and FormData:** Correctly handling file uploads by allowing the browser to set the  header automatically.
+-   **CSS Layout:** Using  to control page alignment and create scrollable elements.
+-   **VPS Deployment:** Understanding of  for process management, 
+Usage:   
+  pip <command> [options]
+
+Commands:
+  install                     Install packages.
+  lock                        Generate a lock file.
+  download                    Download packages.
+  uninstall                   Uninstall packages.
+  freeze                      Output installed packages in requirements format.
+  inspect                     Inspect the python environment.
+  list                        List installed packages.
+  show                        Show information about installed packages.
+  check                       Verify installed packages have compatible 
+dependencies.
+  config                      Manage local and global configuration.
+  search                      Search PyPI for packages.
+  cache                       Inspect and manage pip's wheel cache.
+  index                       Inspect information available from package 
+indexes.
+  wheel                       Build wheels from your requirements.
+  hash                        Compute hashes of package archives.
+  completion                  A helper command used for command completion.
+  debug                       Show information useful for debugging.
+  help                        Show help for commands.
+
+General Options:
+  -h, --help                  Show help.
+  --debug                     Let unhandled exceptions propagate outside the
+                              main subroutine, instead of logging them to
+                              stderr.
+  --isolated                  Run pip in an isolated mode, ignoring
+                              environment variables and user configuration.
+  --require-virtualenv        Allow pip to only run in a virtual environment;
+                              exit with an error otherwise.
+  --python <python>           Run pip with the specified Python interpreter.
+  -v, --verbose               Give more output. Option is additive, and can be
+                              used up to 3 times.
+  -V, --version               Show version and exit.
+  -q, --quiet                 Give less output. Option is additive, and can be
+                              used up to 3 times (corresponding to WARNING,
+                              ERROR, and CRITICAL logging levels).
+  --log <path>                Path to a verbose appending log.
+  --no-input                  Disable prompting for input.
+  --keyring-provider <keyring_provider>
+                              Enable the credential lookup via the keyring
+                              library if user input is allowed. Specify which
+                              mechanism to use [auto, disabled, import,
+                              subprocess]. (default: auto)
+  --proxy <proxy>             Specify a proxy in the form
+                              scheme://[user:passwd@]proxy.server:port.
+  --retries <retries>         Maximum attempts to establish a new HTTP
+                              connection. (default: 5)
+  --timeout <sec>             Set the socket timeout (default 15 seconds).
+  --exists-action <action>    Default action when a path already exists:
+                              (s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort.
+  --trusted-host <hostname>   Mark this host or host:port pair as trusted,
+                              even though it does not have valid or any HTTPS.
+  --cert <path>               Path to PEM-encoded CA certificate bundle. If
+                              provided, overrides the default. See 'SSL
+                              Certificate Verification' in pip documentation
+                              for more information.
+  --client-cert <path>        Path to SSL client certificate, a single file
+                              containing the private key and the certificate
+                              in PEM format.
+  --cache-dir <dir>           Store the cache data in <dir>.
+  --no-cache-dir              Disable the cache.
+  --disable-pip-version-check
+                              Don't periodically check PyPI to determine
+                              whether a new version of pip is available for
+                              download. Implied with --no-
+                              index.
+  --no-color                  Suppress colored output.
+  --use-feature <feature>     Enable new functionality, that may be backward
+                              incompatible.
+  --use-deprecated <feature>  Enable deprecated functionality, that will be
+                              removed in the future.
+  --resume-retries <resume_retries>
+                              Maximum attempts to resume or restart an
+                              incomplete download. (default: 5) with  for private packages, and configuring  files for production.
 
 **key DB schema**
--   No changes made to the database schema in this session.
+-   **cases:** Schema will be updated to support embedded arrays for  and .
+-   **users:** Schema will be updated to store a  and  configuration.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   : The main file for the stamping feature. Contains the complex state logic for the preview, positioning, and generation. This is where the next agent will resume work.
--   : Contains all backend logic, including the newly added  and  endpoints, and the modified stamping functions (, ).
--   : Modified to show the membership status banner and disable stamping quick actions.
--   : The new component that alerts advocates about their membership status.
+-    (Page alignment)
+-    (CSRF bug)
+-    (New feature)
+-    (New feature)
+-    (New feature)
+-    (New feature)
+-    (New feature backend)
+-    (UI redesign)
+-    (UI redesign)
+-    (New feature)
+-    (Needs modification for provider integration)
 
 **Areas that need refactoring**:
--    has become very large and complex. The state management logic could be extracted into one or more custom hooks (e.g., , ) to improve readability and maintainability.
--    remains a monolith and would benefit from breaking out routes into the  directory as planned.
+-   The main backend file  remains large despite some logic being moved to a separate router.
+-   Several frontend components like  and  have grown significantly and would benefit from being broken down into smaller, single-responsibility components and custom hooks.
 
 **key api endpoints**
--   : The main endpoint to generate a final, persisted stamp.
--   : (new) Generates a watermarked PDF preview of the stamp without persisting it.
--   : (new) Generates a PNG image of the stamp for the WYSIWYG preview in the UI.
+-   : Endpoint for the failing profile picture upload.
+-   : New endpoint to add a case hearing.
+-   : Modified to include fields required for verification.
+-   : The verification endpoint.
 
 **Critical Info for New Agent**
--   Your immediate and highest priority (P0) is to fix the stamping page's instability. The user has provided an extremely detailed final message that acts as a definitive guide, explaining the remaining bugs (race conditions, blob URL handling) and the exact fixes required.
--   Start in  and implement the  and  pattern within the  function. This is the most critical fix to prevent the stamp from disappearing.
--   Follow the rest of the user's checklist to achieve a rock-solid stamping experience, including backend tweaks to stamp size and content.
--   Do not get sidetracked by other tasks until the stamping UX is fully stabilized and verified.
+-   You are resuming a large, multi-part task. The previous agent has created the necessary files for the four main requests (left-align, CSRF fix, confirmation modals, PIN lock) but has not finished integrating them.
+-   Your first priority is to complete this integration. This involves:
+    1.  Wrapping  with the new  and .
+    2.  Adding the PIN Settings page to the router and sidebar.
+    3.  Implementing the  hook for the Sign Out button.
+    4.  Implementing the  hook to protect routes.
+-   After integration, you must test all four features thoroughly.
+-   Once the current set of tasks is complete and verified, you need to investigate the user's report that batch stamping actions are not completing.
 
 **documents and test reports created in this job**
--    (updated multiple times)
--   The testing agent was used successfully to validate the stamp dimension logic, implying a test report was generated (e.g., ).
+-   
+-   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user**: Provides final, detailed analysis of the stamp disappears bug, identifying it as a state/preview lifecycle issue. Gives a comprehensive fix plan including race condition guards, blob URL management, and state normalization rules.
-2.  **agent**: Confirms understanding and shares the relevant code snippets where the bug likely resides.
-3.  **user**: Requests the  ->  calculation code to check for NaN paths.
-4.  **agent**: Provides the requested code, correctly identifying that a fallback  is overwriting the calculated size.
-5.  **user**: Asks for the exact values of , , and  to sanity-check the math.
-6.  **agent**: Provides the values.
-7.  **user**: Asks for the  implementation and  state to identify why the stamp vanishes.
-8.  **agent**: Provides the code and correctly identifies that having  in the  dependency array is creating a re-render loop.
-9.  **user**: Asks for the PDF preview wrapper JSX to check for layering issues (z-index, iframes).
-10. **agent**: Provides the JSX code.
+1.  **User:** Requests merging Stamp Ledger/Verification, adding case hearings/to-dos that sync to calendar, fixing calendar colors, and adding a Help Center.
+2.  **User:** Provides clarifications on the implementation priorities.
+3.  **Agent:** Begins implementation.
+4.  **User:** Asks agent to implement all requested features at once.
+5.  **Agent:** Completes the implementation of the merged ledger, Help Center, and Case Hearings UI/backend.
+6.  **User:** Submits a new batch of requests: left-align all pages, fix profile picture CSRF error, add confirmation modals, and add a PIN lock feature.
+7.  **Agent:** Asks for clarification on the PIN lock options.
+8.  **User:** Confirms the PIN lock should have options for locking individual pages or all sensitive pages, chosen by the user in settings.
+9.  **Agent:** Acknowledges and begins implementing the new batch of four requests.
+10. **(No pending user messages)**
 
 **Project Health Check:**
 -   **Broken:**
-    -   The core Document Stamping UI is unstable. The stamp preview disappears or behaves erratically when a user toggles between different stamp and signature options due to race conditions and state lifecycle bugs.
+    -   Public profile picture upload is non-functional due to a CSRF error.
 -   **Mocked:**
-    -   KwikPay payment integration remains a placeholder.
+    -   Gotenberg (DOCX conversion)
+    -   KwikPay (Payment gateway)
+    -   Google Calendar Sync
 
 **3rd Party Integrations**
+-   **opencv-python-headless:** For automatic perspective cropping.
+-   **pypdf:** For merging PDF pages on the backend.
+-   **Pillow, ReportLab:** For image processing and PDF creation.
 -   **Resend:** For email notifications.
--   **Faker:** For test data generation.
--   **cryptography:** For ECDSA digital signatures.
 -   **Sentry:** For error monitoring.
 -   **FullCalendar:** For the interactive calendar widget.
--   **KwikPay (Mocked):** Placeholder for a payment gateway.
+-   **emergentintegrations:** For connecting to LLM services (used internally, requires private index for deployment).
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (used to verify the backend stamp dimension variants).
+-   **Testing agent used after significant changes:** YES (but before the latest batch of features was started).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** []
--   **Known regressions:** The stamp preview UI, which was partially working, is now more unstable due to the introduction of more complex state logic that has not been fully debugged.
+-   **Known regressions:** The user reported an issue with batch stamping actions not completing, which may be a regression or a previously unnoticed bug.
 
 **Credentials to test flow:**
 | Role | Email | Password |
@@ -166,8 +333,5 @@ Subsequently, the agent undertook a major refactoring and debugging of the Docum
 | Super Admin |  |  |
 
 **What agent forgot to execute**
-The agent did not fully implement the user's detailed final plan for fixing the stamping UI. Key missing pieces include:
--   Implementing a request sequence guard () to prevent race conditions.
--   Using a ref () for safer blob URL lifecycle management.
--   Reducing the stamp size (in PT) on the backend.
--   Replacing the advocate's phone number with their name in the stamp generator function on the backend.</analysis>
+-   The agent did not fully integrate the four features from the last user request (left-align, CSRF fix, confirmation modals, PIN lock). Files were created, but the work is incomplete and untested.
+-   The agent did not investigate the user's claim that batch stamping actions were not completing.</analysis>
