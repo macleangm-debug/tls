@@ -436,26 +436,26 @@ const BatchStampPage = () => {
 
             {/* Results */}
             {results && (
-              <Card className="border-emerald-200 bg-emerald-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2 text-emerald-700">
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl overflow-hidden">
+                <div className="p-4 border-b border-emerald-500/20">
+                  <h3 className="text-lg font-medium text-emerald-400 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5" />
                     Batch Complete
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </h3>
+                </div>
+                <div className="p-4">
                   <div className="grid grid-cols-3 gap-4 text-center mb-4">
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{results.totalFiles}</p>
-                      <p className="text-sm text-gray-500">Total Files</p>
+                      <p className="text-2xl font-bold text-white">{results.totalFiles}</p>
+                      <p className="text-sm text-white/50">Total Files</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-emerald-600">{results.successCount}</p>
-                      <p className="text-sm text-gray-500">Stamped</p>
+                      <p className="text-2xl font-bold text-emerald-400">{results.successCount}</p>
+                      <p className="text-sm text-white/50">Stamped</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-red-500">{results.failedCount}</p>
-                      <p className="text-sm text-gray-500">Failed</p>
+                      <p className="text-2xl font-bold text-red-400">{results.failedCount}</p>
+                      <p className="text-sm text-white/50">Failed</p>
                     </div>
                   </div>
                   <Button
@@ -473,8 +473,8 @@ const BatchStampPage = () => {
                     <Archive className="w-4 h-4 mr-2" />
                     Download ZIP Again
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
           </div>
 
