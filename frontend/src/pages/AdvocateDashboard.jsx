@@ -256,15 +256,26 @@ const ShareProfileModal = ({ isOpen, onClose, user }) => {
 
 const DashboardLayout = ({ children, title, subtitle }) => {
   const { user, logout, token } = useAuth();
+  const { confirm } = useConfirmation();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isAdmin = user?.role === "admin";
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-    toast.success("Logged out successfully");
+  const handleLogout = async () => {
+    const confirmed = await confirm({
+      title: "Sign Out?",
+      message: "Are you sure you want to sign out of your account?",
+      confirmText: "Sign Out",
+      cancelText: "Cancel",
+      variant: "warning",
+    });
+    
+    if (confirmed) {
+      logout();
+      navigate("/");
+      toast.success("Logged out successfully");
+    }
   };
 
   // Grouped navigation items for advocates
