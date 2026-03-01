@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ConfirmationProvider, PinLockProvider } from "./components/SecurityModals";
 import { initPWA } from "./lib/pwa";
 import { initDB } from "./lib/offlineDB";
 import PWAInstallBanner from "./components/PWAInstallBanner";
@@ -39,6 +40,7 @@ import AdvocateDirectoryPage from "./pages/AdvocateDirectoryPage";
 import PracticeManagementPage from "./pages/PracticeManagementPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
+import PinSettingsPage from "./pages/PinSettingsPage";
 import "./App.css";
 
 const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
@@ -104,8 +106,10 @@ function App() {
 
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <ConfirmationProvider>
+        <PinLockProvider>
+          <BrowserRouter>
+            <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
