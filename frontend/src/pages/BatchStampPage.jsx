@@ -641,7 +641,7 @@ const BatchStampPage = () => {
             <Button
               onClick={handleBatchStamp}
               disabled={selectedFiles.length === 0 || processing || !recipientName.trim() || isStampingBlocked}
-              className={`w-full h-12 text-lg ${
+              className={`w-full h-12 text-lg text-white ${
                 isStampingBlocked 
                   ? 'bg-gray-600 cursor-not-allowed' 
                   : 'bg-emerald-600 hover:bg-emerald-700'
@@ -669,8 +669,8 @@ const BatchStampPage = () => {
             {/* Progress */}
             {processing && (
               <div className="space-y-2">
-                <Progress value={progress} className="h-2" />
-                <p className="text-sm text-center text-gray-500">
+                <Progress value={progress} className="h-2 bg-white/10" />
+                <p className="text-sm text-center text-white/50">
                   {progress < 30 ? "Uploading files..." : 
                    progress < 80 ? "Stamping documents..." : 
                    "Generating ZIP..."}
