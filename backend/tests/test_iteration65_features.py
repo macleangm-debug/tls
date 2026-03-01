@@ -42,12 +42,17 @@ class TestAuth:
         # API returns access_token not token
         token = data.get("access_token") or data.get("token")
         assert token, "Token missing from login response"
-        return token
+        # Also store CSRF token
+        csrf_token = data.get("csrf_token")
+        return {"access_token": token, "csrf_token": csrf_token}
     
     @pytest.fixture(scope="class")
     def auth_headers(self, auth_token):
-        """Get auth headers with token"""
-        return {"Authorization": f"Bearer {auth_token}"}
+        """Get auth headers with token and CSRF"""
+        headers = {"Authorization": f"Bearer {auth_token['access_token']}"}
+        if auth_token.get("csrf_token"):
+            headers["X-CSRF-Token"] = auth_token["csrf_token"]
+        return headers
 
 
 class TestBatchStampsEndpoint(TestAuth):
