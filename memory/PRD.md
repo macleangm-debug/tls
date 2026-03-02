@@ -20,6 +20,13 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 - Admin endpoint `/api/admin/services/status` to check Gotenberg health
 - Environment variable: `GOTENBERG_URL` (e.g., `http://gotenberg:3000`)
 
+**LibreOffice Integration (Mar 2, 2026) ✅**
+- Installed LibreOffice Writer and Calc in the container
+- Created `backend/services/libreoffice_service.py` for local document conversion
+- Supports: .docx, .doc, .odt, .rtf, .xlsx, .xls, .ods, .pptx, .ppt, .odp, .txt, .html
+- Full formatting preservation (tables, images, fonts, styling)
+- Conversion priority: LibreOffice (local) > Gotenberg (remote) > python-docx (fallback)
+
 ### Security Features & UI Improvements (Mar 1, 2026) ✅
 
 **Features Implemented:**
