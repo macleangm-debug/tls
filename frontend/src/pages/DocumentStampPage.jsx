@@ -1922,8 +1922,11 @@ const DocumentStampPage = () => {
                       <h3 className="font-heading text-xl text-white mb-2">
                         {uploading ? "Processing document..." : "Click to upload document"}
                       </h3>
-                      <p className="text-white/50 text-center mb-5">
+                      <p className="text-white/50 text-center mb-3">
                         {uploading ? "Converting to PDF for preview" : "Or drag and drop your file here"}
+                      </p>
+                      <p className="text-white/40 text-xs text-center mb-5">
+                        Supported: PDF, DOCX, DOC, ODT, RTF, XLSX, XLS, PPTX, PPT, PNG, JPG
                       </p>
                       
                       {uploading && (
