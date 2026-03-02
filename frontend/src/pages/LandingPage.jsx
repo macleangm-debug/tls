@@ -10,7 +10,8 @@ import {
   Users, FileCheck, Building2, Fingerprint, Zap, Globe, Lock,
   ChevronRight, ExternalLink, Menu, X, Play, Sparkles, Calendar,
   MapPin, Phone, Mail, Clock, BookOpen, Award, Gavel, FileText,
-  Landmark, GraduationCap, Heart, Newspaper, ArrowUpRight, User
+  Landmark, GraduationCap, Heart, Newspaper, ArrowUpRight, User,
+  FileSpreadsheet, Presentation, Image, ScanLine
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
