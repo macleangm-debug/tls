@@ -3077,15 +3077,27 @@ async def upload_document(
     pdf_content = content
     converted = False
     
+    # Image files
     if file.content_type in ["image/png", "image/jpeg", "image/jpg"]:
         pdf_content = convert_image_to_pdf(content, file.content_type)
         converted = True
-    elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        # Use async Gotenberg-enabled conversion
-        pdf_content = await convert_docx_to_pdf_async(content, file.filename)
-        converted = True
-    elif file.content_type == "application/msword":
-        # Use LibreOffice for DOC files (full formatting support)
+    
+    # Office documents - use LibreOffice for full formatting preservation
+    elif file.content_type in [
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # DOCX
+        "application/msword",  # DOC
+        "application/vnd.oasis.opendocument.text",  # ODT
+        "application/rtf",  # RTF
+        "text/rtf",  # RTF alternative
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # XLSX
+        "application/vnd.ms-excel",  # XLS
+        "application/vnd.oasis.opendocument.spreadsheet",  # ODS
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",  # PPTX
+        "application/vnd.ms-powerpoint",  # PPT
+        "application/vnd.oasis.opendocument.presentation",  # ODP
+        "text/plain",  # TXT
+        "text/html",  # HTML
+    ]:
         from services.libreoffice_service import libreoffice_service
         from services.gotenberg_service import gotenberg_service
         
@@ -3095,16 +3107,26 @@ async def upload_document(
                 pdf_content = pdf_bytes
                 converted = True
             else:
-                raise HTTPException(status_code=400, detail=f"DOC conversion failed: {error}")
+                logger.warning(f"LibreOffice conversion failed: {error}, trying Gotenberg")
+                # Try Gotenberg as fallback
+                if gotenberg_service.is_available:
+                    success, pdf_bytes, error = await gotenberg_service.convert_office_to_pdf(content, file.filename)
+                    if success:
+                        pdf_content = pdf_bytes
+                        converted = True
+                    else:
+                        raise HTTPException(status_code=400, detail=f"Document conversion failed: {error}")
+                else:
+                    raise HTTPException(status_code=400, detail=f"Document conversion failed: {error}")
         elif gotenberg_service.is_available:
             success, pdf_bytes, error = await gotenberg_service.convert_office_to_pdf(content, file.filename)
             if success:
                 pdf_content = pdf_bytes
                 converted = True
             else:
-                raise HTTPException(status_code=400, detail=f"DOC conversion failed: {error}. Please convert to DOCX or PDF.")
+                raise HTTPException(status_code=400, detail=f"Document conversion failed: {error}")
         else:
-            raise HTTPException(status_code=400, detail="DOC format not supported. Please convert to DOCX or PDF.")
+            raise HTTPException(status_code=400, detail="Document conversion service unavailable. Please upload a PDF.")
     
     # Generate document hash from original content
     doc_hash = generate_document_hash(content)
