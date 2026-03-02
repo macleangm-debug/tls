@@ -422,6 +422,32 @@ const LandingPage = () => {
               </CardContent>
             </Card>
 
+            {/* Universal Format Support */}
+            <Card className="glass-card rounded-2xl border-teal-500/20 hover:border-teal-500/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-teal-500/10 group">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500/20 to-teal-600/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-all">
+                  <FileSpreadsheet className="w-6 h-6 text-teal-400" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
+                  Universal Format Support
+                </h3>
+                <p className="text-sm text-white/50 mb-4">
+                  Upload PDF, Word (DOCX/DOC), Excel (XLSX/XLS), PowerPoint (PPTX/PPT), images (PNG/JPG), and more.
+                </p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {['PDF', 'DOCX', 'XLSX', 'PPTX', 'PNG', 'JPG'].map((fmt) => (
+                    <span key={fmt} className="px-2 py-0.5 bg-teal-500/10 text-teal-400 text-[10px] font-medium rounded-full border border-teal-500/20">
+                      {fmt}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 text-teal-400 text-xs font-medium">
+                  <ScanLine className="w-3.5 h-3.5" />
+                  Plus document scanning with auto-crop
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Compliance Ledger */}
             <Card className="glass-card rounded-2xl border-amber-500/20 hover:border-amber-500/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-amber-500/10 group">
               <CardContent className="p-6">
