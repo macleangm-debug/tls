@@ -1961,7 +1961,7 @@ const DocumentStampPage = () => {
                         ref={fileInputRef}
                         id="document-upload"
                         type="file"
-                        accept=".pdf,.png,.jpg,.jpeg,.docx"
+                        accept=".pdf,.png,.jpg,.jpeg,.docx,.doc,.odt,.rtf,.xlsx,.xls,.ods,.pptx,.ppt,.odp,.txt,.html"
                         onChange={handleFileSelect}
                         className="hidden"
                         data-testid="document-upload-input"
