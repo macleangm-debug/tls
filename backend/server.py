@@ -3017,18 +3017,36 @@ async def upload_document(
     content = await file.read()
     original_content_type = file.content_type
     
-    # Validate file type
+    # Validate file type - all Office documents, PDFs, and images supported
     allowed_types = [
         "application/pdf", 
         "image/png", 
         "image/jpeg", 
         "image/jpg",
+        # Word processing
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # DOCX
-        "application/msword"  # DOC (will show error)
+        "application/msword",  # DOC
+        "application/vnd.oasis.opendocument.text",  # ODT
+        "application/rtf",  # RTF
+        "text/rtf",  # RTF alternative
+        # Spreadsheets
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # XLSX
+        "application/vnd.ms-excel",  # XLS
+        "application/vnd.oasis.opendocument.spreadsheet",  # ODS
+        # Presentations
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",  # PPTX
+        "application/vnd.ms-powerpoint",  # PPT
+        "application/vnd.oasis.opendocument.presentation",  # ODP
+        # Text/HTML
+        "text/plain",  # TXT
+        "text/html",  # HTML
     ]
     
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF, DOCX, PNG, or JPG.")
+        raise HTTPException(
+            status_code=400, 
+            detail="Unsupported file type. Supported: PDF, DOCX, DOC, ODT, RTF, XLSX, XLS, ODS, PPTX, PPT, ODP, PNG, JPG, TXT, HTML"
+        )
     
     # For PDFs, run validation before processing
     if file.content_type == "application/pdf":
