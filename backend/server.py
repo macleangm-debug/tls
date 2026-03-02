@@ -3067,9 +3067,18 @@ async def upload_document(
         pdf_content = await convert_docx_to_pdf_async(content, file.filename)
         converted = True
     elif file.content_type == "application/msword":
-        # Try Gotenberg for DOC files
+        # Use LibreOffice for DOC files (full formatting support)
+        from services.libreoffice_service import libreoffice_service
         from services.gotenberg_service import gotenberg_service
-        if gotenberg_service.is_available:
+        
+        if libreoffice_service.is_available:
+            success, pdf_bytes, error = await libreoffice_service.convert_to_pdf(content, file.filename)
+            if success:
+                pdf_content = pdf_bytes
+                converted = True
+            else:
+                raise HTTPException(status_code=400, detail=f"DOC conversion failed: {error}")
+        elif gotenberg_service.is_available:
             success, pdf_bytes, error = await gotenberg_service.convert_office_to_pdf(content, file.filename)
             if success:
                 pdf_content = pdf_bytes
