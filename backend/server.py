@@ -2950,12 +2950,27 @@ def convert_docx_to_pdf(docx_content: bytes) -> bytes:
 
 async def convert_docx_to_pdf_async(docx_content: bytes, filename: str) -> bytes:
     """
-    Convert DOCX to PDF using Gotenberg if available, fallback to basic conversion.
-    Gotenberg provides better formatting preservation.
+    Convert DOCX to PDF using LibreOffice (local) or Gotenberg (remote).
+    LibreOffice provides full formatting preservation.
     """
+    from services.libreoffice_service import libreoffice_service
     from services.gotenberg_service import gotenberg_service
     
-    # Try Gotenberg first (better quality conversion)
+    # Try local LibreOffice first (best quality, no network latency)
+    if libreoffice_service.is_available:
+        try:
+            success, pdf_bytes, error = await libreoffice_service.convert_to_pdf(
+                docx_content, filename
+            )
+            if success and pdf_bytes:
+                logger.info(f"DOCX converted via LibreOffice: {filename}")
+                return pdf_bytes
+            else:
+                logger.warning(f"LibreOffice conversion failed, trying Gotenberg: {error}")
+        except Exception as e:
+            logger.warning(f"LibreOffice error, trying Gotenberg: {e}")
+    
+    # Try Gotenberg as fallback
     if gotenberg_service.is_available:
         try:
             success, pdf_bytes, error = await gotenberg_service.convert_office_to_pdf(
@@ -2965,11 +2980,12 @@ async def convert_docx_to_pdf_async(docx_content: bytes, filename: str) -> bytes
                 logger.info(f"DOCX converted via Gotenberg: {filename}")
                 return pdf_bytes
             else:
-                logger.warning(f"Gotenberg conversion failed, using fallback: {error}")
+                logger.warning(f"Gotenberg conversion failed, using basic fallback: {error}")
         except Exception as e:
-            logger.warning(f"Gotenberg error, using fallback: {e}")
+            logger.warning(f"Gotenberg error, using basic fallback: {e}")
     
-    # Fallback to basic conversion
+    # Last resort: basic python-docx conversion (loses formatting)
+    logger.warning(f"Using basic python-docx conversion for {filename} (formatting will be lost)")
     return convert_docx_to_pdf(docx_content)
 
 def convert_image_to_pdf(image_content: bytes, content_type: str) -> bytes:
