@@ -578,7 +578,7 @@ const BatchStampPage = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="application/pdf"
+                    accept=".pdf,.png,.jpg,.jpeg,.docx,.doc,.odt,.rtf,.xlsx,.xls,.ods,.pptx,.ppt,.odp"
                     multiple
                     onChange={handleFileSelect}
                     className="hidden"
@@ -586,6 +586,7 @@ const BatchStampPage = () => {
                   <Upload className="w-8 h-8 text-white/30 mx-auto mb-2" />
                   <p className="text-white/70 font-medium">Drop PDF files here</p>
                   <p className="text-white/40 text-sm">or click to browse (max {MAX_FILE_SIZE_MB}MB each)</p>
+                  <p className="text-white/30 text-xs mt-1">Also supports: DOCX, DOC, XLSX, PPTX, PNG, JPG</p>
                 </div>
               </div>
             </div>
