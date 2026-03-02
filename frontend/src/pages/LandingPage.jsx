@@ -591,7 +591,7 @@ const LandingPage = () => {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: QrCode, title: "Digital Stamps", desc: "Issue tamper-proof digital stamps with QR verification for all legal documents", color: "tls-blue-electric", link: "/digital-stamps" },
+              { icon: QrCode, title: "Digital Stamps", desc: "Issue tamper-proof digital stamps with QR verification. Supports PDF, DOCX, DOC, XLSX, PPTX, PNG, JPG and document scanning.", color: "tls-blue-electric", link: "/digital-stamps" },
               { icon: FileCheck, title: "Physical Stamps", desc: "Order official TLS-approved physical stamps for your legal practice", color: "tls-gold", link: "/order-stamp" },
               { icon: ShieldCheck, title: "Document Verification", desc: "Public portal to verify authenticity of any stamped legal document", color: "emerald-500", link: "/verify" },
               { icon: GraduationCap, title: "CLE Programs", desc: "Continuing Legal Education courses for professional development", color: "purple-500" },
