@@ -23,7 +23,13 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 **LibreOffice Integration (Mar 2, 2026) ✅**
 - Installed LibreOffice Writer and Calc in the container
 - Created `backend/services/libreoffice_service.py` for local document conversion
-- Supports: .docx, .doc, .odt, .rtf, .xlsx, .xls, .ods, .pptx, .ppt, .odp, .txt, .html
+- **Supported Input Formats**: 
+  - Documents: PDF, DOCX, DOC, ODT, RTF
+  - Spreadsheets: XLSX, XLS, ODS  
+  - Presentations: PPTX, PPT, ODP
+  - Images: PNG, JPG (direct upload)
+  - Text: TXT, HTML
+- **Document Scanning**: Multi-page scanning with auto-crop and enhancement
 - Full formatting preservation (tables, images, fonts, styling)
 - Conversion priority: LibreOffice (local) > Gotenberg (remote) > python-docx (fallback)
 
