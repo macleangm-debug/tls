@@ -1143,7 +1143,7 @@ const DocumentStampPage = () => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // DOCX
     ];
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error("Unsupported file type. Please upload PDF, DOCX, PNG, or JPG.");
+      toast.error("Unsupported file type. Supported: PDF, DOCX, DOC, ODT, RTF, XLSX, XLS, PPTX, PPT, PNG, JPG");
       return;
     }
 
