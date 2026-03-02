@@ -7849,8 +7849,15 @@ async def get_services_status(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     from services.gotenberg_service import gotenberg_service
+    from services.libreoffice_service import libreoffice_service, LIBREOFFICE_PATH
     
     services = {
+        "libreoffice": {
+            "configured": libreoffice_service.is_available,
+            "path": LIBREOFFICE_PATH or "Not installed",
+            "healthy": libreoffice_service.is_available,
+            "supported_formats": libreoffice_service.get_supported_formats() if libreoffice_service.is_available else []
+        },
         "gotenberg": {
             "configured": gotenberg_service.is_available,
             "url": GOTENBERG_URL or "Not configured",
@@ -7868,6 +7875,11 @@ async def get_services_status(user: dict = Depends(get_current_user)):
     
     return {
         "services": services,
+        "document_conversion": {
+            "primary": "libreoffice" if libreoffice_service.is_available else ("gotenberg" if gotenberg_service.is_available else "python-docx"),
+            "fallback": "gotenberg" if gotenberg_service.is_available else "python-docx",
+            "note": "LibreOffice provides full formatting preservation. python-docx loses formatting."
+        },
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
