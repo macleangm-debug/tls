@@ -33,6 +33,12 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 - Full formatting preservation (tables, images, fonts, styling)
 - Conversion priority: LibreOffice (local) > Gotenberg (remote) > python-docx (fallback)
 
+**Backend Refactoring (Mar 3, 2026) ✅**
+- Created modular structure with `models/`, `utils/`, `routes/`, `services/` directories
+- Extracted 40+ Pydantic models to `models/schemas.py`
+- Extracted helper functions to `utils/helpers.py` (ID generators, QR codes, validators)
+- Routes prepared for future extraction: documents, admin, institutional
+
 ### Security Features & UI Improvements (Mar 1, 2026) ✅
 
 **Features Implemented:**
