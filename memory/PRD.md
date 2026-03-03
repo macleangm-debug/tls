@@ -37,7 +37,16 @@ A comprehensive Practice Management Suite and Digital Certification Platform for
 - Created modular structure with `models/`, `utils/`, `routes/`, `services/` directories
 - Extracted 40+ Pydantic models to `models/schemas.py`
 - Extracted helper functions to `utils/helpers.py` (ID generators, QR codes, validators)
-- Routes prepared for future extraction: documents, admin, institutional
+- **New Route Modules Created:**
+  - `routes/verification.py` (269 lines) - Public stamp verification
+  - `routes/profile.py` (272 lines) - Advocate profile management
+  - `routes/orders.py` (306 lines) - Stamp and physical orders
+  - `routes/auth.py` (739 lines) - Authentication (existing)
+  - `routes/membership.py` (207 lines) - Membership management (existing)
+  - `routes/notifications.py` (385 lines) - Push notifications (existing)
+  - `routes/tls_events.py` (780 lines) - TLS events (existing)
+- Total extracted: ~3000+ lines into organized modules
+- server.py remains at ~8700 lines (further extraction possible)
 
 ### Security Features & UI Improvements (Mar 1, 2026) ✅
 
