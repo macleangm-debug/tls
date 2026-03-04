@@ -12,3 +12,13 @@
 .App-link {
     color: #C5A059;
 }
+
+/* Hide Emergent badge for presentation */
+#emergent-badge,
+a[href*="emergent.sh"],
+[id*="emergent"],
+div[style*="Made with Emergent"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
