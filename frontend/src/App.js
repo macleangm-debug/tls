@@ -41,6 +41,7 @@ import PracticeManagementPage from "./pages/PracticeManagementPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 import PinSettingsPage from "./pages/PinSettingsPage";
+import ProductPresentation from "./pages/ProductPresentation";
 import "./App.css";
 
 const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
@@ -161,6 +162,7 @@ function App() {
           <Route path="/super-admin" element={<ProtectedRoute superAdminOnly><SuperAdminDashboard /></ProtectedRoute>} />
           <Route path="/super-admin/orders" element={<ProtectedRoute superAdminOnly><IDCOrdersPage /></ProtectedRoute>} />
           <Route path="/super-admin/membership" element={<ProtectedRoute superAdminOnly><MembershipSettingsPage /></ProtectedRoute>} />
+          <Route path="/super-admin/presentation" element={<ProtectedRoute superAdminOnly><ProductPresentation /></ProtectedRoute>} />
           <Route path="/idc/orders" element={<ProtectedRoute superAdminOnly><IDCOrdersPage /></ProtectedRoute>} />
         </Routes>
         <Toaster position="top-right" richColors />
