@@ -15,18 +15,16 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { toast } from "sonner";
 
-// Presentation Images - JPG URLs for better PDF compatibility
+// Presentation Images - Local images in /public/images/presentation/ for offline/print support
 const SLIDE_IMAGES = {
-  legal_docs: "https://images.unsplash.com/photo-1758518731462-d091b0b4ed0d?w=800&q=80",
-  signing_contract: "https://images.unsplash.com/photo-1758519288480-1489c17b1519?w=800&q=80",
-  african_lawyer: "https://images.unsplash.com/photo-1764592620835-85566ae87402?w=800&q=80",
-  lawyers_team: "https://images.unsplash.com/photo-1764592620941-a5bcaa79ce92?w=800&q=80",
-  qr_scan: "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?w=800&q=80",
-  digital_security: "https://images.unsplash.com/photo-1767972464040-8bfee42d7bed?w=800&q=80",
-  stamp_document: "https://images.pexels.com/photos/9858904/pexels-photo-9858904.jpeg?w=800&q=80",
-  stamp_seal: "https://images.pexels.com/photos/6358834/pexels-photo-6358834.jpeg?w=800&q=80",
-  businessman: "https://images.unsplash.com/photo-1621087955713-429347cb00e4?w=800&q=80",
-  tanzania_business: "https://images.unsplash.com/photo-1687422808191-93810cd07ab0?w=800&q=80"
+  legal_professional: "/images/presentation/legal_professional.png",
+  document_signing: "/images/presentation/document_signing.png",
+  digital_security: "/images/presentation/digital_security.png",
+  qr_verification: "/images/presentation/qr_verification.png",
+  stamp_seal: "/images/presentation/stamp_seal.png",
+  legal_team: "/images/presentation/legal_team.png",
+  tanzania_business: "/images/presentation/tanzania_business.png",
+  legal_documents: "/images/presentation/legal_documents.png"
 };
 
 const ProductPresentation = () => {
@@ -44,7 +42,7 @@ const ProductPresentation = () => {
       title: "TLS Digital Stamping Platform",
       subtitle: "Transforming Legal Document Verification in Tanzania",
       type: "title",
-      image: SLIDE_IMAGES.african_lawyer,
+      image: SLIDE_IMAGES.legal_professional,
       content: {
         tagline: "Secure • Verifiable • Trusted",
         description: "A comprehensive digital solution designed specifically for the Tanganyika Law Society to modernize how legal documents are authenticated, managed, and verified across Tanzania.",
@@ -63,7 +61,7 @@ const ProductPresentation = () => {
       title: "Executive Summary",
       subtitle: "Platform Overview & Strategic Vision",
       type: "summary",
-      image: SLIDE_IMAGES.signing_contract,
+      image: SLIDE_IMAGES.document_signing,
       content: {
         mission: "To modernize legal document authentication in Tanzania through secure digital stamps, protecting the integrity of legal practice while generating sustainable revenue streams for TLS and its members.",
         vision: "Position the Tanganyika Law Society as a pioneer in legal technology innovation across East Africa, setting the standard for digital document verification that other bar associations will follow.",
@@ -83,7 +81,7 @@ const ProductPresentation = () => {
       title: "The Challenge We're Solving",
       subtitle: "Critical Problems in Legal Document Authentication",
       type: "problem-detailed",
-      image: SLIDE_IMAGES.legal_docs,
+      image: SLIDE_IMAGES.legal_documents,
       content: {
         intro: "The Tanzanian legal system faces significant challenges in document authentication that undermine public trust, waste valuable time, and expose parties to fraud. These problems affect not just lawyers, but every citizen and business that relies on legal documentation.",
         problems: [
@@ -172,7 +170,7 @@ const ProductPresentation = () => {
       title: "How Digital Stamping Works",
       subtitle: "Technical Process Explained Step-by-Step",
       type: "flow-detailed",
-      image: SLIDE_IMAGES.stamp_document,
+      image: SLIDE_IMAGES.stamp_seal,
       content: {
         intro: "Understanding the technical process helps build confidence in the system's security. Here's exactly what happens when an advocate stamps a document:",
         steps: [
@@ -371,7 +369,7 @@ const ProductPresentation = () => {
       subtitle: "Trust Through Transparent Verification",
       type: "feature-detailed",
       screenshot: "/verify",
-      image: SLIDE_IMAGES.qr_scan,
+      image: SLIDE_IMAGES.qr_verification,
       content: {
         intro: "The public verification portal is freely accessible to anyone who needs to verify a legal document's authenticity. No account or login required—just scan and verify.",
         methods: [
@@ -809,7 +807,7 @@ const ProductPresentation = () => {
       title: "Benefits for Advocates",
       subtitle: "Empowering Legal Professionals",
       type: "benefits-detailed",
-      image: SLIDE_IMAGES.lawyers_team,
+      image: SLIDE_IMAGES.legal_team,
       content: {
         intro: "Advocates are at the heart of this platform. Every feature is designed to save time, enhance credibility, and generate additional income.",
         benefits: [
@@ -909,7 +907,7 @@ const ProductPresentation = () => {
       title: "Benefits for the Public",
       subtitle: "Protection & Access for Citizens",
       type: "benefits-detailed",
-      image: SLIDE_IMAGES.businessman,
+      image: SLIDE_IMAGES.legal_professional,
       content: {
         intro: "The ultimate beneficiaries of this system are the Tanzanian public who rely on authentic legal documents for their most important transactions.",
         benefits: [
@@ -1425,6 +1423,15 @@ const ProductPresentation = () => {
 
   const slide = slides[currentSlide];
 
+  // Guard against undefined slide
+  if (!slide) {
+    return (
+      <div className="min-h-screen bg-[#02040A] flex items-center justify-center">
+        <p className="text-white">Loading presentation...</p>
+      </div>
+    );
+  }
+
   const renderSlideContent = () => {
     // Common image component for slides with images
     const SlideImage = ({ src, alt }) => src ? (
@@ -1695,9 +1702,12 @@ const ProductPresentation = () => {
                   <h4 className="text-xs font-semibold text-emerald-400 uppercase mb-2">Capabilities</h4>
                   <div className="space-y-1">
                     {slide.content.capabilities.map((c, i) => (
-                      <div key={i} className="flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                        <span className="text-white/70 text-xs">{c}</span>
+                      <div key={i} className="flex items-start gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400 mt-0.5" />
+                        <div>
+                          <span className="text-white/80 text-xs font-medium">{c.title}</span>
+                          {c.desc && <span className="text-white/50 text-xs"> - {c.desc}</span>}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1870,13 +1880,156 @@ const ProductPresentation = () => {
         );
 
       default:
+        // Generic handler for undefined slide types - safely renders common content patterns
         return (
           <div className="flex flex-col h-full px-12 py-6 overflow-y-auto">
             <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-lg text-white/60 mb-4">{slide.subtitle}</p>
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-white/50">Content for slide type "{slide.type}" - rendering generic layout</p>
-            </div>
+            <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
+            
+            {/* Handle intro text */}
+            {slide.content?.intro && (
+              <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
+            )}
+            
+            {/* Handle features array - common pattern */}
+            {slide.content?.features && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {slide.content.features.map((f, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      {f.icon && <f.icon className="w-6 h-6 text-emerald-400 mb-2" />}
+                      <h3 className="text-sm font-semibold text-white mb-1">{f.title}</h3>
+                      <p className="text-white/60 text-xs">{f.desc}</p>
+                      {f.benefit && <p className="text-emerald-400/70 text-xs mt-1">{f.benefit}</p>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Handle items array - common pattern */}
+            {slide.content?.items && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {slide.content.items.map((item, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      {item.icon && <item.icon className="w-6 h-6 text-emerald-400 mb-2" />}
+                      <h3 className="text-sm font-semibold text-white mb-1">{item.title}</h3>
+                      <p className="text-white/60 text-xs">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Handle phases array - for roadmap slides */}
+            {slide.content?.phases && (
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                {slide.content.phases.map((phase, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      <div className="text-emerald-400 font-bold mb-1">{phase.phase}</div>
+                      <h3 className="text-sm font-semibold text-white mb-1">{phase.title}</h3>
+                      <p className="text-white/50 text-xs mb-2">{phase.duration}</p>
+                      {phase.items?.map((item, j) => (
+                        <div key={j} className="flex items-center gap-1 text-xs text-white/60">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          {item}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Handle metrics array - for metrics slides */}
+            {slide.content?.metrics && (
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                {slide.content.metrics.map((m, i) => (
+                  <Card key={i} className="bg-emerald-500/5 border-emerald-500/20">
+                    <CardContent className="p-4 text-center">
+                      {m.icon && <m.icon className="w-8 h-8 text-emerald-400 mx-auto mb-2" />}
+                      <p className="text-2xl font-bold text-white">{m.value}</p>
+                      <p className="text-white/60 text-sm">{m.label}</p>
+                      {m.target && <p className="text-emerald-400/70 text-xs mt-1">Target: {m.target}</p>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Handle streams array - for revenue slides */}
+            {slide.content?.streams && (
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {slide.content.streams.map((s, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      {s.icon && <s.icon className="w-6 h-6 text-emerald-400 mb-2" />}
+                      <h3 className="text-sm font-semibold text-white mb-1">{s.title}</h3>
+                      <p className="text-white/60 text-xs mb-2">{s.desc}</p>
+                      {s.pricing && <p className="text-emerald-400 text-sm font-semibold">{s.pricing}</p>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Handle layers array - for security slides */}
+            {slide.content?.layers && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {slide.content.layers.map((l, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      {l.icon && <l.icon className="w-6 h-6 text-emerald-400 mb-2" />}
+                      <h3 className="text-sm font-semibold text-white mb-1">{l.title}</h3>
+                      <p className="text-white/60 text-xs">{l.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Handle steps array - for next-steps slides */}
+            {slide.content?.steps && (
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                {slide.content.steps.map((s, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold mb-2">
+                        {i + 1}
+                      </div>
+                      <h3 className="text-sm font-semibold text-white mb-1">{s.title}</h3>
+                      <p className="text-white/60 text-xs">{s.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Handle programs array - for support slides */}
+            {slide.content?.programs && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {slide.content.programs.map((p, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      {p.icon && <p.icon className="w-6 h-6 text-emerald-400 mb-2" />}
+                      <h3 className="text-sm font-semibold text-white mb-1">{p.title}</h3>
+                      <p className="text-white/60 text-xs">{p.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Fallback message if no content patterns match */}
+            {!slide.content?.features && !slide.content?.items && !slide.content?.phases && 
+             !slide.content?.metrics && !slide.content?.streams && !slide.content?.layers &&
+             !slide.content?.steps && !slide.content?.programs && !slide.content?.intro && (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-white/50">Slide type: {slide.type}</p>
+              </div>
+            )}
           </div>
         );
     }
