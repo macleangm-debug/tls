@@ -18,7 +18,7 @@ import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-and-manage.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://practice-vault-1.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "test@tls.or.tz"

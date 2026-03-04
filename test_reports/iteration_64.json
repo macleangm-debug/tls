@@ -33,7 +33,7 @@
       "email": "test@tls.or.tz",
       "password": "Test@12345678!"
     },
-    "frontend_url": "https://stamp-and-manage.preview.emergentagent.com"
+    "frontend_url": "https://practice-vault-1.preview.emergentagent.com"
   },
   "seed_data_creation": "None required",
   "retest_needed": false,

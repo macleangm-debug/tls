@@ -1646,7 +1646,7 @@ const ProductPresentation = () => {
             <div className="w-3/5 p-3 flex items-center justify-center bg-gradient-to-br from-white/5 to-transparent">
               <div className="w-full h-full rounded-xl border border-white/10 bg-[#02040A] overflow-hidden shadow-2xl">
                 <iframe 
-                  src={`https://stamp-and-manage.preview.emergentagent.com${slide.screenshot}`}
+                  src={`https://practice-vault-1.preview.emergentagent.com${slide.screenshot}`}
                   className="w-full h-full"
                   title={slide.title}
                 />
