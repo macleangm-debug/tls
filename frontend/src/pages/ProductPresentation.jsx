@@ -15,6 +15,20 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { toast } from "sonner";
 
+// Presentation Images - JPG URLs for better PDF compatibility
+const SLIDE_IMAGES = {
+  legal_docs: "https://images.unsplash.com/photo-1758518731462-d091b0b4ed0d?w=800&q=80",
+  signing_contract: "https://images.unsplash.com/photo-1758519288480-1489c17b1519?w=800&q=80",
+  african_lawyer: "https://images.unsplash.com/photo-1764592620835-85566ae87402?w=800&q=80",
+  lawyers_team: "https://images.unsplash.com/photo-1764592620941-a5bcaa79ce92?w=800&q=80",
+  qr_scan: "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?w=800&q=80",
+  digital_security: "https://images.unsplash.com/photo-1767972464040-8bfee42d7bed?w=800&q=80",
+  stamp_document: "https://images.pexels.com/photos/9858904/pexels-photo-9858904.jpeg?w=800&q=80",
+  stamp_seal: "https://images.pexels.com/photos/6358834/pexels-photo-6358834.jpeg?w=800&q=80",
+  businessman: "https://images.unsplash.com/photo-1621087955713-429347cb00e4?w=800&q=80",
+  tanzania_business: "https://images.unsplash.com/photo-1687422808191-93810cd07ab0?w=800&q=80"
+};
+
 const ProductPresentation = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,6 +44,7 @@ const ProductPresentation = () => {
       title: "TLS Digital Stamping Platform",
       subtitle: "Transforming Legal Document Verification in Tanzania",
       type: "title",
+      image: SLIDE_IMAGES.african_lawyer,
       content: {
         tagline: "Secure • Verifiable • Trusted",
         description: "A comprehensive digital solution designed specifically for the Tanganyika Law Society to modernize how legal documents are authenticated, managed, and verified across Tanzania.",
@@ -48,6 +63,7 @@ const ProductPresentation = () => {
       title: "Executive Summary",
       subtitle: "Platform Overview & Strategic Vision",
       type: "summary",
+      image: SLIDE_IMAGES.signing_contract,
       content: {
         mission: "To modernize legal document authentication in Tanzania through secure digital stamps, protecting the integrity of legal practice while generating sustainable revenue streams for TLS and its members.",
         vision: "Position the Tanganyika Law Society as a pioneer in legal technology innovation across East Africa, setting the standard for digital document verification that other bar associations will follow.",
@@ -67,6 +83,7 @@ const ProductPresentation = () => {
       title: "The Challenge We're Solving",
       subtitle: "Critical Problems in Legal Document Authentication",
       type: "problem-detailed",
+      image: SLIDE_IMAGES.legal_docs,
       content: {
         intro: "The Tanzanian legal system faces significant challenges in document authentication that undermine public trust, waste valuable time, and expose parties to fraud. These problems affect not just lawyers, but every citizen and business that relies on legal documentation.",
         problems: [
@@ -108,6 +125,7 @@ const ProductPresentation = () => {
       title: "Our Comprehensive Solution",
       subtitle: "A Complete Digital Transformation Platform",
       type: "solution-detailed",
+      image: SLIDE_IMAGES.digital_security,
       content: {
         intro: "The TLS Digital Stamping Platform addresses every challenge through an integrated suite of tools designed specifically for the Tanzanian legal context. Our solution combines world-class security with practical usability.",
         pillars: [
@@ -154,6 +172,7 @@ const ProductPresentation = () => {
       title: "How Digital Stamping Works",
       subtitle: "Technical Process Explained Step-by-Step",
       type: "flow-detailed",
+      image: SLIDE_IMAGES.stamp_document,
       content: {
         intro: "Understanding the technical process helps build confidence in the system's security. Here's exactly what happens when an advocate stamps a document:",
         steps: [
@@ -272,6 +291,7 @@ const ProductPresentation = () => {
       title: "Stamp Types & Pricing Structure",
       subtitle: "Professional Certification Options for Every Need",
       type: "stamps-detailed",
+      image: SLIDE_IMAGES.stamp_seal,
       content: {
         intro: "Three distinct stamp types serve different legal purposes, each with appropriate pricing that reflects the level of attestation provided.",
         types: [
@@ -351,6 +371,7 @@ const ProductPresentation = () => {
       subtitle: "Trust Through Transparent Verification",
       type: "feature-detailed",
       screenshot: "/verify",
+      image: SLIDE_IMAGES.qr_scan,
       content: {
         intro: "The public verification portal is freely accessible to anyone who needs to verify a legal document's authenticity. No account or login required—just scan and verify.",
         methods: [
@@ -788,6 +809,7 @@ const ProductPresentation = () => {
       title: "Benefits for Advocates",
       subtitle: "Empowering Legal Professionals",
       type: "benefits-detailed",
+      image: SLIDE_IMAGES.lawyers_team,
       content: {
         intro: "Advocates are at the heart of this platform. Every feature is designed to save time, enhance credibility, and generate additional income.",
         benefits: [
@@ -837,6 +859,7 @@ const ProductPresentation = () => {
       title: "Benefits for Tanganyika Law Society",
       subtitle: "Organizational Transformation & Revenue",
       type: "benefits-detailed",
+      image: SLIDE_IMAGES.tanzania_business,
       content: {
         intro: "The platform delivers significant strategic and financial benefits to TLS as an organization, positioning it for sustainable growth.",
         benefits: [
@@ -886,6 +909,7 @@ const ProductPresentation = () => {
       title: "Benefits for the Public",
       subtitle: "Protection & Access for Citizens",
       type: "benefits-detailed",
+      image: SLIDE_IMAGES.businessman,
       content: {
         intro: "The ultimate beneficiaries of this system are the Tanzanian public who rely on authentic legal documents for their most important transactions.",
         benefits: [
@@ -1303,31 +1327,54 @@ const ProductPresentation = () => {
 
       const originalSlide = currentSlide;
 
+      // Preload images for better PDF export
+      const preloadImages = async () => {
+        const imagePromises = Object.values(SLIDE_IMAGES).map(src => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = resolve;
+            img.onerror = resolve; // Continue even if image fails
+            img.src = src;
+          });
+        });
+        await Promise.all(imagePromises);
+      };
+
+      await preloadImages();
+
       for (let i = 0; i < slides.length; i++) {
         setCurrentSlide(i);
         setExportProgress(Math.round(((i + 1) / slides.length) * 100));
         
-        // Wait for slide to render
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for slide to render with images
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         const slideElement = slideRef.current;
         if (slideElement) {
-          const canvas = await html2canvas(slideElement, {
-            scale: 1,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#02040A',
-            width: 1920,
-            height: 1080
-          });
-          
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          
-          if (i > 0) {
-            pdf.addPage([1920, 1080], 'landscape');
+          try {
+            const canvas = await html2canvas(slideElement, {
+              scale: 2, // Higher quality
+              useCORS: true,
+              allowTaint: false,
+              backgroundColor: '#02040A',
+              width: 1920,
+              height: 1080,
+              logging: false,
+              imageTimeout: 5000
+            });
+            
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            if (i > 0) {
+              pdf.addPage([1920, 1080], 'landscape');
+            }
+            
+            pdf.addImage(imgData, 'JPEG', 0, 0, 1920, 1080);
+          } catch (slideError) {
+            console.warn(`Error capturing slide ${i + 1}:`, slideError);
+            // Continue with next slide
           }
-          
-          pdf.addImage(imgData, 'JPEG', 0, 0, 1920, 1080);
         }
       }
 
@@ -1379,80 +1426,101 @@ const ProductPresentation = () => {
   const slide = slides[currentSlide];
 
   const renderSlideContent = () => {
+    // Common image component for slides with images
+    const SlideImage = ({ src, alt }) => src ? (
+      <div className="absolute right-0 top-0 bottom-0 w-1/3 overflow-hidden opacity-30">
+        <img 
+          src={src} 
+          alt={alt || "Slide background"} 
+          className="w-full h-full object-cover"
+          crossOrigin="anonymous"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#02040A] via-[#02040A]/80 to-transparent" />
+      </div>
+    ) : null;
+
     switch (slide.type) {
       case "title":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center px-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 mb-6">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400 text-sm font-medium">{slide.content.tagline}</span>
+          <div className="relative flex flex-col items-center justify-center h-full text-center px-12">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 mb-6">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400 text-sm font-medium">{slide.content.tagline}</span>
+              </div>
+              <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 font-heading">{slide.title}</h1>
+              <p className="text-xl md:text-2xl text-white/60 mb-6 max-w-3xl">{slide.subtitle}</p>
+              <p className="text-base text-white/50 mb-8 max-w-4xl leading-relaxed">{slide.content.description}</p>
+              <div className="flex flex-wrap gap-3 justify-center mb-8">
+                {slide.content.highlights.map((h, i) => (
+                  <div key={i} className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-white/80 text-sm">{h}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-white/40 max-w-3xl italic">{slide.content.additionalInfo}</p>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 font-heading">{slide.title}</h1>
-            <p className="text-xl md:text-2xl text-white/60 mb-6 max-w-3xl">{slide.subtitle}</p>
-            <p className="text-base text-white/50 mb-8 max-w-4xl leading-relaxed">{slide.content.description}</p>
-            <div className="flex flex-wrap gap-3 justify-center mb-8">
-              {slide.content.highlights.map((h, i) => (
-                <div key={i} className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/80 text-sm">{h}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-white/40 max-w-3xl italic">{slide.content.additionalInfo}</p>
           </div>
         );
 
       case "summary":
         return (
-          <div className="flex flex-col h-full px-12 py-6 overflow-y-auto">
-            <h2 className="text-4xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-lg text-white/60 mb-6">{slide.subtitle}</p>
-            
-            <div className="grid grid-cols-2 gap-6 mb-6">
-              <Card className="bg-emerald-500/5 border-emerald-500/20">
-                <CardContent className="p-4">
-                  <h3 className="text-emerald-400 font-semibold mb-2 text-sm uppercase">Mission</h3>
-                  <p className="text-white/80 text-sm leading-relaxed">{slide.content.mission}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-blue-500/5 border-blue-500/20">
-                <CardContent className="p-4">
-                  <h3 className="text-blue-400 font-semibold mb-2 text-sm uppercase">Vision</h3>
-                  <p className="text-white/80 text-sm leading-relaxed">{slide.content.vision}</p>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              {slide.content.keyPoints.map((kp, i) => (
-                <Card key={i} className="bg-white/5 border-white/10">
+          <div className="relative flex flex-col h-full px-12 py-6 overflow-y-auto">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="relative z-10">
+              <h2 className="text-4xl font-bold text-white mb-2">{slide.title}</h2>
+              <p className="text-lg text-white/60 mb-6">{slide.subtitle}</p>
+              
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <Card className="bg-emerald-500/5 border-emerald-500/20">
                   <CardContent className="p-4">
-                    <p className="text-white/50 text-xs mb-1">{kp.label}</p>
-                    <p className="text-white font-semibold text-sm mb-1">{kp.value}</p>
-                    <p className="text-white/40 text-xs">{kp.detail}</p>
+                    <h3 className="text-emerald-400 font-semibold mb-2 text-sm uppercase">Mission</h3>
+                    <p className="text-white/80 text-sm leading-relaxed">{slide.content.mission}</p>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20">
-                <Activity className="w-4 h-4 text-blue-400" />
-                <span className="text-blue-400 font-medium text-sm">{slide.content.timeline}</span>
-              </span>
-              <p className="text-white/40 text-xs max-w-lg">{slide.content.investment}</p>
+                <Card className="bg-blue-500/5 border-blue-500/20">
+                  <CardContent className="p-4">
+                    <h3 className="text-blue-400 font-semibold mb-2 text-sm uppercase">Vision</h3>
+                    <p className="text-white/80 text-sm leading-relaxed">{slide.content.vision}</p>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                {slide.content.keyPoints.map((kp, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      <p className="text-white/50 text-xs mb-1">{kp.label}</p>
+                      <p className="text-white font-semibold text-sm mb-1">{kp.value}</p>
+                      <p className="text-white/40 text-xs">{kp.detail}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20">
+                  <Activity className="w-4 h-4 text-blue-400" />
+                  <span className="text-blue-400 font-medium text-sm">{slide.content.timeline}</span>
+                </span>
+                <p className="text-white/40 text-xs max-w-lg">{slide.content.investment}</p>
+              </div>
             </div>
           </div>
         );
 
       case "problem-detailed":
         return (
-          <div className="flex flex-col h-full px-12 py-6 overflow-y-auto">
-            <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
-            <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
-            
-            <div className="grid grid-cols-2 gap-4 flex-1">
+          <div className="relative flex flex-col h-full px-12 py-6 overflow-y-auto">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
+              <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
+              <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
+              
+              <div className="grid grid-cols-2 gap-4 flex-1">
               {slide.content.problems.map((p, i) => (
                 <Card key={i} className="bg-red-500/5 border-red-500/20">
                   <CardContent className="p-4">
@@ -1479,15 +1547,18 @@ const ProductPresentation = () => {
             </div>
             
             <p className="text-center text-red-400/80 mt-4 text-sm italic">{slide.content.conclusion}</p>
+            </div>
           </div>
         );
 
       case "solution-detailed":
         return (
-          <div className="flex flex-col h-full px-12 py-6 overflow-y-auto">
-            <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
-            <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
+          <div className="relative flex flex-col h-full px-12 py-6 overflow-y-auto">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
+              <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
+              <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
               {slide.content.pillars.map((p, i) => (
@@ -1521,15 +1592,18 @@ const ProductPresentation = () => {
                 </div>
               ))}
             </div>
+            </div>
           </div>
         );
 
       case "flow-detailed":
         return (
-          <div className="flex flex-col h-full px-12 py-6 overflow-y-auto">
-            <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
-            <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
+          <div className="relative flex flex-col h-full px-12 py-6 overflow-y-auto">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
+              <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
+              <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
             
             <div className="grid grid-cols-3 gap-3 flex-1">
               {slide.content.steps.map((step, i) => (
@@ -1562,13 +1636,15 @@ const ProductPresentation = () => {
                 {slide.content.securityNote}
               </p>
             </div>
+            </div>
           </div>
         );
 
       case "feature-detailed":
         return (
-          <div className="flex h-full">
-            <div className="w-2/5 px-6 py-4 flex flex-col overflow-y-auto">
+          <div className="relative flex h-full">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="w-2/5 px-6 py-4 flex flex-col overflow-y-auto relative z-10">
               <h2 className="text-2xl font-bold text-white mb-1">{slide.title}</h2>
               <p className="text-sm text-white/60 mb-3">{slide.subtitle}</p>
               {slide.content.intro && <p className="text-xs text-white/50 mb-3">{slide.content.intro}</p>}
@@ -1657,10 +1733,12 @@ const ProductPresentation = () => {
 
       case "stamps-detailed":
         return (
-          <div className="flex flex-col h-full px-12 py-6 overflow-y-auto">
-            <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
-            <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
+          <div className="relative flex flex-col h-full px-12 py-6 overflow-y-auto">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
+              <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
+              <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
             
             <div className="grid grid-cols-3 gap-4 mb-4">
               {slide.content.types.map((t, i) => (
@@ -1703,6 +1781,52 @@ const ProductPresentation = () => {
             </div>
             
             <p className="text-center text-emerald-400/80 text-xs">{slide.content.volumeDiscounts}</p>
+            </div>
+          </div>
+        );
+
+      case "benefits-detailed":
+        return (
+          <div className="relative flex flex-col h-full px-12 py-6 overflow-y-auto">
+            <SlideImage src={slide.image} alt={slide.title} />
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
+              <p className="text-lg text-white/60 mb-2">{slide.subtitle}</p>
+              <p className="text-sm text-white/50 mb-4">{slide.content.intro}</p>
+              
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {slide.content.benefits.map((b, i) => (
+                  <Card key={i} className="bg-emerald-500/5 border-emerald-500/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                          <b.icon className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-semibold text-white">{b.title}</h3>
+                          <p className="text-white/60 text-xs">{b.desc}</p>
+                        </div>
+                      </div>
+                      <p className="text-emerald-400/70 text-xs mt-2 pl-13">{b.impact}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              {slide.content.testimonialPlaceholder && (
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
+                  <p className="text-white/60 text-sm italic">{slide.content.testimonialPlaceholder}</p>
+                </div>
+              )}
+              
+              {slide.content.publicEducation && (
+                <p className="text-center text-emerald-400/80 text-sm mt-4">{slide.content.publicEducation}</p>
+              )}
+              
+              {slide.content.strategicValue && (
+                <p className="text-center text-blue-400/80 text-sm mt-4 italic">{slide.content.strategicValue}</p>
+              )}
+            </div>
           </div>
         );
 
