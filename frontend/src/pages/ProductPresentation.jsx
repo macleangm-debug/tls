@@ -1939,6 +1939,31 @@ const ProductPresentation = () => {
               </div>
             )}
             
+            {/* Handle modules array - for practice management and similar slides */}
+            {slide.content?.modules && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {slide.content.modules.map((m, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      {m.icon && <m.icon className="w-6 h-6 text-emerald-400 mb-2" />}
+                      <h3 className="text-sm font-semibold text-white mb-1">{m.title}</h3>
+                      <p className="text-white/60 text-xs mb-2">{m.desc}</p>
+                      {m.features && (
+                        <div className="space-y-1">
+                          {m.features.slice(0, 3).map((f, j) => (
+                            <div key={j} className="flex items-center gap-1 text-xs text-white/50">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              {f}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
             {/* Handle phases array - for roadmap slides */}
             {slide.content?.phases && (
               <div className="grid grid-cols-4 gap-4 mb-4">

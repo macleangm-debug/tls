@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { 
   Settings, LogOut, Users, Shield, DollarSign, TrendingUp,
   Activity, Database, Percent, Save, Plus, UserCog, LayoutDashboard,
-  FileText, Eye, Building, Menu, X, Package, CreditCard
+  FileText, Eye, Building, Menu, X, Package, CreditCard, Printer
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -159,6 +159,7 @@ const SuperAdminDashboard = () => {
       label: "Documents",
       items: [
         { icon: FileText, label: "Product Presentation", path: "/super-admin/presentation" },
+        { icon: Printer, label: "Printable Version", path: "/super-admin/presentation-print" },
       ]
     },
     {
