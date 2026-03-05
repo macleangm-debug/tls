@@ -205,7 +205,7 @@ const SuperAdminDashboard = () => {
       </header>
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 bottom-0 w-72 bg-[#050810] border-r border-white/5 z-40 transform transition-transform duration-300 lg:translate-x-0 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed left-0 top-0 bottom-0 w-72 bg-[#050810] border-r border-white/5 z-40 transform transition-transform duration-300 lg:translate-x-0 flex flex-col overflow-hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-white/5 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
@@ -229,7 +229,7 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
         
-        <nav className="flex-1 p-4 space-y-4 overflow-y-auto min-h-0">
+        <nav className="flex-1 p-4 space-y-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)' }}>
           {navGroups.map((group, groupIndex) => (
             <div key={group.label}>
               {/* Group Label */}

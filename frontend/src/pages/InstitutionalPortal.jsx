@@ -542,7 +542,7 @@ const InstitutionalPortal = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#0a0f1a] border-r border-white/10 transform transition-transform lg:transform-none ${
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#0a0f1a] border-r border-white/10 transform transition-transform lg:transform-none overflow-hidden ${
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}>
         <div className="flex flex-col h-full">
@@ -583,7 +583,7 @@ const InstitutionalPortal = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)' }}>
             {[
               { id: "overview", icon: BarChart3, label: "Overview" },
               { id: "verify", icon: ShieldCheck, label: "Verify Document" },
