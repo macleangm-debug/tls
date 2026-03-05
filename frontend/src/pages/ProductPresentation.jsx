@@ -27,6 +27,17 @@ const SLIDE_IMAGES = {
   legal_documents: "/images/presentation/legal_documents.png"
 };
 
+// Screenshot mockups for feature slides - static images for offline/print
+const SCREENSHOT_IMAGES = {
+  "/documents": "/images/presentation/screenshot_documents.png",
+  "/stamp-document": "/images/presentation/screenshot_documents.png",
+  "/batch-stamp": "/images/presentation/screenshot_batch.png",
+  "/verify": "/images/presentation/screenshot_verify.png",
+  "/practice": "/images/presentation/screenshot_practice.png",
+  "/cases": "/images/presentation/screenshot_practice.png",
+  "/advocates": "/images/presentation/screenshot_advocates.png"
+};
+
 const ProductPresentation = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1731,11 +1742,17 @@ const ProductPresentation = () => {
             
             <div className="w-3/5 p-3 flex items-center justify-center bg-gradient-to-br from-white/5 to-transparent">
               <div className="w-full h-full rounded-xl border border-white/10 bg-[#02040A] overflow-hidden shadow-2xl">
-                <iframe 
-                  src={`https://practice-vault-1.preview.emergentagent.com${slide.screenshot}`}
-                  className="w-full h-full"
-                  title={slide.title}
-                />
+                {slide.screenshot && SCREENSHOT_IMAGES[slide.screenshot] ? (
+                  <img 
+                    src={SCREENSHOT_IMAGES[slide.screenshot]}
+                    alt={`${slide.title} interface`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <p className="text-white/40">Screenshot preview</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
