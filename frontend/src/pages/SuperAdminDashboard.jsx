@@ -150,30 +150,39 @@ const SuperAdminDashboard = () => {
       ]
     },
     {
-      label: "Order Management",
+      label: "Commercial",
       items: [
-        { icon: Package, label: "Physical Orders", path: "/super-admin/orders" },
+        { icon: CreditCard, label: "Membership Billing", path: "/super-admin/billing" },
+        { icon: DollarSign, label: "Verification Pricing", path: "/super-admin/pricing" },
+        { icon: TrendingUp, label: "Revenue Sharing", path: "/super-admin/revenue" },
       ]
     },
     {
-      label: "Documents",
+      label: "Platform",
+      items: [
+        { icon: Settings, label: "System Settings", path: "/super-admin/settings" },
+        { icon: Building, label: "Profession / Tenants", path: "/super-admin/tenants" },
+        { icon: UserCog, label: "Manage Admins", path: "/super-admin/admins" },
+      ]
+    },
+    {
+      label: "Operations",
+      items: [
+        { icon: Package, label: "Physical Orders", path: "/idc/orders" },
+        { icon: Eye, label: "Audit Logs", path: "/super-admin/audit" },
+      ]
+    },
+    {
+      label: "Analytics",
+      items: [
+        { icon: Activity, label: "Revenue Analytics", path: "/super-admin/analytics" },
+      ]
+    },
+    {
+      label: "Sales",
       items: [
         { icon: FileText, label: "Product Presentation", path: "/super-admin/presentation" },
         { icon: Printer, label: "Printable Version", path: "/super-admin/presentation-print" },
-      ]
-    },
-    {
-      label: "Configuration",
-      items: [
-        { icon: CreditCard, label: "Membership Billing", path: "/super-admin/membership" },
-        { icon: DollarSign, label: "Pricing Tiers", path: "/super-admin#pricing" },
-        { icon: Settings, label: "System Settings", path: "/super-admin#settings" },
-      ]
-    },
-    {
-      label: "User Management",
-      items: [
-        { icon: UserCog, label: "Manage Admins", path: "/super-admin#admins" },
       ]
     }
   ];

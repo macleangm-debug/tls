@@ -278,29 +278,34 @@ const DashboardLayout = ({ children, title, subtitle }) => {
     }
   };
 
-  // Grouped navigation items for advocates
+  // Grouped navigation items for advocates - new structure
   const advocateNavGroups = [
     {
-      label: "Main",
+      label: "Overview",
       items: [
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-        { icon: BarChart3, label: "Practice Management", path: "/practice" },
       ]
     },
     {
-      label: "Documents & Stamps",
+      label: "Practice",
       items: [
-        { icon: FileText, label: "Stamp Document", path: "/documents" },
+        { icon: BarChart3, label: "Practice Management", path: "/practice", badge: "Pro" },
+      ]
+    },
+    {
+      label: "Certification",
+      items: [
+        { icon: FileText, label: "Stamp Document", path: "/stamp-document" },
         { icon: Layers, label: "Batch Stamp", path: "/batch-stamp" },
         { icon: BookOpen, label: "Stamp Ledger", path: "/stamp-ledger" },
-        { icon: QrCode, label: "Stamp Verification", path: "/stamp-verification" },
+        { icon: QrCode, label: "Verify Stamp", path: "/stamp-verification" },
         { icon: Fingerprint, label: "My Stamps", path: "/my-stamps" },
       ]
     },
     {
-      label: "Orders & Payments",
+      label: "Commerce",
       items: [
-        { icon: Stamp, label: "Physical Stamps", path: "/order-stamp" },
+        { icon: Stamp, label: "Physical Stamps", path: "/physical-stamps" },
         { icon: History, label: "Order History", path: "/orders" },
         { icon: DollarSign, label: "Payments", path: "/payments" },
       ]
@@ -308,8 +313,8 @@ const DashboardLayout = ({ children, title, subtitle }) => {
     {
       label: "Account",
       items: [
-        { icon: User, label: "My Profile", path: "/profile" },
-        { icon: Shield, label: "PIN & Security", path: "/pin-settings" },
+        { icon: User, label: "Profile", path: "/profile" },
+        { icon: Shield, label: "Security / PIN", path: "/pin-settings" },
         { icon: HelpCircle, label: "Help Center", path: "/help" },
       ]
     }
