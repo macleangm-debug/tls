@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { PracticeContextProvider } from "./context/PracticeContext";
 import { ConfirmationProvider, PinLockProvider } from "./components/SecurityModals";
+import { hasPracticeManagementAccess } from "./utils/featureGates";
 import { initPWA } from "./lib/pwa";
 import { initDB } from "./lib/offlineDB";
 import PWAInstallBanner from "./components/PWAInstallBanner";
@@ -38,12 +40,28 @@ import BusinessRegistrationPage from "./pages/BusinessRegistrationPage";
 import AdvocateProfilePage from "./pages/AdvocateProfilePage";
 import AdvocateDirectoryPage from "./pages/AdvocateDirectoryPage";
 import PracticeManagementPage from "./pages/PracticeManagementPage";
+import PracticeManagementPlansPage from "./pages/PracticeManagementPlansPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 import PinSettingsPage from "./pages/PinSettingsPage";
 import ProductPresentation from "./pages/ProductPresentation";
 import PrintablePresentation from "./pages/PrintablePresentation";
 import "./App.css";
+
+// Practice Management Route Guard
+const PracticeManagementRoute = ({ children }) => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!hasPracticeManagementAccess(user)) {
+    return <Navigate to="/practice-management/plans" replace />;
+  }
+  
+  return children;
+};
 
 const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
   const { user, loading } = useAuth();
@@ -132,9 +150,11 @@ function App() {
           {/* Advocate Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><AdvocateDashboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-          <Route path="/practice" element={<ProtectedRoute><PracticeManagementPage /></ProtectedRoute>} />
-          <Route path="/practice-management" element={<ProtectedRoute><PracticeManagementPage /></ProtectedRoute>} />
+          <Route path="/practice" element={<ProtectedRoute><PracticeManagementRoute><PracticeManagementPage /></PracticeManagementRoute></ProtectedRoute>} />
+          <Route path="/practice-management" element={<ProtectedRoute><PracticeManagementRoute><PracticeManagementPage /></PracticeManagementRoute></ProtectedRoute>} />
+          <Route path="/practice-management/plans" element={<ProtectedRoute><PracticeManagementPlansPage /></ProtectedRoute>} />
           <Route path="/payments" element={<ProtectedRoute><PaymentsPage /></ProtectedRoute>} />
+          <Route path="/physical-stamps" element={<ProtectedRoute><StampOrderPage /></ProtectedRoute>} />
           <Route path="/order-stamp" element={<ProtectedRoute><StampOrderPage /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
           <Route path="/digital-stamps" element={<ProtectedRoute><DigitalStampsPage /></ProtectedRoute>} />
@@ -150,8 +170,9 @@ function App() {
           <Route path="/pin-settings" element={<ProtectedRoute><PinSettingsPage /></ProtectedRoute>} />
           <Route path="/security-settings" element={<ProtectedRoute><PinSettingsPage /></ProtectedRoute>} />
           
-          {/* Institutional Portal (separate login system) */}
+          {/* Institutional Portal / Verification Organization */}
           <Route path="/institutional" element={<InstitutionalPortal />} />
+          <Route path="/verification-org" element={<InstitutionalPortal />} />
           
           {/* Admin Routes (TLS) */}
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
